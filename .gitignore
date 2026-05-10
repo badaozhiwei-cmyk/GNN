@@ -1,0 +1,33 @@
+# Python 环境
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.dll
+
+# 模型权重文件 (全路径封杀)
+**/*.pth
+**/*.h5
+
+# 预处理生成的数据 (全路径封杀)
+**/*.npy
+**/*.npz
+
+# 大型数据文件 (全路径封杀)
+**/*.xlsx
+**/*.xls
+**/*.csv
+# 如果你想保留某些小的 csv (比如 smiles.csv)，可以在下面排除
+!**/smiles.csv
+
+# Jupyter & 图片
+.ipynb_checkpoints/
+figure/
+*.png
+*.jpg
+*.jpeg
+
+# 系统文件
+.DS_Store
+Thumbs.db
