@@ -28,7 +28,7 @@ def add_global(graph):
     :param graph: pyg.data
     :return: pyg.data
     """
-    node = torch.tensor([0,0,0,0,0]).reshape(1, -1)
+    node = torch.tensor([0, 0, 0, 0, 0, 0, 0, 0]).reshape(1, -1)
     # node.shape
     x = torch.cat([graph.x, node], dim=0)
     num_node = x.shape[0] - 1
