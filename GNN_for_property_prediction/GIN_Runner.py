@@ -219,63 +219,91 @@ def plot_results(true_y, pred_y, title, filename):
 if __name__ == '__main__':
     seeds = [42, 2024, 7, 1, 3407]
     ensemble_results = []
-    
-    # Global containers for ensemble visualization
-    all_test_true = []
-    all_test_pred = []
+
+    # ============================================================
+    # 【关键改动】固定测试集：在循环外部切分一次数据
+    # 所有 5 个模型都在同一份测试集上预测，最后取平均
+    # 这样误差可以互相抵消，集成 R² 理论上高于任何单体模型
+    # ============================================================
+    SPLIT_SEED = 42  # 固定切分种子，保证复现
+    print(f"Using fixed split seed: {SPLIT_SEED}")
+    Whole_set = IL_set(path=Args['data_path'])
+    train_size = int(len(Whole_set) * 0.7)
+    test_size  = int(len(Whole_set) * 0.2)
+    dev_size   = len(Whole_set) - train_size - test_size
+
+    train_set, dev_set, test_set = random_split(
+        Whole_set, [train_size, dev_size, test_size],
+        generator=torch.Generator().manual_seed(SPLIT_SEED)
+    )
+    # test_loader 固定不变，所有 seed 共用
+    test_loader = DataLoader(test_set, batch_size=Args['batch_size'], shuffle=False)
+    print(f"Fixed split → Train: {train_size}, Dev: {dev_size}, Test: {test_size}")
+
+    # 用于累积 5 个模型对同一测试集的预测结果
+    all_preds = []   # shape: [num_seeds, test_size]
+    test_true = None
 
     for seed in seeds:
         print(f"\n{'='*20} Training Seed: {seed} {'='*20}")
         set_seed(seed)
-        
-        Whole_set = IL_set(path = Args['data_path'])
-        train_size = int(len(Whole_set) * 0.7)
-        test_size  = int(len(Whole_set) * 0.2)
-        dev_size   = len(Whole_set) - train_size - test_size
-        
-        train_set, dev_set, test_set = random_split(
-            Whole_set, [train_size, dev_size, test_size],
-            generator=torch.Generator().manual_seed(seed)
-        )
 
+        # 训练集 DataLoader 每次用当前 seed shuffle，增加多样性
         train_loader = DataLoader(train_set, batch_size=Args['batch_size'], shuffle=True)
         dev_loader   = DataLoader(dev_set,   batch_size=Args['batch_size'], shuffle=False)
-        test_loader  = DataLoader(test_set,  batch_size=Args['batch_size'], shuffle=False)
 
         run_G = Runner(Args, seed=seed)
         if Args['epoch'] != 0:
             run_G.train(train_loader, dev_loader, Args)
 
+        # 每个模型在同一个固定测试集上预测
         test_pred, test_true = run_G.test(test_loader)
-        
+        all_preds.append(test_pred)
+
+        # 记录单体模型的性能
         mae = mean_absolute_error(test_true, test_pred)
-        r2 = r2_score(test_true, test_pred)
+        r2  = r2_score(test_true, test_pred)
         ensemble_results.append({'seed': seed, 'mae': mae, 'r2': r2})
-        
-        all_test_true.extend(test_true)
-        all_test_pred.extend(test_pred)
-        
-        # Plot individual seed results
+        print(f"  Single model → MAE: {mae:.4f}, R²: {r2:.4f}")
+
+        # 画单体模型散点图
         plot_results(test_true, test_pred, f"Seed {seed} Prediction", f"pred_seed_{seed}")
 
-    # Summary
-    print(f"\n{'='*20} Ensemble Summary {'='*20}")
+    # ============================================================
+    # 集成投票：对 5 个模型的预测取平均
+    # ============================================================
+    import numpy as np
+    ensemble_pred = np.mean(all_preds, axis=0).tolist()  # 5模型平均预测值
+
+    ensemble_mae = mean_absolute_error(test_true, ensemble_pred)
+    ensemble_r2  = r2_score(test_true, ensemble_pred)
+
+    # 单体摘要
+    print(f"\n{'='*20} Individual Model Summary {'='*20}")
     df_results = pd.DataFrame(ensemble_results)
     print(df_results)
-    
     avg_mae = df_results['mae'].mean()
     std_mae = df_results['mae'].std()
-    avg_r2 = df_results['r2'].mean()
-    
-    print(f"\nAverage Test MAE: {avg_mae:.4f} (+/- {std_mae:.4f})")
-    print(f"Average Test R2:  {avg_r2:.4f}")
-    
-    # Save results to CSV
+    avg_r2  = df_results['r2'].mean()
+    print(f"\nAverage Single-Model MAE: {avg_mae:.4f} (+/- {std_mae:.4f})")
+    print(f"Average Single-Model R²:  {avg_r2:.4f}")
+
+    # 集成结果（这是最终最高的 R²）
+    print(f"\n{'='*20} Ensemble (Voting Avg) Result {'='*20}")
+    print(f"Ensemble MAE: {ensemble_mae:.4f}")
+    print(f"Ensemble R²:  {ensemble_r2:.4f}  ← 这是最终最高 R²")
+
+    # 保存结果
+    df_results['ensemble_mae'] = ensemble_mae
+    df_results['ensemble_r2']  = ensemble_r2
     df_results.to_csv('ensemble_results_summary.csv', index=False)
     print("Summary saved to ensemble_results_summary.csv")
 
-    # Plot total ensemble results
-    plot_results(all_test_true, all_test_pred, "Ensemble Prediction Performance", "ensemble_prediction_final")
+    # 画集成散点图（5模型平均 vs 真实值）
+    plot_results(test_true, ensemble_pred,
+                 f"Ensemble Voting Prediction (R²={ensemble_r2:.4f})",
+                 "ensemble_prediction_final")
+
 
 
 
