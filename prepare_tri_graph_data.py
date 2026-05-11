@@ -236,11 +236,14 @@ for idx, row in df_vle.iterrows():
     
     # 第 3 关：组装箱子并写入“周围环境变量”。
     # 强制读取，不再接受任何默认值
-    ani_mol = Chem.MolFromSmiles(a_smi)
+    # 相关性分析精选3个全局特征（相关性均 > 0.21，超过或接近 T/P 量级）：
+    # index[5]=Ref_Charge (-0.305), index[6]=Ref_LogP (-0.288), index[7]=Ani_MW (+0.212)
     ref_mol = Chem.MolFromSmiles(r_smi)
-    ani_mw = Descriptors.MolWt(ani_mol) if ani_mol else 0.0
-    ref_mw = Descriptors.MolWt(ref_mol) if ref_mol else 0.0
-    final_data.append([c_graph, a_graph, r_graph, float(row['T (K)']), float(row['P (MPa)']), ani_mw, ref_mw])
+    ani_mol = Chem.MolFromSmiles(a_smi)
+    ref_charge = float(Descriptors.MaxAbsPartialCharge(ref_mol)) if ref_mol else 0.0
+    ref_logp   = float(Descriptors.MolLogP(ref_mol))             if ref_mol else 0.0
+    ani_mw     = float(Descriptors.MolWt(ani_mol))               if ani_mol else 0.0
+    final_data.append([c_graph, a_graph, r_graph, float(row['T (K)']), float(row['P (MPa)']), ref_charge, ref_logp, ani_mw])
     
     # 同步把测试真正的答案也塞进对应的标签框，这就是将来它作为指导监督的任务目标 (x1=溶解度)
     final_labels.append(float(row['x1']))

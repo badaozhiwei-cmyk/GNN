@@ -74,12 +74,14 @@ class IL_set(torch.utils.data.Dataset):
 
         self.length = self.label.shape[0]
 
-        # 对 Ani_MW (index 5) 和 Ref_MW (index 6) 做 StandardScaler 归一化
-        # 这样它们的量级才能和 T (K) 以及 P (MPa) 相当，不会产生数值压制
-        raw_ani_mw = np.array([self.data[i][5] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_ref_mw = np.array([self.data[i][6] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        self.scaler_ani = StandardScaler().fit(raw_ani_mw)
-        self.scaler_ref = StandardScaler().fit(raw_ref_mw)
+        # 对 3 个全局特征做 StandardScaler 归一化，统一量级：
+        # index[5]=Ref_Charge, index[6]=Ref_LogP, index[7]=Ani_MW
+        raw_ref_charge = np.array([self.data[i][5] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        raw_ref_logp   = np.array([self.data[i][6] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        raw_ani_mw     = np.array([self.data[i][7] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        self.scaler_ref_charge = StandardScaler().fit(raw_ref_charge)
+        self.scaler_ref_logp   = StandardScaler().fit(raw_ref_logp)
+        self.scaler_ani_mw     = StandardScaler().fit(raw_ani_mw)
 
         # show basic information
         print("----info----")
@@ -94,20 +96,22 @@ class IL_set(torch.utils.data.Dataset):
         cation = self.data[idx][0]
         anion = self.data[idx][1]
         refri = self.data[idx][2]
-        T = self.data[idx][3]
-        P = self.data[idx][4]
-        ani_mw = float(self.scaler_ani.transform([[self.data[idx][5]]])[0][0])
-        ref_mw = float(self.scaler_ref.transform([[self.data[idx][6]]])[0][0])
+        T          = self.data[idx][3]
+        P          = self.data[idx][4]
+        ref_charge = float(self.scaler_ref_charge.transform([[self.data[idx][5]]])[0][0])
+        ref_logp   = float(self.scaler_ref_logp.transform([[self.data[idx][6]]])[0][0])
+        ani_mw     = float(self.scaler_ani_mw.transform([[self.data[idx][7]]])[0][0])
 
         cation = self.mol2graph(cation)
-        anion = self.mol2graph(anion)
-        refri = self.mol2graph(refri)
+        anion  = self.mol2graph(anion)
+        refri  = self.mol2graph(refri)
         
         Combine_Graph = combine_Graph([cation, anion, refri])
         if args['add_global'] == True:
             Combine_Graph = add_global(Combine_Graph)
-            
-        condition = torch.tensor([T, P, ani_mw, ref_mw], dtype=torch.float)
+
+        # cond 维度：[T, P, Ref_Charge↑, Ref_LogP↑, Ani_MW↑] = 5维
+        condition = torch.tensor([T, P, ref_charge, ref_logp, ani_mw], dtype=torch.float)
 
 
         label = torch.tensor(self.label[idx],dtype=torch.float)
