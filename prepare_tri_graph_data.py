@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from rdkit import Chem
+from rdkit.Chem import Descriptors
 import os
 
 print("开始执行 Tri-Graph 模型的数据预处理 (V2 - 已修复 CUDA 越界错误)...")
@@ -235,7 +236,11 @@ for idx, row in df_vle.iterrows():
     
     # 第 3 关：组装箱子并写入“周围环境变量”。
     # 强制读取，不再接受任何默认值
-    final_data.append([c_graph, a_graph, r_graph, float(row['T (K)']), float(row['P (MPa)'])])
+    ani_mol = Chem.MolFromSmiles(a_smi)
+    ref_mol = Chem.MolFromSmiles(r_smi)
+    ani_mw = Descriptors.MolWt(ani_mol) if ani_mol else 0.0
+    ref_mw = Descriptors.MolWt(ref_mol) if ref_mol else 0.0
+    final_data.append([c_graph, a_graph, r_graph, float(row['T (K)']), float(row['P (MPa)']), ani_mw, ref_mw])
     
     # 同步把测试真正的答案也塞进对应的标签框，这就是将来它作为指导监督的任务目标 (x1=溶解度)
     final_labels.append(float(row['x1']))

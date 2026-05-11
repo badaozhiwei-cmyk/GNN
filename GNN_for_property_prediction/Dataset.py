@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch_geometric.data import Batch, Data, Dataset, DataLoader
+from sklearn.preprocessing import StandardScaler
 
 args = {
     'add_global':True,
@@ -68,10 +69,17 @@ class IL_set(torch.utils.data.Dataset):
         data_path = path + 'data.npy'
         label_path = path + 'label.npy'
 
-        self.data = np.load(data_path,allow_pickle=True)
-        self.label = np.load(label_path,allow_pickle=True)
+        self.data = np.load(data_path, allow_pickle=True)
+        self.label = np.load(label_path, allow_pickle=True)
 
         self.length = self.label.shape[0]
+
+        # 对 Ani_MW (index 5) 和 Ref_MW (index 6) 做 StandardScaler 归一化
+        # 这样它们的量级才能和 T (K) 以及 P (MPa) 相当，不会产生数值压制
+        raw_ani_mw = np.array([self.data[i][5] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        raw_ref_mw = np.array([self.data[i][6] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        self.scaler_ani = StandardScaler().fit(raw_ani_mw)
+        self.scaler_ref = StandardScaler().fit(raw_ref_mw)
 
         # show basic information
         print("----info----")
@@ -88,6 +96,8 @@ class IL_set(torch.utils.data.Dataset):
         refri = self.data[idx][2]
         T = self.data[idx][3]
         P = self.data[idx][4]
+        ani_mw = float(self.scaler_ani.transform([[self.data[idx][5]]])[0][0])
+        ref_mw = float(self.scaler_ref.transform([[self.data[idx][6]]])[0][0])
 
         cation = self.mol2graph(cation)
         anion = self.mol2graph(anion)
@@ -97,7 +107,7 @@ class IL_set(torch.utils.data.Dataset):
         if args['add_global'] == True:
             Combine_Graph = add_global(Combine_Graph)
             
-        condition = torch.tensor([T,P],dtype=torch.float)
+        condition = torch.tensor([T, P, ani_mw, ref_mw], dtype=torch.float)
 
 
         label = torch.tensor(self.label[idx],dtype=torch.float)

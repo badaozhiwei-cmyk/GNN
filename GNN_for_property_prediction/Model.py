@@ -244,7 +244,7 @@ class GIN(nn.Module):
         self.feat_lin = nn.Linear(self.emb_dim, self.feat_dim)
 
         self.pred_head = nn.Sequential(
-            nn.Linear(self.feat_dim + 2, self.feat_dim),
+            nn.Linear(self.feat_dim + 4, self.feat_dim),
             nn.Softplus(),
             nn.Linear(self.feat_dim, int(self.feat_dim/2)),
             nn.Softplus(),
