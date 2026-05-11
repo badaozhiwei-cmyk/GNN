@@ -281,10 +281,7 @@ class GIN(nn.Module):
             self.x_embedding2(pair_graph.x[:, 1]) + \
             self.x_embedding3(pair_graph.x[:, 2]) + \
             self.x_embedding4(pair_graph.x[:, 3]) + \
-            self.x_embedding5(pair_graph.x[:, 4]) + \
-            self.x_embedding6(pair_graph.x[:, 5]) + \
-            self.x_embedding7(pair_graph.x[:, 6]) + \
-            self.x_embedding8(pair_graph.x[:, 7])
+            self.x_embedding5(pair_graph.x[:, 4])
 
         for layer in range(self.num_layer):
             h = self.gnns[layer](h, pair_graph.edge_index, pair_graph.edge_attr)

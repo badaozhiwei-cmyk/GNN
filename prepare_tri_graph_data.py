@@ -140,8 +140,8 @@ def get_atom_features(atom):
     }
     en_rank = en_map.get(atom.GetSymbol().upper(), 3) # 默认 3 (中等)
 
-    # 最终返回 8 个特征索引：[原子序数, 杂化, 芳香, 度, 电荷, HBD, HBA, 电负性]
-    return [atom.GetAtomicNum(), hybrid, aro, degree, charge, is_hbd, is_hba, en_rank]
+    # 恢复到最原始的 5 维特征
+    return [atom.GetAtomicNum(), hybrid, aro, degree, charge]
 
 def get_bond_features(bond):
     """
