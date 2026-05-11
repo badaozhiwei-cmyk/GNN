@@ -112,35 +112,12 @@ def get_atom_features(atom):
     # 2. 芳香性
     aro = 1 if atom.GetIsAromatic() else 0
     
-    # 3. 原子度 Degree
     degree = atom.GetDegree()
     if degree >= 7: degree = 6
     
-    # 4. 电荷
     charge = atom.GetFormalCharge() + 1 
     if charge > 2: charge = 2
     if charge < 0: charge = 0
-    
-    # 5. 【新增】氢键供体 (HBD)
-    # N, O, S 且带有氢原子
-    is_hbd = 1 if atom.GetSymbol() in ['N', 'O', 'S'] and atom.GetTotalNumHs() > 0 else 0
-    
-    # 6. 【新增】氢键受体 (HBA)
-    # N, O, F (具有孤对电子)
-    is_hba = 1 if atom.GetSymbol() in ['N', 'O', 'F'] else 0
-    
-    # 7. 【新增】电负性等级 (Electronegativity Rank)
-    # 常见元素电负性映射 (Pauling scale -> Rank 1-5)
-    en_map = {
-        'F': 5, 'O': 5,
-        'N': 4, 'CL': 4,
-        'C': 3, 'S': 3, 'BR': 3, 'I': 3,
-        'P': 2, 'H': 2, 'B': 2,
-        'LI': 1, 'NA': 1, 'K': 1, 'MG': 1, 'CA': 1
-    }
-    en_rank = en_map.get(atom.GetSymbol().upper(), 3) # 默认 3 (中等)
-
-    # 恢复到最原始的 5 维特征
     return [atom.GetAtomicNum(), hybrid, aro, degree, charge]
 
 def get_bond_features(bond):
