@@ -11,9 +11,7 @@ num_Hbrid = 8
 num_Aro = 2
 num_degree = 7
 num_charge = 3
-num_HbondDonor = 2    # 新增
-num_HbondAcceptor = 2  # 新增
-num_EnRank = 6         # 新增 (1-5级)
+num_charge = 3
 
 num_bond_type = 5 
 num_bond_isAromatic = 2
@@ -218,18 +216,11 @@ class GIN(nn.Module):
         self.x_embedding3 = nn.Embedding(num_Aro, self.emb_dim)
         self.x_embedding4 = nn.Embedding(num_degree, self.emb_dim)
         self.x_embedding5 = nn.Embedding(num_charge, self.emb_dim)
-        self.x_embedding6 = nn.Embedding(num_HbondDonor, self.emb_dim)    # 新增
-        self.x_embedding7 = nn.Embedding(num_HbondAcceptor, self.emb_dim) # 新增
-        self.x_embedding8 = nn.Embedding(num_EnRank, self.emb_dim)        # 新增
-
         nn.init.xavier_uniform_(self.x_embedding1.weight.data)
         nn.init.xavier_uniform_(self.x_embedding2.weight.data)
         nn.init.xavier_uniform_(self.x_embedding3.weight.data)
         nn.init.xavier_uniform_(self.x_embedding4.weight.data)
         nn.init.xavier_uniform_(self.x_embedding5.weight.data)
-        nn.init.xavier_uniform_(self.x_embedding6.weight.data)
-        nn.init.xavier_uniform_(self.x_embedding7.weight.data)
-        nn.init.xavier_uniform_(self.x_embedding8.weight.data)
 
         # List of MLPs
         self.gnns = nn.ModuleList()
