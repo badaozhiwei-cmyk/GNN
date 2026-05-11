@@ -2,7 +2,7 @@ import torch
 from tqdm import tqdm
 import numpy as np
 import torch.nn as nn
-from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import matplotlib.pyplot as plt
 from torch.utils.data import random_split
 from torch_geometric.data import Data, Dataset, DataLoader
@@ -84,12 +84,12 @@ class Runner(object):
             state_dict_mod = torch.load('pretrained_model/GIN_300/best_model_para.pth', map_location=self._device)
             self._model.load_state_dict(state_dict_mod)
             self._optimizer = torch.optim.Adam(self._model.parameters(), lr=args['lr'], weight_decay=args['weight_decay'])
-            self._scheduler = CosineAnnealingLR(self._optimizer, T_max=args['epoch']-9)
+            self._scheduler = ReduceLROnPlateau(self._optimizer, mode='min', factor=0.5, patience=10)
             print("finish loading")
         else:
             self._model = GIN(args)
             self._optimizer = torch.optim.Adam(self._model.parameters(), lr=args['lr'], weight_decay=args['weight_decay'])
-            self._scheduler = CosineAnnealingLR(self._optimizer, T_max=args['epoch'] - 9)
+            self._scheduler = ReduceLROnPlateau(self._optimizer, mode='min', factor=0.5, patience=10)
 
         self._criterion = nn.L1Loss()
 
@@ -161,8 +161,7 @@ class Runner(object):
                 best_v_loss = avg_val_loss
                 self._save_para('best')
 
-            if epoch >= args['warmup']:
-                scheduler.step()
+            scheduler.step(avg_val_loss)
 
             print(f"Epoch {epoch}/{args['epoch']}: Train loss {avg_train_loss:.04f}, Val loss {avg_val_loss:.04f}, LR {optimizer.param_groups[0]['lr']:.06f}")
             
