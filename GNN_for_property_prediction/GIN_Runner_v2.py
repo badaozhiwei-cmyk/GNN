@@ -24,7 +24,7 @@ import torch.nn as nn
 from tqdm import tqdm
 import numpy as np
 import torch.nn.functional as F
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from torch.optim.lr_scheduler import CosineAnnealingLR
 import matplotlib.pyplot as plt
 from torch.utils.data import random_split
 from torch_geometric.data import DataLoader
@@ -156,11 +156,10 @@ class Runner:
             weight_decay=args['weight_decay']
         )
 
-        # [改动3] 余弦退火热重启替代 ReduceLROnPlateau
-        self._scheduler = CosineAnnealingWarmRestarts(
+        # [改动3] 平滑余弦退火衰减 (无重启，在最大 Epoch 期间一条龙平滑下降)
+        self._scheduler = CosineAnnealingLR(
             self._optimizer,
-            T_0=args['T_0'],
-            T_mult=args['T_mult'],
+            T_max=args['epoch'],
             eta_min=1e-5  # 学习率下限，防止学习率归零
         )
 
@@ -210,8 +209,8 @@ class Runner:
                 bar.update()
             bar.close()
 
-            # [改动3] 余弦退火按 epoch 步进 (而非按 val_loss)
-            scheduler.step(epoch)
+            # [改动3] 平滑余弦退火按 epoch 步进 (无重启)
+            scheduler.step()
 
             # 验证
             model.eval()
