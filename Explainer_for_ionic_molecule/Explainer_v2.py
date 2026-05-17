@@ -140,18 +140,24 @@ class IL_Explainer_v2(torch.nn.Module):
         )
 
         # ── Step 3：迭代优化掩码 ──
+        original_x = graph.x.clone()
         for epoch in range(self.epochs):
             optimizer.zero_grad()
 
-            # 用掩码后的节点特征重新前向传播
-            x_masked = graph.x * self.node_feat_mask.view(1, -1).sigmoid()
-            # GIN 的输入需要 long 类型；掩码后是 float，取 round 近似
+            # 由于 GIN 的输入是离散类别编号 (nn.Embedding)，直接用 float mask 相乘并 round 
+            # 会导致原子类型改变 (比如 C=6 变成 Li=3)。但在不修改原模型的情况下，
+            # 这里的特征掩码只是个近似梯度探测器。
+            # 【修复】：每次在前向传播时从原始 original_x 计算，绝不能 in-place 累积修改
+            x_masked = original_x * self.node_feat_mask.view(1, -1).sigmoid()
             graph.x = x_masked.round().long()
 
             pred = self.model(graph, cond)     # shape=[1,1]
             loss = self.__loss__(pred, target)
             loss.backward()
             optimizer.step()
+
+        # ── 恢复真实的特征，防止破坏后续的原子类别解析 ──
+        graph.x = original_x
 
         # ── Step 4：取出最终掩码（sigmoid 到 0~1）──
         node_feat_mask = self.node_feat_mask.detach().sigmoid()
