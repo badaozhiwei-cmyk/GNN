@@ -49,68 +49,68 @@ Args = {
 # 每个 key 是一个 SMILES 子结构（用 RDKit SMARTS 也可）
 # 每个 value 是一个空列表，运行时会收集每条数据里该片段的贡献分数
 # ══════════════════════════════════════════════════════════════
-Frag_importance = {
-    # ── 制冷剂侧：氟代官能团 ──────────────────────────────────
-    # 这些基团与离子液体阴阳离子之间的 C-H...X 弱氢键和偶极-电荷作用
-    # 是制冷剂在离子液体中物理溶解的核心驱动力
-    'CF':        [],   # 氟甲烷基（单氟代）: CHF₂ / CH₂F
-    'C(F)F':     [],   # 二氟甲基（CHF₂）：如 R32 (CH₂F₂), R152a
-    'C(F)(F)F':  [],   # 三氟甲基（CF₃）：如 R23, R143a, R1234yf
-    'FC(F)':     [],   # 二氟碳（CF₂）：如 R134a 中的中间碳
-    'C=C':       [],   # 烯烃双键：如 R1234yf, R1234ze(E) 等 HFO 类制冷剂
-    'ClC(F)':    [],   # 含氯氟碳（CFC/HCFC）：如 R22 (CHClF₂), R124
-
-    # ── 阴离子侧：常见离子液体阴离子的特征基团 ───────────────
-    # 阴离子的极性位点决定其与制冷剂的相互作用强度
-    'S(=O)(=O)': [],   # 磺酰基（-SO₂-）：Tf2N⁻, OTF⁻, 磺酸盐类阴离子的核心
-    '[N-]':      [],   # 带负电氮：双(三氟甲磺酰)亚胺阴离子 [Tf2N⁻] 的活性中心
-    'P(=O)':     [],   # 膦酸酯/磷酸酯基：如 ET2PO4⁻
-    'C(F)(F)S':  [],   # 氟磺酸基：TTES⁻, HFPS⁻, PFBS⁻ 等含氟阴离子特征
-    '[B-]':      [],   # 四氟硼酸根 BF4⁻
-    '[P-]':      [],   # 六氟磷酸根 PF6⁻ / FEP⁻
-    'OC(=O)':    [],   # 羧酸根（乙酸根 AC⁻、丙酸根 PR⁻ 等）
-
-    # ── 阳离子侧：离子液体阳离子的核心结构 ───────────────────
-    # 阳离子决定了体系的整体极性和空间结构（自由体积）
-    'C[N+]1=CN(C=C1)': [],   # 1,3-二烷基咪唑阳离子核心环（[MMIM]+, [BMIM]+ 等）
-    'C[N+]1cccc':       [],   # 甲基吡啶阳离子环（[EMPY]+, [BMPY]+ 等）
-    '[P+]':             [],   # 季磷阳离子（P4442+, P66614+ 等）
-    'CC':               [],   # 饱和烷基链（影响自由体积和链长效应）
+# 按原子元素类型分组（用原子序数 x[:,0] 直接识别，无需 SMILES）
+# 原子序数对应: C=6, N=7, O=8, F=9, P=15, S=16, Cl=17, Br=35, B=5, I=53
+# 这套分组方法在制冷剂-离子液体体系中意义明确：
+#   F  → 制冷剂的核心氟代基团，决定 C-H 酸性和偶极强度
+#   N  → 咪唑/吡啶阳离子环心，以及 Tf2N⁻ 的亚氨基中心
+#   S  → 磺酰基（Tf2N⁻, OTF⁻ 等阴离子的活性位点）
+#   O  → 羧酸根、磷酸酯基、磺酸根的氧原子（氢键受体）
+#   P  → 季磷阳离子（P66614+, P4442+）/ 磷酸酯阴离子
+#   C  → 烷基链（影响空间位阻和自由体积）
+#   Cl → 含氯制冷剂（R22, R114 等 HCFC/CFC 类）
+#   Br → 含溴卤代烃（R22B1 等）
+#   B  → 四氟硼酸根 BF4⁻
+#   I  → 碘离子 I⁻
+ELEMENT_MAP = {
+    5:  'B  (硼，BF4⁻)',
+    6:  'C  (碳，烷基链/制冷剂骨架)',
+    7:  'N  (氮，咪唑/吡啶/Tf2N⁻)',
+    8:  'O  (氧，羧酸根/磷酸酯/磺酸根)',
+    9:  'F  (氟，氟代制冷剂关键元素)',
+    15: 'P  (磷，季磷阳离子/磷酸酯阴离子)',
+    16: 'S  (硫，磺酰基阴离子活性中心)',
+    17: 'Cl (氯，HCFC/CFC 类制冷剂)',
+    35: 'Br (溴，含溴卤代烃)',
+    53: 'I  (碘，碘离子阴离子)',
 }
+# 初始化每种元素的重要性收集列表
+Element_importance = {v: [] for v in ELEMENT_MAP.values()}
 
 
-def plot_fragment_importance(result: dict, save_path: str):
+def plot_element_importance(result: dict, save_path: str):
     """
-    绘制水平条形图并保存。
-    result: {frag_smiles: mean_score, ...}，按得分降序排列。
+    绘制按元素分组的原子重要性水平条形图。
+    result: {element_label: mean_relative_score}
+    相对分 > 0 表示该元素对预测的贡献高于平均水平（关键位点）
+    相对分 < 0 表示该元素贡献低于平均水平（惰性位点）
     """
-    # 按分数降序排列，过滤掉 NaN
     items = sorted(
         [(k, v) for k, v in result.items() if not np.isnan(v)],
         key=lambda x: x[1], reverse=True
     )
     if not items:
-        print("  [警告] 没有有效的片段分数，跳过绘图。")
+        print("  [警告] 没有有效的元素分数，跳过绘图。")
         return
 
     labels = [x[0] for x in items]
     scores = [x[1] for x in items]
+    colors = ['#e74c3c' if s > 0 else '#3498db' for s in scores]  # 正=红，负=蓝
 
-    fig, ax = plt.subplots(figsize=(10, max(6, len(labels) * 0.5)))
-    bars = ax.barh(labels, scores, color='steelblue', edgecolor='white')
+    fig, ax = plt.subplots(figsize=(11, max(6, len(labels) * 0.6)))
+    bars = ax.barh(labels, scores, color=colors, edgecolor='white')
 
-    # 在条形末端标注数值
     for bar, score in zip(bars, scores):
-        ax.text(
-            bar.get_width() + 0.002, bar.get_y() + bar.get_height() / 2,
-            f'{score:.4f}', va='center', ha='left', fontsize=9
-        )
+        x_pos = bar.get_width() + 0.0005 if score >= 0 else bar.get_width() - 0.0005
+        ha = 'left' if score >= 0 else 'right'
+        ax.text(x_pos, bar.get_y() + bar.get_height() / 2,
+                f'{score:+.4f}', va='center', ha=ha, fontsize=9)
 
-    ax.set_xlabel('Fragment Importance Score (relative)', fontsize=12)
-    ax.set_ylabel('Fragment SMILES', fontsize=12)
-    ax.set_title('Refrigerant-IL System: GNNExplainer Fragment Attribution\n(V2, Tri-Graph Model)', fontsize=13)
-    ax.axvline(0, color='gray', linewidth=0.8, linestyle='--')
-    ax.invert_yaxis()   # 得分最高的在顶部
+    ax.set_xlabel('Relative Atom Importance Score\n(positive = above average, key interaction site)', fontsize=11)
+    ax.set_title('Refrigerant-IL System: GNNExplainer Element Attribution\n'
+                 '(V2 Tri-Graph, per-element grouping by atomic number)', fontsize=12)
+    ax.axvline(0, color='black', linewidth=1.0, linestyle='--')
+    ax.invert_yaxis()
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
@@ -148,74 +148,69 @@ def main(model_path: str, data_root: str, explainer_epochs: int = 100):
     )
 
     # ── 4. 主循环：逐样本解释 ──────────────────────────────────
-    frag_imp = {k: [] for k in Frag_importance}   # 每个片段的分数列表
-    node_feat_imp = np.zeros(5)                    # 5 种原子特征的重要性累加
+    elem_imp  = {v: [] for v in ELEMENT_MAP.values()}  # 每种元素的相对重要性列表
+    node_feat_imp = np.zeros(5)                         # 5 种节点特征的累加重要性
 
     bar = tqdm(total=len(loader), desc='Explaining', dynamic_ncols=True)
 
     for G, cond, label, num_bonds_list in loader:
         G    = G.to(device)
         cond = cond.to(device)
+        num_bond = num_bonds_list[0]
 
-        num_bond = num_bonds_list[0]   # batch_size=1，取第一个
-
-        # GNNExplainer 优化掩码
         try:
             node_feat_mask, edge_mask = explainer.explain_graph(G, cond)
         except Exception as e:
             bar.update()
             continue
 
-        # 累加节点特征重要性
         node_feat_imp += node_feat_mask.cpu().numpy()
 
-        # ── 解析原子级掩码 ──────────────────────────────────
-        # edge_mask[:num_bond]  = 真实化学键的掩码
-        # edge_mask[num_bond:]  = 全局虚拟边的掩码（对应每个原子的"全局连接"）
-        # 我们用全局虚拟边的掩码来代理"原子重要性"：
-        # 每条全局虚拟边 i→global 的权重反映了第 i 个原子对预测的贡献
-        global_edge_mask = edge_mask[num_bond:]          # shape: [2 * num_atom]（双向）
-        num_atom = global_edge_mask.shape[0] // 2
-        # 正向（atom→global）和反向（global→atom）取平均
-        fwd = global_edge_mask[:num_atom]
-        bwd = global_edge_mask[num_atom:]
-        atom_importance = ((fwd + bwd) / 2).cpu().tolist()   # 每个原子的重要性分数
-        mean_score = np.mean(atom_importance)
+        # ── 解析原子级掩码 ─────────────────────────────────────
+        # 全局虚拟边的掩码反映了每个原子对预测值的贡献程度。
+        # 因为 add_global 给每个真实原子 i 添加了两条虚拟边（i→global, global→i），
+        # 所以 edge_mask[num_bond:] 的前半段 = 正向掩码，后半段 = 反向掩码
+        global_mask = edge_mask[num_bond:].cpu()
+        num_real_atom = global_mask.shape[0] // 2       # 不含全局节点本身
+        fwd = global_mask[:num_real_atom]
+        bwd = global_mask[num_real_atom:]
+        atom_imp = ((fwd + bwd) / 2).numpy()            # shape: [num_real_atom]
+        mean_imp = atom_imp.mean()                      # 全图原子重要性均值（基准）
 
-        # ── 将原子重要性映射到片段 ──────────────────────────
-        # 由于三图合并后原子索引是连续的，我们用 RDKit 对每个分子做子结构匹配
-        # 此处用简化方式：直接对 SMILES 片段检查是否出现在分子 SMILES 中
-        # （更精确的实现需要在预处理阶段记录每个原子属于哪个分子）
-        # 现阶段：将全图的平均分作为"相对贡献"的基准
-        for frag in frag_imp:
-            # 相对重要性 = 该片段区域的分数 - 全图平均分
-            # 因为我们没有原子到片段的精确映射，此处用全图均值估算
-            # 后续可通过记录分子边界进一步精细化
-            frag_imp[frag].append(mean_score - mean_score)  # 占位，见下方说明
+        # ── 按元素类型分组，计算相对重要性 ────────────────────
+        # x[:, 0] 存的就是原子序数（来自 prepare_tri_graph_data.py 的图构建）
+        # 最后一个节点是全局虚拟节点（原子序数=0），跳过
+        atom_types = G.x[:num_real_atom, 0].cpu().numpy()   # shape: [num_real_atom]
+
+        for atom_idx, (at, imp) in enumerate(zip(atom_types, atom_imp)):
+            at = int(at)
+            if at in ELEMENT_MAP:
+                elem_label = ELEMENT_MAP[at]
+                # 相对重要性 = 该原子得分 - 全图均值
+                # 正值：该原子是高于平均水平的关键位点
+                # 负值：该原子是惰性的背景结构
+                elem_imp[elem_label].append(float(imp - mean_imp))
 
         bar.update()
 
     bar.close()
 
-    # ── 5. 汇总结果 ────────────────────────────────────────────
+    # ── 5. 汇总每种元素的平均相对重要性 ───────────────────────
     result = {}
-    for frag, scores in frag_imp.items():
-        if scores:
-            result[frag] = float(np.mean(scores))
-        else:
-            result[frag] = float('nan')
+    for elem_label, scores in elem_imp.items():
+        result[elem_label] = float(np.mean(scores)) if scores else float('nan')
 
     # ── 6. 保存原始数据 ────────────────────────────────────────
     out_dir = os.path.join(os.path.dirname(__file__), 'fragment_explain_result')
     os.makedirs(out_dir, exist_ok=True)
 
-    np.save(os.path.join(out_dir, 'frag_importance_v2_raw.npy'),
-            np.array(list(frag_imp.items()), dtype=object), allow_pickle=True)
+    np.save(os.path.join(out_dir, 'element_importance_v2_raw.npy'),
+            np.array(list(elem_imp.items()), dtype=object), allow_pickle=True)
     np.save(os.path.join(out_dir, 'node_feat_imp_v2.npy'),
             node_feat_imp, allow_pickle=False)
 
     # ── 7. 绘图 ────────────────────────────────────────────────
-    plot_fragment_importance(result, os.path.join(out_dir, 'fragment_score_v2.png'))
+    plot_element_importance(result, os.path.join(out_dir, 'element_score_v2.png'))
 
     # ── 8. 节点特征重要性图 ─────────────────────────────────────
     feat_names = ['atomic_number', 'atomic_degree', 'charge', 'hybridization', 'Aromatic']
