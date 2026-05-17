@@ -234,16 +234,29 @@ for idx, row in df_vle.iterrows():
     # 同理，万一有 SMILES 代码被写错了使得 RDKit 加载生成不出实物，这一行也得被牺牲当做垃圾扔掉
     if None in (c_graph, a_graph, r_graph): continue
     
-    # 第 3 关：组装箱子并写入“周围环境变量”。
-    # 强制读取，不再接受任何默认值
-    # 相关性分析精选3个全局特征（相关性均 > 0.21，超过或接近 T/P 量级）：
-    # index[5]=Ref_Charge (-0.305), index[6]=Ref_LogP (-0.288), index[7]=Ani_MW (+0.212)
-    ref_mol = Chem.MolFromSmiles(r_smi)
-    ani_mol = Chem.MolFromSmiles(a_smi)
+    # 第 3 关：计算全局物理特征并组装数据
+    # 我们根据相关性热图，选择了除了 T, P 以外最强的 3 个物理描述符
+    ref_mol = Chem.MolFromSmiles(r_smi) # 制冷剂分子对象
+    ani_mol = Chem.MolFromSmiles(a_smi) # 阴离子分子对象
+    
+    # 1. Ref_Charge (制冷剂最大绝对电荷): 衡量分子的极性和电荷分布强度 (相关性 -0.305)
     ref_charge = float(Descriptors.MaxAbsPartialCharge(ref_mol)) if ref_mol else 0.0
+    
+    # 2. Ref_LogP (制冷剂亲脂性): 衡量分子的极性/亲水性 (相关性 -0.288)
     ref_logp   = float(Descriptors.MolLogP(ref_mol))             if ref_mol else 0.0
+    
+    # 3. Ani_MW (阴离子分子量): 衡量阴离子的尺寸，影响体系自由体积 (相关性 +0.212)
     ani_mw     = float(Descriptors.MolWt(ani_mol))               if ani_mol else 0.0
-    final_data.append([c_graph, a_graph, r_graph, float(row['T (K)']), float(row['P (MPa)']), ref_charge, ref_logp, ani_mw])
+    
+    # 将 [3个图结构, T, P, 3个新特征] 统一打包存入 final_data
+    final_data.append([
+        c_graph, a_graph, r_graph,     # 图结构
+        float(row['T (K)']),           # 特征 1: 温度
+        float(row['P (MPa)']),          # 特征 2: 压力
+        ref_charge,                    # 特征 3: 制冷剂电荷
+        ref_logp,                      # 特征 4: 制冷剂LogP
+        ani_mw                         # 特征 5: 阴离子分子量
+    ])
     
     # 同步把测试真正的答案也塞进对应的标签框，这就是将来它作为指导监督的任务目标 (x1=溶解度)
     final_labels.append(float(row['x1']))

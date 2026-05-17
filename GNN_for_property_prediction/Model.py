@@ -280,7 +280,10 @@ class GIN(nn.Module):
             h = F.dropout(F.relu(h), self.drop_ratio, training=self.training)
 
         h = self.feat_lin(h)
-        h_pair = self.extract(h, pair_graph.batch)
-        h = torch.cat([h_pair, cond], dim=1)
-
+        # 【特征融合层】
+        # 将 GNN 提取出的分子结构特征 (h_pair) 与 5 个全局物理量 (cond) 进行拼接
+        # 这一步实现了“物理增强”：模型同时参考了结构和物理常数
+        h = torch.cat([h_pair, cond], dim=1) 
+        
+        # 将融合后的总特征送入 MLP 输出头进行最终的溶解度预测
         return self.pred_head(h)

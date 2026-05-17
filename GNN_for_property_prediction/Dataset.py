@@ -110,7 +110,15 @@ class IL_set(torch.utils.data.Dataset):
         if args['add_global'] == True:
             Combine_Graph = add_global(Combine_Graph)
 
-        # cond 维度：[T, P, Ref_Charge↑, Ref_LogP↑, Ani_MW↑] = 5维
+        # 提取存储在仓库中的后 5 位数据（T, P, Charge, LogP, MW）张量化标准化
+        data = self.data[idx]
+        T, P = data[3], data[4]
+        ref_charge = float(self.scaler_ref_charge.transform([[data[5]]])[0][0])
+        ref_logp   = float(self.scaler_ref_logp.transform([[data[6]]])[0][0])
+        ani_mw     = float(self.scaler_ani_mw.transform([[data[7]]])[0][0])
+        
+        # 将这 5 个物理量打包成一个 condition 向量，作为全局环境输入
+        # 模型最后的 MLP 将直接读到这 5 个标准化后的数字
         condition = torch.tensor([T, P, ref_charge, ref_logp, ani_mw], dtype=torch.float)
 
 
