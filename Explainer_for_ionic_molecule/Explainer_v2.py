@@ -140,23 +140,53 @@ class IL_Explainer_v2(torch.nn.Module):
         )
 
         # ── Step 3：迭代优化掩码 ──
+        # ── Step 3：迭代优化掩码 ──
+        # 判断当前模型是否是带有嵌入层（x_embedding1）的 GIN 模型
+        use_embedding_patch = hasattr(self.model, 'x_embedding1')
+        
+        if use_embedding_patch:
+            # 动态覆写 GIN 的 forward 方法，让梯度可以通过连续的 float 掩码流回 node_feat_mask
+            import torch.nn.functional as F_func
+            def masked_forward(pair_graph, cond_val):
+                m = self.node_feat_mask.sigmoid()
+                # 分别对 5 个特征的 Embedding 乘以其对应的可微分特征掩码
+                h = self.model.x_embedding1(pair_graph.x[:, 0]) * m[0] + \
+                    self.model.x_embedding2(pair_graph.x[:, 1]) * m[1] + \
+                    self.model.x_embedding3(pair_graph.x[:, 2]) * m[2] + \
+                    self.model.x_embedding4(pair_graph.x[:, 3]) * m[3] + \
+                    self.model.x_embedding5(pair_graph.x[:, 4]) * m[4]
+                
+                # 后面保持与 Model.py 中 GIN 层的传播完全一致
+                for layer in range(self.model.num_layer):
+                    h = self.model.gnns[layer](h, pair_graph.edge_index, pair_graph.edge_attr)
+                    h = self.model.batch_norms[layer](h)
+                    h = F_func.dropout(F_func.relu(h), self.model.drop_ratio, training=self.model.training)
+
+                h = self.model.feat_lin(h)
+                h_pair = self.model.extract(h, pair_graph.batch)
+                h = torch.cat([h_pair, cond_val], dim=1) 
+                return self.model.pred_head(h)
+                
+            original_forward = self.model.forward
+            self.model.forward = masked_forward
+            
         original_x = graph.x.clone()
         for epoch in range(self.epochs):
             optimizer.zero_grad()
 
-            # 由于 GIN 的输入是离散类别编号 (nn.Embedding)，直接用 float mask 相乘并 round 
-            # 会导致原子类型改变 (比如 C=6 变成 Li=3)。但在不修改原模型的情况下，
-            # 这里的特征掩码只是个近似梯度探测器。
-            # 【修复】：每次在前向传播时从原始 original_x 计算，绝不能 in-place 累积修改
-            x_masked = original_x * self.node_feat_mask.view(1, -1).sigmoid()
-            graph.x = x_masked.round().long()
+            if not use_embedding_patch:
+                # 非 GIN 传统模型（如GCN/GAT），其点特征本身就是 float，采用常规掩码
+                x_masked = original_x * self.node_feat_mask.view(1, -1).sigmoid()
+                graph.x = x_masked.round().long()
 
             pred = self.model(graph, cond)     # shape=[1,1]
             loss = self.__loss__(pred, target)
             loss.backward()
             optimizer.step()
 
-        # ── 恢复真实的特征，防止破坏后续的原子类别解析 ──
+        # ── 恢复现场：还原真实的 forward 函数和特征图 ──
+        if use_embedding_patch:
+            self.model.forward = original_forward
         graph.x = original_x
 
         # ── Step 4：取出最终掩码（sigmoid 到 0~1）──
