@@ -183,13 +183,21 @@ def main(model_path: str, data_root: str, explainer_epochs: int = 100, num_sampl
     # ── 7. 绘制并保存元素重要性水平条形图 ──
     plot_element_importance(result, os.path.join(out_dir, 'element_score_v2.png'))
 
-    # ── 8. 绘制并保存 5 大节点特征维度累计重要性图 ──
+    # ── 8. 绘制并保存 5 大节点特征维度相对重要性图 ──
     feat_names = ['atomic_number', 'atomic_degree', 'charge', 'hybridization', 'Aromatic']
+    
+    # 转换为相对贡献度（减去5大特征的平均累计得分，凸显分化差异）
+    relative_feat_imp = node_feat_imp - np.mean(node_feat_imp)
+    
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.bar(feat_names, node_feat_imp, color='steelblue', edgecolor='black', linewidth=0.5)
-    ax.set_ylabel('Cumulative Importance Score', fontsize=12)
-    ax.set_title('Node Feature Cumulative Importance\n(Tri-Graph Refrigerant V2)', fontsize=13, pad=15)
-    plt.grid(axis='y', linestyle=':', alpha=0.5)
+    
+    # 正偏差用蓝色（重要性高于平均值），负偏差用红色（低于平均值）
+    colors = ['steelblue' if s >= 0 else 'indianred' for s in relative_feat_imp]
+    
+    ax.bar(feat_names, relative_feat_imp, color=colors, edgecolor='black', linewidth=0.5)
+    ax.axhline(0, color='gray', linestyle='--', linewidth=1.0)
+    ax.set_ylabel('Relative Cumulative Importance (Feature - mean)', fontsize=12)
+    ax.set_title('Node Feature Relative Importance\n(Tri-Graph Refrigerant V2)', fontsize=13, pad=15)
     plt.tight_layout()
     nf_path = os.path.join(out_dir, 'node_feature_v2.png')
     plt.savefig(nf_path, dpi=300, bbox_inches='tight')
