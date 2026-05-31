@@ -43,16 +43,16 @@ Args = {
 # 按照原子序数分类汇总（对应 G.x[:, 0]）
 # C=6, N=7, O=8, F=9, P=15, S=16, Cl=17, Br=35, B=5, I=53
 ELEMENT_MAP = {
-    5:  'B  (硼，BF4-)',
-    6:  'C  (碳，烷基链/制冷剂骨架)',
-    7:  'N  (氮，咪唑/吡啶/Tf2N-)',
-    8:  'O  (氧，羧酸根/磷酸酯/磺酸根)',
-    9:  'F  (氟，氟代制冷剂关键元素)',
-    15: 'P  (磷，季膦阳离子/磷酸酯阴离子)',
-    16: 'S  (硫，磺酰基阴离子活性中心)',
-    17: 'Cl (氯，HCFC/CFC 类制冷剂)',
-    35: 'Br (溴，含溴代烃)',
-    53: 'I  (碘，碘离子阴离子)',
+    5:  'B (Boron, e.g., BF4-)',
+    6:  'C (Carbon skeleton / alkyl chain)',
+    7:  'N (Nitrogen, e.g., Imidazole/Tf2N-)',
+    8:  'O (Oxygen, e.g., Sulfonate/Carbonyl)',
+    9:  'F (Fluorine, key polar atom)',
+    15: 'P (Phosphorus, e.g., Phosphonium)',
+    16: 'S (Sulfur, e.g., Sulfonyl group)',
+    17: 'Cl (Chlorine, e.g., HCFCs/CFCs)',
+    35: 'Br (Bromine)',
+    53: 'I (Iodine)',
 }
 
 
