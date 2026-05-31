@@ -10,9 +10,12 @@ __pycache__/
 **/*.pth
 **/*.h5
 
-# 预处理生成的数据 (全路径封杀)
+# 预处理生成的数据 (全路径封杀，但保留关键的小文件)
 **/*.npy
 **/*.npz
+# 例外：processed_tri_data 里的预处理结果（共约 2MB，Colab 必须）
+!processed_tri_data/data.npy
+!processed_tri_data/label.npy
 
 # 大型数据文件 (全路径封杀)
 **/*.xlsx
