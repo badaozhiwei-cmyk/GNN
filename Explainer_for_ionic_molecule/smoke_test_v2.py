@@ -44,7 +44,11 @@ def main(model_path, data_root, n_samples=3, epochs=10):
 
     # 加载模型
     model = GIN(Args).to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    checkpoint = torch.load(model_path, map_location=device)
+    if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+        model.load_state_dict(checkpoint['model_state_dict'])
+    else:
+        model.load_state_dict(checkpoint)
     model.eval()
     print("✅ 模型加载成功")
 
