@@ -20,7 +20,7 @@ import torch
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
-from torch_geometric.data import DataLoader
+from torch_geometric.data import DataLoader, Batch
 
 # ── 将 GNN_for_property_prediction 加入搜索路径 ──
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -82,7 +82,7 @@ def main(sample_idx: int, model_path: str, data_root: str, epochs: int):
     explainer = IL_Explainer_v2(model, epochs=epochs, lr=0.01)
     
     # 临时打个 Batch 维度以喂给 Explainer
-    G_batch = G.to(device)
+    G_batch = Batch.from_data_list([G]).to(device)
     cond_batch = cond.unsqueeze(0).to(device)
     
     node_feat_mask, edge_mask = explainer.explain_graph(G_batch, cond_batch)
