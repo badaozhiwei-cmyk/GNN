@@ -71,14 +71,15 @@ def plot_element_importance(result: dict, save_path: str):
     
     plt.figure(figsize=(9, 6))
     
-    # 贡献度大于0的用蓝色（促进溶解），小于0的用红色（惰性/位阻屏蔽）
-    colors = ['steelblue' if s >= 0 else 'indianred' for s in scores]
+    # 使用渐变色，分数越高的颜色越深/亮
+    import matplotlib.cm as cm
+    max_score = max(scores) if max(scores) > 0 else 1.0
+    colors = cm.viridis(np.array(scores) / max_score)
     
     plt.barh(elements, scores, color=colors, height=0.6, edgecolor='black', linewidth=0.5)
-    plt.axvline(0, color='gray', linestyle='--', linewidth=1.0)
-    plt.xlabel('Relative Importance Score (Element - mean_imp)', fontsize=12)
+    plt.xlabel('Absolute Importance Score (GNNExplainer Mask)', fontsize=12)
     plt.ylabel('Chemical Elements', fontsize=12)
-    plt.title('Element-Level Relative Importance on Solubility\n(Tri-Graph Refrigerant V2)', fontsize=13, pad=15)
+    plt.title('Element-Level Absolute Importance on Solubility\n(Tri-Graph Refrigerant V2)', fontsize=13, pad=15)
     plt.grid(axis='x', linestyle=':', alpha=0.5)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
@@ -172,10 +173,9 @@ def main(model_path: str, data_root: str, explainer_epochs: int = 100, num_sampl
         atom_imp = 0.5 * bond_atom_avg + 0.5 * global_atom_score
 
         # ==================================================================
-        # 修复点2：分子内归一化
+        # 修复点2：分子内归一化 (修正：直接使用掩码分数，不再减去平均值导致支柱元素归零)
         # ==================================================================
-        local_mean = atom_imp.mean()
-        atom_imp_normalized = atom_imp - local_mean
+        atom_imp_normalized = atom_imp
 
         # ==================================================================
         # 修复点3：按子图分离归因
@@ -269,18 +269,15 @@ def main(model_path: str, data_root: str, explainer_epochs: int = 100, num_sampl
     feat_names = ['atomic_number', 'hybridization', 'aromatic', 'degree', 'charge',
                   'electronegativity', 'cov_radius']  # V2 新增 2 个
     
-    # 转换为相对贡献度（减去5大特征的平均累计得分，凸显分化差异）
-    relative_feat_imp = node_feat_imp - np.mean(node_feat_imp)
+    # 改为计算每个特征的百分比贡献度
+    total_imp = np.sum(node_feat_imp)
+    relative_feat_imp = (node_feat_imp / total_imp * 100) if total_imp > 0 else node_feat_imp
     
     fig, ax = plt.subplots(figsize=(8, 5))
     
-    # 正偏差用蓝色（重要性高于平均值），负偏差用红色（低于平均值）
-    colors = ['steelblue' if s >= 0 else 'indianred' for s in relative_feat_imp]
-    
-    ax.bar(feat_names, relative_feat_imp, color=colors, edgecolor='black', linewidth=0.5)
-    ax.axhline(0, color='gray', linestyle='--', linewidth=1.0)
-    ax.set_ylabel('Relative Cumulative Importance (Feature - mean)', fontsize=12)
-    ax.set_title('Node Feature Relative Importance\n(Tri-Graph Refrigerant V2)', fontsize=13, pad=15)
+    ax.bar(feat_names, relative_feat_imp, color='steelblue', edgecolor='black', linewidth=0.5)
+    ax.set_ylabel('Importance Contribution (%)', fontsize=12)
+    ax.set_title('Node Feature Importance Contribution\n(Tri-Graph Refrigerant V2)', fontsize=13, pad=15)
     plt.tight_layout()
     nf_path = os.path.join(out_dir, 'node_feature_v2.png')
     plt.savefig(nf_path, dpi=300, bbox_inches='tight')
