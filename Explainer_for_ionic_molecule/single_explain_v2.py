@@ -143,9 +143,9 @@ def main(sample_idx: int, model_path: str, data_root: str, epochs: int):
     cbar = plt.colorbar(nodes, pad=0.02, shrink=0.8)
     cbar.set_label('Atom Importance Score (GNNExplainer)', rotation=270, labelpad=15, fontsize=10)
     
-    # 还原原本的温度与压力（反归一化或直接提取）
-    T = float(cond[0])
-    P = float(cond[1])
+    # 还原原本的温度与压力（反归一化）
+    T = float(dataset.scaler_T.inverse_transform([[float(cond[0])]])[0][0])
+    P = float(dataset.scaler_P.inverse_transform([[float(cond[1])]])[0][0])
     
     plt.title(
         f"Atom Importance Heatmap for Sample {sample_idx}\n"

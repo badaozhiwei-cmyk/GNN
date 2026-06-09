@@ -109,12 +109,16 @@ class IL_set_v2(torch.utils.data.Dataset):
         # ── 对 5 个 RDKit 特征做 StandardScaler（与 Dataset.py 完全一致）──
         # index[5]=Ref_Charge, index[6]=Ref_LogP, index[7]=Ani_MW,
         # index[8]=Cat_Charge, index[9]=Cat_TPSA  ← V2 依据热图更新
+        raw_T           = np.array([self.data[i][3] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        raw_P           = np.array([self.data[i][4] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
         raw_ref_charge  = np.array([self.data[i][5] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
         raw_ref_logp    = np.array([self.data[i][6] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
         raw_ani_mw      = np.array([self.data[i][7] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
         raw_cat_charge  = np.array([self.data[i][8] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)  # V2
         raw_cat_tpsa    = np.array([self.data[i][9] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)  # V2
 
+        self.scaler_T           = StandardScaler().fit(raw_T)
+        self.scaler_P           = StandardScaler().fit(raw_P)
         self.scaler_ref_charge  = StandardScaler().fit(raw_ref_charge)
         self.scaler_ref_logp    = StandardScaler().fit(raw_ref_logp)
         self.scaler_ani_mw      = StandardScaler().fit(raw_ani_mw)
@@ -145,8 +149,8 @@ class IL_set_v2(torch.utils.data.Dataset):
             Combine_Graph = add_global(Combine_Graph)
 
         # ── Step 4: 组装 7 维条件向量（归一化）────────────────
-        T          = float(d[3])
-        P          = float(d[4])
+        T          = float(self.scaler_T.transform([[d[3]]])[0][0])
+        P          = float(self.scaler_P.transform([[d[4]]])[0][0])
         ref_charge = float(self.scaler_ref_charge.transform([[d[5]]])[0][0])
         ref_logp   = float(self.scaler_ref_logp.transform([[d[6]]])[0][0])
         ani_mw     = float(self.scaler_ani_mw.transform([[d[7]]])[0][0])

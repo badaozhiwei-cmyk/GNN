@@ -127,7 +127,7 @@ def main(model_path, data_root, n_samples=3, epochs=10):
         check2 = False
     print(f"[CHECK 2] 不同元素得分有差异: {'✅ 通过' if check2 else '❌ 失败 — 所有元素得分相同'}")
 
-    # CHECK 3: 节点特征掩码 5 个维度不全一样
+    # CHECK 3: 节点特征掩码 7 个维度不全一样
     nf = np.stack(all_node_feat_masks).mean(axis=0)
     check3 = nf.std() > 1e-6
     print(f"[CHECK 3] 节点特征掩码有差异（std > 1e-6）: {'✅ 通过' if check3 else '❌ 失败'}")
