@@ -257,9 +257,9 @@ if __name__ == '__main__':
     train_set,dev_set = random_split(Whole_set,[train_size,dev_size])
 
     # data loading
-    train_loader = DataLoader(train_set,batch_size = Args['batch_size'],shuffle=True,collate_fn=IL_set.collate_fn)
-    dev_loader = DataLoader(dev_set,batch_size = Args['batch_size'],shuffle=True,collate_fn=IL_set.collate_fn)
-    explain_loader = DataLoader(dev_set,batch_size = Args['batch_size'],shuffle=False,collate_fn=IL_set.collate_fn)
+    train_loader = DataLoader(train_set,batch_size = Args['batch_size'],shuffle=True)
+    dev_loader = DataLoader(dev_set,batch_size = Args['batch_size'],shuffle=True)
+    explain_loader = DataLoader(dev_set,batch_size = Args['batch_size'],shuffle=False)
 
     # init Runner
     run_G = Runner(Args)
