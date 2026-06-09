@@ -102,9 +102,61 @@ for k, v in extra_smiles.items():
 # 模块 2：RDKit 特征提取（把化学结构变成神经网络认识的数字）
 # 作用：我们对分子里的每一个“原子”和每一根“化学键”进行体检，给他们打分。
 # ==========================================
+# ── 电负性查表（Pauling 标度，覆盖数据集中的所有元素）──────────────
+# 电负性代表原子对电子的吸引力：F最强(3.98)，I最弱(2.66)
+# 这是区分 F/Cl/Br/I 的核心化学物理量
+ELECTRONEG = {
+    1: 2.20,   # H  - 氢
+    5: 2.04,   # B  - 硼（BF4中）
+    6: 2.55,   # C  - 碳（链骨架）
+    7: 3.04,   # N  - 氮（咪唑环）
+    8: 3.44,   # O  - 氧（磺酸根）
+    9: 3.98,   # F  - 氟（最强电负性！制冷剂关键）
+    15: 2.19,  # P  - 磷（磷酸盐/磷鎓）
+    16: 2.58,  # S  - 硫（Tf2N中）
+    17: 3.16,  # Cl - 氯（HCFCs）
+    35: 2.96,  # Br - 溴
+    53: 2.66,  # I  - 碘（电负性最弱，但半径最大）
+}
+ENEG_MIN, ENEG_MAX = 2.04, 3.98  # 数据集中电负性的实际范围
+
+# ── 共价半径查表（单位：pm，覆盖数据集中的所有元素）────────────────
+# 原子半径越大，越难挤进离子液体的自由体积空隙 → 溶解度越低
+# 这是区分 I(139pm) vs F(64pm) 的关键物理量
+COV_RADIUS = {
+    1: 31,    # H  - 氢（最小）
+    5: 84,    # B  - 硼
+    6: 77,    # C  - 碳
+    7: 71,    # N  - 氮
+    8: 66,    # O  - 氧
+    9: 64,    # F  - 氟（最小，能嵌入空隙）
+    15: 107,  # P  - 磷
+    16: 105,  # S  - 硫
+    17: 102,  # Cl - 氯
+    35: 120,  # Br - 溴
+    53: 139,  # I  - 碘（最大，难溶）
+}
+RAD_MIN, RAD_MAX = 31, 139  # 数据集中共价半径的实际范围
+
+def bucketize(val, min_v, max_v, n_buckets=8):
+    """
+    将连续的浮点数值线性映射到 [0, n_buckets-1] 的整数桶。
+    GIN 使用 nn.Embedding（整数查表），不接受浮点数，所以需要分桶。
+    """
+    ratio = (val - min_v) / (max_v - min_v + 1e-8)
+    return min(int(ratio * n_buckets), n_buckets - 1)
+
 def get_atom_features(atom):
     """
-    【专业增强版】：在不增加模型维度的情况下，融入核心化学特征
+    【V2 物理增强版】：在原5维特征基础上新增电负性桶和共价半径桶。
+    
+    返回 7 维整数特征向量：
+      [atomic_num, hybridization, aromatic, degree, charge,
+       eneg_bucket(0-7), radius_bucket(0-7)]
+    
+    新增的两维解决了 F/Cl/Br/I 无法用拓扑结构区分的根本问题：
+      - eneg_bucket: F(7) >> I(4)，让模型知道 F 极性最强
+      - radius_bucket: I(7) >> F(0)，让模型知道 I 体积最大，难溶
     """
     # 1. 杂化方式
     hybrid = int(atom.GetHybridization())
@@ -113,13 +165,25 @@ def get_atom_features(atom):
     # 2. 芳香性
     aro = 1 if atom.GetIsAromatic() else 0
     
+    # 3. 连接度（拓扑信息）
     degree = atom.GetDegree()
     if degree >= 7: degree = 6
     
-    charge = atom.GetFormalCharge() + 1 
+    # 4. 形式电荷（+1是偏移，保证≥0；截断至[0,2]）
+    charge = atom.GetFormalCharge() + 1
     if charge > 2: charge = 2
     if charge < 0: charge = 0
-    return [atom.GetAtomicNum(), hybrid, aro, degree, charge]
+    
+    # 5. 电负性桶（0-7），从查表中获取，未知元素用中间值 3
+    atomic_num = atom.GetAtomicNum()
+    eneg_val = ELECTRONEG.get(atomic_num, 2.55)  # 默认碳的电负性
+    eneg_bucket = bucketize(eneg_val, ENEG_MIN, ENEG_MAX, n_buckets=8)
+    
+    # 6. 共价半径桶（0-7），从查表中获取，未知元素用中间值 77pm（碳）
+    rad_val = COV_RADIUS.get(atomic_num, 77)  # 默认碳的半径
+    radius_bucket = bucketize(rad_val, RAD_MIN, RAD_MAX, n_buckets=8)
+    
+    return [atomic_num, hybrid, aro, degree, charge, eneg_bucket, radius_bucket]
 
 def get_bond_features(bond):
     """
@@ -234,28 +298,44 @@ for idx, row in df_vle.iterrows():
     # 同理，万一有 SMILES 代码被写错了使得 RDKit 加载生成不出实物，这一行也得被牺牲当做垃圾扔掉
     if None in (c_graph, a_graph, r_graph): continue
     
-    # 第 3 关：计算全局物理特征并组装数据
-    # 我们根据相关性热图，选择了除了 T, P 以外最强的 3 个物理描述符
+    # 第 3 关：计算全局物理特征并组装数据（V2：condition 从 5 维扩展到 7 维）
     ref_mol = Chem.MolFromSmiles(r_smi) # 制冷剂分子对象
     ani_mol = Chem.MolFromSmiles(a_smi) # 阴离子分子对象
+    cat_mol = Chem.MolFromSmiles(c_smi) # 阳离子分子对象（V2 新增）
     
-    # 1. Ref_Charge (制冷剂最大绝对电荷): 衡量分子的极性和电荷分布强度 (相关性 -0.305)
+    # ── 原有 3 个制冷剂/阴离子描述符 ────────────────────────────
+    # 1. Ref_Charge (制冷剂最大绝对电荷): 衡量分子的极性和电荷分布强度
     ref_charge = float(Descriptors.MaxAbsPartialCharge(ref_mol)) if ref_mol else 0.0
     
-    # 2. Ref_LogP (制冷剂亲脂性): 衡量分子的极性/亲水性 (相关性 -0.288)
+    # 2. Ref_LogP (制冷剂亲脂性): 衡量分子的极性/亲水性
     ref_logp   = float(Descriptors.MolLogP(ref_mol))             if ref_mol else 0.0
     
-    # 3. Ani_MW (阴离子分子量): 衡量阴离子的尺寸，影响体系自由体积 (相关性 +0.212)
+    # 3. Ani_MW (阴离子分子量): 衡量阴离子的尺寸，影响体系自由体积
     ani_mw     = float(Descriptors.MolWt(ani_mol))               if ani_mol else 0.0
     
-    # 将 [3个图结构, T, P, 3个新特征] 统一打包存入 final_data
+    # ── V2 新增：阳离子描述符（根据皮尔逊相关性热图选取最强特征）────────────────
+    # 4. Cat_Charge (阳离子最大绝对电荷): 相关系数 -0.17
+    try:
+        cat_charge = float(Descriptors.MaxAbsPartialCharge(cat_mol)) if cat_mol else 0.0
+    except:
+        cat_charge = 0.0
+        
+    # 5. Cat_TPSA (阳离子拓扑极性表面积): 相关系数 -0.16
+    cat_tpsa = float(Descriptors.TPSA(cat_mol)) if cat_mol else 0.0
+    
+    # 将 [3个图结构, T, P, 5个物理描述符] 统一打包存入 final_data
+    # data[0..2]=图, data[3]=T, data[4]=P,
+    # data[5]=ref_charge, data[6]=ref_logp, data[7]=ani_mw,
+    # data[8]=cat_charge, data[9]=cat_tpsa  ← V2 依据热图更新
     final_data.append([
-        c_graph, a_graph, r_graph,     # 图结构
-        float(row['T (K)']),           # 特征 1: 温度
-        float(row['P (MPa)']),          # 特征 2: 压力
-        ref_charge,                    # 特征 3: 制冷剂电荷
-        ref_logp,                      # 特征 4: 制冷剂LogP
-        ani_mw                         # 特征 5: 阴离子分子量
+        c_graph, a_graph, r_graph,     # 索引 0,1,2: 图结构
+        float(row['T (K)']),           # 索引 3: 温度
+        float(row['P (MPa)']),          # 索引 4: 压力
+        ref_charge,                    # 索引 5: 制冷剂电荷
+        ref_logp,                      # 索引 6: 制冷剂LogP
+        ani_mw,                        # 索引 7: 阴离子分子量
+        cat_charge,                    # 索引 8: 阳离子最大电荷（V2新增）
+        cat_tpsa,                      # 索引 9: 阳离子TPSA（V2新增）
     ])
     
     # 同步把测试真正的答案也塞进对应的标签框，这就是将来它作为指导监督的任务目标 (x1=溶解度)

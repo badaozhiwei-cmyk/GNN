@@ -12,6 +12,8 @@ num_Aro = 2
 num_degree = 7
 num_charge = 3
 num_charge = 3
+num_eneg   = 8   # V2 新增：电负性分桶数（0~7）
+num_radius = 8   # V2 新增：共价半径分桶数（0~7）
 
 num_bond_type = 5 
 num_bond_isAromatic = 2
@@ -29,7 +31,7 @@ class IL_Net_GCN(torch.nn.Module):
         self.l4 = GCNConv(1024, 512, normalize=True)
 
         self.l5 = nn.Sequential(
-            nn.Linear(514, 1024),
+            nn.Linear(519, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
             nn.Dropout(p=0.4),
@@ -102,7 +104,7 @@ class IL_GAT(torch.nn.Module):
         self.l4 = GATv2Conv(1024, 512)
 
         self.l5 = nn.Sequential(
-            nn.Linear(514, 1024),
+            nn.Linear(519, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
             nn.Dropout(p=0.4),
@@ -216,11 +218,15 @@ class GIN(nn.Module):
         self.x_embedding3 = nn.Embedding(num_Aro, self.emb_dim)
         self.x_embedding4 = nn.Embedding(num_degree, self.emb_dim)
         self.x_embedding5 = nn.Embedding(num_charge, self.emb_dim)
+        self.x_embedding6 = nn.Embedding(num_eneg,   self.emb_dim)  # V2新增：电负性桶
+        self.x_embedding7 = nn.Embedding(num_radius, self.emb_dim)  # V2新增：共价半径桶
         nn.init.xavier_uniform_(self.x_embedding1.weight.data)
         nn.init.xavier_uniform_(self.x_embedding2.weight.data)
         nn.init.xavier_uniform_(self.x_embedding3.weight.data)
         nn.init.xavier_uniform_(self.x_embedding4.weight.data)
         nn.init.xavier_uniform_(self.x_embedding5.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding6.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding7.weight.data)
 
         # List of MLPs
         self.gnns = nn.ModuleList()
@@ -244,7 +250,7 @@ class GIN(nn.Module):
         self.feat_lin = nn.Linear(self.emb_dim, self.feat_dim)
 
         self.pred_head = nn.Sequential(
-            nn.Linear(self.feat_dim + 5, self.feat_dim),  # cond: [T, P, Ref_Charge, Ref_LogP, Ani_MW]
+            nn.Linear(self.feat_dim + 7, self.feat_dim),  # V2 cond: [T, P, Ref_Charge, Ref_LogP, Ani_MW, Cat_RotBonds, Cat_LogP]
             nn.Softplus(),
             nn.Linear(self.feat_dim, int(self.feat_dim/2)),
             nn.Softplus(),
@@ -272,7 +278,9 @@ class GIN(nn.Module):
             self.x_embedding2(pair_graph.x[:, 1]) + \
             self.x_embedding3(pair_graph.x[:, 2]) + \
             self.x_embedding4(pair_graph.x[:, 3]) + \
-            self.x_embedding5(pair_graph.x[:, 4])
+            self.x_embedding5(pair_graph.x[:, 4]) + \
+            self.x_embedding6(pair_graph.x[:, 5]) + \
+            self.x_embedding7(pair_graph.x[:, 6])
 
         for layer in range(self.num_layer):
             h = self.gnns[layer](h, pair_graph.edge_index, pair_graph.edge_attr)

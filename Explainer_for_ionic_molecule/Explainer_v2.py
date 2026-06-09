@@ -149,12 +149,14 @@ class IL_Explainer_v2(torch.nn.Module):
             import torch.nn.functional as F_func
             def masked_forward(pair_graph, cond_val):
                 m = self.node_feat_mask.sigmoid()
-                # 分别对 5 个特征的 Embedding 乘以其对应的可微分特征掩码
+                # 分别对 7 个特征的 Embedding 乘以其对应的可微分特征掩码
                 h = self.model.x_embedding1(pair_graph.x[:, 0]) * m[0] + \
                     self.model.x_embedding2(pair_graph.x[:, 1]) * m[1] + \
                     self.model.x_embedding3(pair_graph.x[:, 2]) * m[2] + \
                     self.model.x_embedding4(pair_graph.x[:, 3]) * m[3] + \
-                    self.model.x_embedding5(pair_graph.x[:, 4]) * m[4]
+                    self.model.x_embedding5(pair_graph.x[:, 4]) * m[4] + \
+                    self.model.x_embedding6(pair_graph.x[:, 5]) * m[5] + \
+                    self.model.x_embedding7(pair_graph.x[:, 6]) * m[6]
                 
                 # 后面保持与 Model.py 中 GIN 层的传播完全一致
                 for layer in range(self.model.num_layer):

@@ -5,8 +5,9 @@ Dataset_explain_v2.py
 
 与 CO2 旧版 Dataset_explain.py 的核心差异：
   - 旧版: 双图（阳离子 + 阴离子）+ 2D 条件向量 [T, P]
-  - V2:   三图（阳离子 + 阴离子 + 制冷剂）+ 5D 条件向量
-            [T, P, Ref_Charge, Ref_LogP, Ani_MW]（与 Dataset.py 归一化逻辑完全一致）
+  - V2:   三图（阳离子 + 阴离子 + 制冷剂）+ 7D 条件向量
+            [T, P, Ref_Charge, Ref_LogP, Ani_MW, Cat_RotBonds, Cat_LogP]
+            （与 Dataset.py 归一化逻辑完全一致）
   - V2:   额外返回 num_bond，供 Explainer 区分"真实边"与"全局虚拟边"
 
 数据来源: processed_tri_data/data.npy + label.npy
@@ -46,7 +47,8 @@ def add_global(graph):
     这个全局节点是 GNN 提取图级别表示的"汇聚点"。
     返回添加全局节点后的图，以及新增的"全局边"数量（用于 Explainer 解析掩码）。
     """
-    node = torch.tensor([0, 0, 0, 0, 0]).reshape(1, -1)
+    # V2: 全局节点的特征维度必须与真实原子一致，即 7 维
+    node = torch.tensor([0, 0, 0, 0, 0, 0, 0]).reshape(1, -1)
     x = torch.cat([graph.x, node], dim=0)
     num_node = x.shape[0] - 1      # 真实原子数
     new_node  = x.shape[0] - 1     # 全局节点的索引
@@ -104,14 +106,20 @@ class IL_set_v2(torch.utils.data.Dataset):
         self.label = np.load(label_npy_path, allow_pickle=True)
         self.length = self.label.shape[0]
 
-        # ── 对 3 个 RDKit 特征做 StandardScaler（与 Dataset.py 完全一致）──
-        raw_ref_charge = np.array([self.data[i][5] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_ref_logp   = np.array([self.data[i][6] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_ani_mw     = np.array([self.data[i][7] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        # ── 对 5 个 RDKit 特征做 StandardScaler（与 Dataset.py 完全一致）──
+        # index[5]=Ref_Charge, index[6]=Ref_LogP, index[7]=Ani_MW,
+        # index[8]=Cat_Charge, index[9]=Cat_TPSA  ← V2 依据热图更新
+        raw_ref_charge  = np.array([self.data[i][5] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        raw_ref_logp    = np.array([self.data[i][6] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        raw_ani_mw      = np.array([self.data[i][7] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        raw_cat_charge  = np.array([self.data[i][8] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)  # V2
+        raw_cat_tpsa    = np.array([self.data[i][9] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)  # V2
 
-        self.scaler_ref_charge = StandardScaler().fit(raw_ref_charge)
-        self.scaler_ref_logp   = StandardScaler().fit(raw_ref_logp)
-        self.scaler_ani_mw     = StandardScaler().fit(raw_ani_mw)
+        self.scaler_ref_charge  = StandardScaler().fit(raw_ref_charge)
+        self.scaler_ref_logp    = StandardScaler().fit(raw_ref_logp)
+        self.scaler_ani_mw      = StandardScaler().fit(raw_ani_mw)
+        self.scaler_cat_charge  = StandardScaler().fit(raw_cat_charge)  # V2
+        self.scaler_cat_tpsa    = StandardScaler().fit(raw_cat_tpsa)    # V2
 
         print(f"[Dataset_explain_v2] 加载完毕，共 {self.length} 条数据")
 
@@ -136,14 +144,16 @@ class IL_set_v2(torch.utils.data.Dataset):
         if args['add_global']:
             Combine_Graph = add_global(Combine_Graph)
 
-        # ── Step 4: 组装 5 维条件向量（归一化）────────────────
+        # ── Step 4: 组装 7 维条件向量（归一化）────────────────
         T          = float(d[3])
         P          = float(d[4])
         ref_charge = float(self.scaler_ref_charge.transform([[d[5]]])[0][0])
         ref_logp   = float(self.scaler_ref_logp.transform([[d[6]]])[0][0])
         ani_mw     = float(self.scaler_ani_mw.transform([[d[7]]])[0][0])
+        cat_charge   = float(self.scaler_cat_charge.transform([[d[8]]])[0][0])  # V2
+        cat_tpsa     = float(self.scaler_cat_tpsa.transform([[d[9]]])[0][0])    # V2
 
-        condition = torch.tensor([T, P, ref_charge, ref_logp, ani_mw], dtype=torch.float)
+        condition = torch.tensor([T, P, ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa], dtype=torch.float)
 
         # ── Step 5: 标签 ────────────────────────────────────
         label = torch.tensor(float(self.label[idx]), dtype=torch.float)

@@ -1,14 +1,12 @@
 """
 fragment_explain_v2.py
 ===================================================
-制冷剂-离子液体三图体系 GNNExplainer 片段/元素重要性分析 (V2)
+制冷剂-离子液体三图体系 GNNExplainer 片段/元素重要性分析 (V2 修复版)
 
-主要逻辑：
-  1. 载入训练好的 GIN 神经网络权重（自适应兼容纯权重与字典检查点）
-  2. 利用 GNNExplainer 针对回归 MSE 损失，反向优化得到原子与连边的掩码
-  3. 收集由全局节点注入带来的虚拟边重要性，映射为原子相对全图平均水平的相对贡献度
-  4. 按化学元素分类汇总，并绘制保存学术水平的条形贡献图
-
+与旧版相比的三大算法修复：
+  1. 融入真实化学键边掩码: edge_mask[:num_bond] 不再被丢弃
+  2. 分子内归一化: 每个原子的重要性与同一样本内的平均値比较而非全数据集均値
+  3. 子图分离归因: 阳离子/阴离子/制冷剂中的相同元素分开统计贡献度
 使用方式：
   cd Explainer_for_ionic_molecule
   python fragment_explain_v2.py --model_path ../checkpoints/best_seed_1.pth --num_samples 500
@@ -40,7 +38,7 @@ Args = {
     'pool': 'mean',
 }
 
-# 按照原子序数分类汇总（对应 G.x[:, 0]）
+# 按照元素序数分类汇总（对应 G.x[:, 0]）
 # C=6, N=7, O=8, F=9, P=15, S=16, Cl=17, Br=35, B=5, I=53
 ELEMENT_MAP = {
     5:  'B (Boron, e.g., BF4-)',
@@ -117,9 +115,11 @@ def main(model_path: str, data_root: str, explainer_epochs: int = 100, num_sampl
         model, epochs=explainer_epochs, lr=0.01
     )
 
-    # ── 4. 主循环：逐样本推演解释 ──────────────────────────────
-    elem_imp  = {v: [] for v in ELEMENT_MAP.values()}  # 收集每种元素原子重要性列表
-    node_feat_imp = np.zeros(5)                         # 5种原子特征的累加重要性
+    # ── 4. 主循环：逐样本推演解释 ───────────────────────────────
+    # V2 改进：按子图角色分离汇总（阳离子/阴离子/制冷剂 分开记录）
+    role_keys = ['cat', 'ani', 'ref']
+    elem_imp = {role: {v: [] for v in ELEMENT_MAP.values()} for role in role_keys}
+    node_feat_imp = np.zeros(7)
 
     total_to_run = len(loader) if num_samples <= 0 else min(num_samples, len(loader))
     print(f"[数据规模] 总数据量: {len(loader)} 条，本次分析样本数上限: {total_to_run} 条")
@@ -143,33 +143,115 @@ def main(model_path: str, data_root: str, explainer_epochs: int = 100, num_sampl
         explained_count += 1
         node_feat_imp += node_feat_mask.cpu().numpy()
 
-        # ── 解析原子级重要性 ──
-        # 全局虚拟边掩码（edge_mask[num_bond:]）的正反向均值反映了原子的贡献度
-        global_mask = edge_mask[num_bond:].cpu()
-        num_real_atom = global_mask.shape[0] // 2       # 排除全局节点本身
-        fwd = global_mask[:num_real_atom]
-        bwd = global_mask[num_real_atom:]
-        atom_imp = ((fwd + bwd) / 2).numpy()            # shape: [num_real_atom]
-        mean_imp = atom_imp.mean()                      # 全图原子重要性均值作为背景基准
+        # ==================================================================
+        # 修复点1：融入真实化学键边掩码 + 全局边掩码
+        # ==================================================================
+        edge_mask_cpu = edge_mask.cpu()
+        num_real_atom = G.x.shape[0] - 1 
 
-        # 提取真实原子的元素类型（G.x[:, 0] 为原子序数）
-        atom_types = G.x[:num_real_atom, 0].cpu().numpy()   # shape: [num_real_atom]
+        bond_mask = edge_mask_cpu[:num_bond]
+        edge_index_cpu = G.edge_index.cpu()
+        bond_atom_score = np.zeros(num_real_atom)
+        bond_atom_count = np.zeros(num_real_atom, dtype=int)
+        for e_idx in range(num_bond):
+            src = int(edge_index_cpu[0, e_idx])
+            dst = int(edge_index_cpu[1, e_idx])
+            score = float(bond_mask[e_idx])
+            if src < num_real_atom:
+                bond_atom_score[src] += score
+                bond_atom_count[src] += 1
+            if dst < num_real_atom:
+                bond_atom_score[dst] += score
+                bond_atom_count[dst] += 1
+        bond_atom_avg = np.where(bond_atom_count > 0, bond_atom_score / bond_atom_count, 0.0)
 
-        for atom_idx, (at, imp) in enumerate(zip(atom_types, atom_imp)):
-            at = int(at)
-            if at in ELEMENT_MAP:
-                elem_label = ELEMENT_MAP[at]
-                # 相对重要性 = 原子评分 - 背景均值
-                elem_imp[elem_label].append(float(imp - mean_imp))
+        global_mask = edge_mask_cpu[num_bond:]
+        fwd = global_mask[:num_real_atom].numpy()
+        bwd = global_mask[num_real_atom:].numpy()
+        global_atom_score = (fwd + bwd) / 2.0
+        atom_imp = 0.5 * bond_atom_avg + 0.5 * global_atom_score
+
+        # ==================================================================
+        # 修复点2：分子内归一化
+        # ==================================================================
+        local_mean = atom_imp.mean()
+        atom_imp_normalized = atom_imp - local_mean
+
+        # ==================================================================
+        # 修复点3：按子图分离归因
+        # ==================================================================
+        atom_types = G.x[:num_real_atom, 0].cpu().numpy()
+        subgraph_labels = np.full(num_real_atom, -1, dtype=int)
+        if num_bond > 0:
+            parent = list(range(num_real_atom))
+            def find(x):
+                while parent[x] != x:
+                    parent[x] = parent[parent[x]]
+                    x = parent[x]
+                return x
+            def union(a, b):
+                ra, rb = find(a), find(b)
+                if ra != rb: parent[ra] = rb
+            
+            for e_idx in range(num_bond):
+                s = int(edge_index_cpu[0, e_idx])
+                t = int(edge_index_cpu[1, e_idx])
+                if s < num_real_atom and t < num_real_atom:
+                    union(s, t)
+            
+            root_to_id = {}
+            label_counter = 0
+            for a in range(num_real_atom):
+                r = find(a)
+                if r not in root_to_id:
+                    root_to_id[r] = label_counter
+                    label_counter += 1
+                subgraph_labels[a] = root_to_id[r]
+        else:
+            subgraph_labels[:] = 0
+        
+        unique_labels, counts = np.unique(subgraph_labels, return_counts=True)
+        sorted_by_size = unique_labels[np.argsort(counts)[::-1]]
+        n_components = len(sorted_by_size)
+        comp_to_role = {}
+        if n_components >= 3:
+            comp_to_role[sorted_by_size[0]] = 'cat'
+            comp_to_role[sorted_by_size[1]] = 'ani'
+            comp_to_role[sorted_by_size[2]] = 'ref'
+        elif n_components == 2:
+            comp_to_role[sorted_by_size[0]] = 'cat'
+            comp_to_role[sorted_by_size[1]] = 'ani'
+        elif n_components == 1:
+            comp_to_role[sorted_by_size[0]] = 'cat'
+        
+        for atom_idx in range(num_real_atom):
+            at = int(atom_types[atom_idx])
+            if at not in ELEMENT_MAP: continue
+            elem_label = ELEMENT_MAP[at]
+            comp_id = subgraph_labels[atom_idx]
+            role = comp_to_role.get(comp_id, 'cat')
+            elem_imp[role][elem_label].append(float(atom_imp_normalized[atom_idx]))
 
         bar.update()
 
     bar.close()
 
-    # ── 5. 汇总平均相对贡献度 ───────────────────
+    # ── 5. 汇总平均相对贡献度 ──────────────────────
     result = {}
-    for elem_label, scores in elem_imp.items():
-        result[elem_label] = float(np.mean(scores)) if scores else float('nan')
+    for elem_label in ELEMENT_MAP.values():
+        all_scores = []
+        for role in role_keys:
+            all_scores.extend(elem_imp[role][elem_label])
+        result[elem_label] = float(np.mean(all_scores)) if all_scores else float('nan')
+    
+    print("\n── 子图分离归因详细结果 ──")
+    role_names = {'cat': '阳离子', 'ani': '阴离子', 'ref': '制冷剂'}
+    for elem_label in ['F (Fluorine, key polar atom)', 'I (Iodine)', 'Cl (Chlorine, e.g., HCFCs/CFCs)', 'Br (Bromine)']:
+        scores_by_role = {
+            role_names[r]: f"{np.mean(elem_imp[r][elem_label]):.4f}" if elem_imp[r][elem_label] else 'N/A'
+            for r in role_keys
+        }
+        print(f"  {elem_label}: {scores_by_role}")
 
     # ── 6. 创建输出目录并保存原始数据 ──────────────────────────────
     out_dir = os.path.join(os.path.dirname(__file__), 'fragment_explain_result')
@@ -183,8 +265,9 @@ def main(model_path: str, data_root: str, explainer_epochs: int = 100, num_sampl
     # ── 7. 绘制并保存元素重要性水平条形图 ──
     plot_element_importance(result, os.path.join(out_dir, 'element_score_v2.png'))
 
-    # ── 8. 绘制并保存 5 大节点特征维度相对重要性图 ──
-    feat_names = ['atomic_number', 'atomic_degree', 'charge', 'hybridization', 'Aromatic']
+    # ── 8. 绘制并保存 7 大节点特征维度相对重要性图 ──
+    feat_names = ['atomic_number', 'hybridization', 'aromatic', 'degree', 'charge',
+                  'electronegativity', 'cov_radius']  # V2 新增 2 个
     
     # 转换为相对贡献度（减去5大特征的平均累计得分，凸显分化差异）
     relative_feat_imp = node_feat_imp - np.mean(node_feat_imp)

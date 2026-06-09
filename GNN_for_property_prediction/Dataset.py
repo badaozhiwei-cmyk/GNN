@@ -29,7 +29,8 @@ def add_global(graph):
     :param graph: pyg.data
     :return: pyg.data
     """
-    node = torch.tensor([0, 0, 0, 0, 0]).reshape(1, -1)
+    # V2: 全局节点的特征维度必须与真实原子一致，即 7 维（原5维 + 电负性桶 + 化价半径桶）
+    node = torch.tensor([0, 0, 0, 0, 0, 0, 0]).reshape(1, -1)
     # node.shape
     x = torch.cat([graph.x, node], dim=0)
     num_node = x.shape[0] - 1
@@ -74,14 +75,19 @@ class IL_set(torch.utils.data.Dataset):
 
         self.length = self.label.shape[0]
 
-        # 对 3 个全局特征做 StandardScaler 归一化，统一量级：
-        # index[5]=Ref_Charge, index[6]=Ref_LogP, index[7]=Ani_MW
-        raw_ref_charge = np.array([self.data[i][5] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_ref_logp   = np.array([self.data[i][6] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_ani_mw     = np.array([self.data[i][7] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        self.scaler_ref_charge = StandardScaler().fit(raw_ref_charge)
-        self.scaler_ref_logp   = StandardScaler().fit(raw_ref_logp)
-        self.scaler_ani_mw     = StandardScaler().fit(raw_ani_mw)
+        # 对 5 个全局特征做 StandardScaler 归一化，统一量级：
+        # index[5]=Ref_Charge, index[6]=Ref_LogP, index[7]=Ani_MW,
+        # index[8]=Cat_Charge, index[9]=Cat_TPSA  ← V2 依据热图更新
+        raw_ref_charge  = np.array([self.data[i][5] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        raw_ref_logp    = np.array([self.data[i][6] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        raw_ani_mw      = np.array([self.data[i][7] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        raw_cat_charge  = np.array([self.data[i][8] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)  # V2
+        raw_cat_tpsa    = np.array([self.data[i][9] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)  # V2
+        self.scaler_ref_charge  = StandardScaler().fit(raw_ref_charge)
+        self.scaler_ref_logp    = StandardScaler().fit(raw_ref_logp)
+        self.scaler_ani_mw      = StandardScaler().fit(raw_ani_mw)
+        self.scaler_cat_charge  = StandardScaler().fit(raw_cat_charge)  # V2
+        self.scaler_cat_tpsa    = StandardScaler().fit(raw_cat_tpsa)    # V2
 
         # show basic information
         print("----info----")
@@ -110,16 +116,18 @@ class IL_set(torch.utils.data.Dataset):
         if args['add_global'] == True:
             Combine_Graph = add_global(Combine_Graph)
 
-        # 提取存储在仓库中的后 5 位数据（T, P, Charge, LogP, MW）张量化标准化
+        # 提取存储在仓库中的后 7 位数据（T, P, 3个制冷剂/阴离子描述符, 2个阳离子描述符）并张量化标准化
         data = self.data[idx]
         T, P = data[3], data[4]
-        ref_charge = float(self.scaler_ref_charge.transform([[data[5]]])[0][0])
-        ref_logp   = float(self.scaler_ref_logp.transform([[data[6]]])[0][0])
-        ani_mw     = float(self.scaler_ani_mw.transform([[data[7]]])[0][0])
+        ref_charge   = float(self.scaler_ref_charge.transform([[data[5]]])[0][0])
+        ref_logp     = float(self.scaler_ref_logp.transform([[data[6]]])[0][0])
+        ani_mw       = float(self.scaler_ani_mw.transform([[data[7]]])[0][0])
+        cat_charge   = float(self.scaler_cat_charge.transform([[data[8]]])[0][0])  # V2
+        cat_tpsa     = float(self.scaler_cat_tpsa.transform([[data[9]]])[0][0])    # V2
         
-        # 将这 5 个物理量打包成一个 condition 向量，作为全局环境输入
-        # 模型最后的 MLP 将直接读到这 5 个标准化后的数字
-        condition = torch.tensor([T, P, ref_charge, ref_logp, ani_mw], dtype=torch.float)
+        # 将这 7 个物理量打包成一个 condition 向量，作为全局环境输入
+        # 模型最后的 MLP 将直接读到这 7 个标准化后的数字
+        condition = torch.tensor([T, P, ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa], dtype=torch.float)
 
 
         label = torch.tensor(self.label[idx],dtype=torch.float)
