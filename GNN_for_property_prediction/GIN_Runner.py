@@ -52,7 +52,7 @@ class EarlyStopping:
 Args = {
     # general arguments
     'smiles_dict_path':'data/smiles.csv',
-    'data_path':'processed_tri_data/',
+    'data_path':'../processed_tri_data/',
     'load_history_model':False,
     'batch_size':64,
     'lr':0.001,

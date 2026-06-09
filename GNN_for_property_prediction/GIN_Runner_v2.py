@@ -117,7 +117,7 @@ class EarlyStopping:
 # (改动3: epoch 100, seed数3, 使用余弦退火热重启)
 # ============================================================
 Args = {
-    'data_path':     'processed_tri_data/',
+    'data_path':     '../processed_tri_data/',
     'batch_size':    64,
     'lr':            0.001,
     'epoch':         100,       # ↓ 原来 150 → 现在 100 (配合余弦退火, 60 epoch 内可收敛)

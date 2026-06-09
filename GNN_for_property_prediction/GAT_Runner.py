@@ -14,8 +14,8 @@ from Model import IL_GAT
 Args = {
     # general arguments
     'smiles_dict_path':'data/smiles.csv',
-    'data_path':'clean/',
-    'load_history_model':True,
+    'data_path':'../processed_tri_data/',
+    'load_history_model':False,
     'batch_size':64,
     'lr':0.001,
     'epoch':0,
