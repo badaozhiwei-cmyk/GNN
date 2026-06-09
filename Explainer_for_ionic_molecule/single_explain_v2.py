@@ -174,7 +174,7 @@ def main(sample_idx: int, model_path: str, data_root: str, epochs: int):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='制冷剂体系单样本 GNNExplainer 结构热力图分析 V2')
     parser.add_argument('--sample_idx', type=int, default=100, help='需要分析的样本索引，范围 0~4443')
-    parser.add_argument('--model_path', type=str, default=os.path.join(ROOT, 'checkpoints', 'best_seed_1.pth'))
+    parser.add_argument('--model_path', type=str, default=os.path.join(ROOT, 'GNN_for_property_prediction', 'checkpoints_v2', 'best_seed_1.pth'))
     parser.add_argument('--data_root', type=str, default=os.path.join(ROOT, 'processed_tri_data'))
     parser.add_argument('--epochs', type=int, default=100, help='解释掩码优化轮数')
     args_cli = parser.parse_args()

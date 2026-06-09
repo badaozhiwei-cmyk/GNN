@@ -297,8 +297,8 @@ if __name__ == '__main__':
     parser.add_argument(
         '--model_path',
         type=str,
-        default=os.path.join(ROOT, 'checkpoints', 'best_model_para.pth'),
-        help='模型权重文件路径，默认指向 checkpoints/best_model_para.pth'
+        default=os.path.join(ROOT, 'GNN_for_property_prediction', 'checkpoints_v2', 'best_seed_1.pth'),
+        help='模型权重文件路径'
     )
     parser.add_argument(
         '--data_root',

@@ -145,7 +145,7 @@ def main(model_path, data_root, n_samples=3, epochs=10):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', type=str,
-                        default=os.path.join(ROOT, 'checkpoints', 'best_seed_1.pth'))
+                        default=os.path.join(ROOT, 'GNN_for_property_prediction', 'checkpoints_v2', 'best_seed_1.pth'))
     parser.add_argument('--data_root', type=str,
                         default=os.path.join(ROOT, 'processed_tri_data'))
     parser.add_argument('--n_samples', type=int, default=3)
