@@ -9,8 +9,6 @@ __pycache__/
 # 模型权重文件 (全路径封杀)
 **/*.pth
 **/*.h5
-!GNN_for_property_prediction/pretrained_model/**/*.pth
-!Explainer_for_ionic_molecule/pretrained_model/**/*.pth
 
 # 预处理生成的数据 (全路径封杀，但保留关键的小文件)
 **/*.npy
