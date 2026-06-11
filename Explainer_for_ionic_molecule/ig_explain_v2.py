@@ -253,14 +253,21 @@ def main(model_path: str, data_root: str, n_steps: int = 50, num_samples: int = 
         num_nodes = x_orig.shape[0]
         num_bond  = num_bonds_list[0]
 
-        # 提前取出图结构，构造 forward 函数（固定结构，仅对 x 求导）
-        _edge_index = G.edge_index
-        _batch = (G.batch if (hasattr(G, 'batch') and G.batch is not None)
-                  else torch.zeros(num_nodes, dtype=torch.long, device=device))
-
-        def forward_func(x):
-            g_new = Data(x=x, edge_index=_edge_index, batch=_batch)
-            return model(g_new, cond)
+        # 构造 forward 函数：复制 G 的全部属性，仅替换 x
+        # 不能只传 x/edge_index/batch，GIN 模型可能依赖其他属性
+        def forward_func(x, _G=G, _cond=cond):
+            g_new = Data()
+            for key in _G.keys():
+                if key == 'x':
+                    g_new.x = x          # 用带梯度的新 x
+                else:
+                    g_new[key] = _G[key]  # 其余属性原样复制
+            # 确保 batch 存在
+            if not hasattr(g_new, 'batch') or g_new.batch is None:
+                g_new.batch = torch.zeros(
+                    x.shape[0], dtype=torch.long, device=x.device
+                )
+            return model(g_new, _cond)
 
         try:
             # 计算 IG 归因，baseline = 全零节点特征
@@ -271,6 +278,8 @@ def main(model_path: str, data_root: str, n_steps: int = 50, num_samples: int = 
             # 各特征的平均 |IG|（用于 node_feature 图）
             feat_attr = attributions.abs().mean(dim=0).cpu().numpy()  # [7]
         except Exception as e:
+            if explained_count == 0:
+                print(f"\n[警告] 样本报错，跳过。原因: {type(e).__name__}: {e}")
             bar.update()
             continue
 
