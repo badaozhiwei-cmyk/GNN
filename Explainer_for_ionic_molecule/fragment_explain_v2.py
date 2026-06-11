@@ -77,9 +77,9 @@ def plot_element_importance(result: dict, save_path: str):
     colors = cm.viridis(np.array(scores) / max_score)
     
     plt.barh(elements, scores, color=colors, height=0.6, edgecolor='black', linewidth=0.5)
-    plt.xlabel('Absolute Importance Score (GNNExplainer Mask)', fontsize=12)
+    plt.xlabel('Relative Importance Score (Element Mean / Molecule Mean)', fontsize=12)
     plt.ylabel('Chemical Elements', fontsize=12)
-    plt.title('Element-Level Absolute Importance on Solubility\n(Tri-Graph Refrigerant V2)', fontsize=13, pad=15)
+    plt.title('Element-Level Relative Importance on Solubility\n(Per-Molecule Normalized, Tri-Graph V2)', fontsize=13, pad=15)
     plt.grid(axis='x', linestyle=':', alpha=0.5)
     plt.tight_layout()
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
@@ -224,13 +224,33 @@ def main(model_path: str, data_root: str, explainer_epochs: int = 100, num_sampl
         elif n_components == 1:
             comp_to_role[sorted_by_size[0]] = 'cat'
         
+        # ==================================================================
+        # 修复点4：分子级归一化聚合
+        # 原来每个原子直接追加数据点，导致F/C/N这类高频元素被稀释到均值附近，
+        # 而Br/I等稀有元素因样本少、随机性高而排名虚高。
+        # 新方法：每个分子每种元素只贡献1个数据点 = 分子内该元素均值 / 分子均值
+        # ratio > 1.0 表示该元素在本分子中重要性高于平均水平
+        # ==================================================================
+        mol_mean_imp = float(np.mean(atom_imp)) if num_real_atom > 0 else 1.0
+        if mol_mean_imp <= 1e-8:
+            mol_mean_imp = 1e-8  # 防止除以零
+
+        # 先在分子内按 (role, elem_label) 分组收集原子分数
+        mol_elem_raw = {}
         for atom_idx in range(num_real_atom):
             at = int(atom_types[atom_idx])
             if at not in ELEMENT_MAP: continue
             elem_label = ELEMENT_MAP[at]
             comp_id = subgraph_labels[atom_idx]
             role = comp_to_role.get(comp_id, 'cat')
-            elem_imp[role][elem_label].append(float(atom_imp_normalized[atom_idx]))
+            key = (role, elem_label)
+            mol_elem_raw.setdefault(key, []).append(float(atom_imp[atom_idx]))
+
+        # 每种元素贡献 1 个相对重要性数据点（分子内均值 / 分子均值）
+        for (role, elem_label), scores_in_mol in mol_elem_raw.items():
+            mol_elem_mean = float(np.mean(scores_in_mol))
+            relative_imp = mol_elem_mean / mol_mean_imp
+            elem_imp[role][elem_label].append(relative_imp)
 
         bar.update()
 
