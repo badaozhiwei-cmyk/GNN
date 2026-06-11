@@ -249,34 +249,53 @@ def main(model_path: str, data_root: str, n_steps: int = 50, num_samples: int = 
         G    = G.to(device)
         cond = cond.to(device)
 
-        x_orig = G.x.float().detach()
-        num_nodes = x_orig.shape[0]
+        x_indices = G.x.long().to(device)
+        num_nodes = x_indices.shape[0]
         num_bond  = num_bonds_list[0]
 
-        # 构造 forward 函数：复制 G 的全部属性，仅替换 x
-        # 不能只传 x/edge_index/batch，GIN 模型可能依赖其他属性
-        def forward_func(x, _G=G, _cond=cond):
-            g_new = Data()
-            for key in _G.keys():
-                if key == 'x':
-                    g_new.x = x          # 用带梯度的新 x
-                else:
-                    g_new[key] = _G[key]  # 其余属性原样复制
-            # 确保 batch 存在
-            if not hasattr(g_new, 'batch') or g_new.batch is None:
-                g_new.batch = torch.zeros(
-                    x.shape[0], dtype=torch.long, device=x.device
-                )
-            return model(g_new, _cond)
+        # 修复 Embedding 报错：
+        # 模型第一层是 nn.Embedding，必须输入整数。IG 需要求导必须是连续小数。
+        # 所以我们先计算出 7 个特征的 Embedding 向量，然后对这些连续向量求导。
+        with torch.no_grad():
+            E1 = model.x_embedding1(x_indices[:, 0])
+            E2 = model.x_embedding2(x_indices[:, 1])
+            E3 = model.x_embedding3(x_indices[:, 2])
+            E4 = model.x_embedding4(x_indices[:, 3])
+            E5 = model.x_embedding5(x_indices[:, 4])
+            E6 = model.x_embedding6(x_indices[:, 5])
+            E7 = model.x_embedding7(x_indices[:, 6])
+            # E_orig: [num_nodes, 7, emb_dim]
+            E_orig = torch.stack([E1, E2, E3, E4, E5, E6, E7], dim=1).detach()
+
+        _batch = G.batch if (hasattr(G, 'batch') and G.batch is not None) else torch.zeros(num_nodes, dtype=torch.long, device=device)
+        _edge_index = G.edge_index.to(device)
+        _edge_attr = G.edge_attr.to(device) if hasattr(G, 'edge_attr') and G.edge_attr is not None else None
+
+        # 构造绕过 Embedding 层的 forward 函数，直接从连续向量 E 开始前向传播
+        def forward_func(E):
+            # E shape: [num_nodes, 7, emb_dim]
+            h = E.sum(dim=1)  # 模拟 Model.py 里 7 个 embedding 的加和
+            
+            for layer in range(model.num_layer):
+                h = model.gnns[layer](h, _edge_index, _edge_attr)
+                h = model.batch_norms[layer](h)
+                h = torch.nn.functional.dropout(torch.nn.functional.relu(h), model.drop_ratio, training=model.training)
+                
+            h = model.feat_lin(h)
+            h_pair = model.extract(h, _batch)
+            h_final = torch.cat([h_pair, cond], dim=1)
+            return model.pred_head(h_final)
 
         try:
-            # 计算 IG 归因，baseline = 全零节点特征
-            attributions = integrated_gradients(forward_func, x_orig,
-                                                baseline=None, n_steps=n_steps)
-            # 每个原子的归因 = 各特征 |IG| 之和
-            atom_attr = attributions.abs().sum(dim=1).cpu().numpy()   # [num_nodes]
-            # 各特征的平均 |IG|（用于 node_feature 图）
-            feat_attr = attributions.abs().mean(dim=0).cpu().numpy()  # [7]
+            # 计算 IG 归因，baseline 设为全零 Embedding
+            attributions = integrated_gradients(forward_func, E_orig,
+                                                baseline=torch.zeros_like(E_orig), n_steps=n_steps)
+            # attributions shape: [num_nodes, 7, emb_dim]
+            
+            # 每个原子的总归因 = 各特征在各个维度上的 |IG| 之和
+            atom_attr = attributions.abs().sum(dim=(1, 2)).cpu().numpy()   # [num_nodes]
+            # 7 大特征各自的归因 = 所有节点在各个维度上的 |IG| 平均
+            feat_attr = attributions.abs().sum(dim=2).mean(dim=0).cpu().numpy()  # [7]
         except Exception as e:
             if explained_count == 0:
                 print(f"\n[警告] 样本报错，跳过。原因: {type(e).__name__}: {e}")
