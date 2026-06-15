@@ -1,280 +1,326 @@
+"""
+GAT_Runner.py — 快速优化实验版本 (对应 GIN_Runner_v2 的全套改进)
+===================================================
+核心改动:
+  [改动1] Dataset_v2: T 和 P 同样经过 StandardScaler 标准化
+  [改动2] 损失函数: L1Loss (MAE) → HuberLoss (Smooth L1, delta=1.0)
+  [改动3] LR 调度: CosineAnnealingLR (100 Epochs, 无重启)
+  [改动4] 模型: 3层 GAT 结构并包含与 GIN 一致的 7层 Embedding
+
+作者: GNN 优化方案 v2
+"""
+
 import torch
+import torch.nn as nn
 from tqdm import tqdm
 import numpy as np
-import torch.nn as nn
+import torch.nn.functional as F
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import matplotlib.pyplot as plt
 from torch.utils.data import random_split
-from torch_geometric.data import Data, Dataset, DataLoader
+from torch_geometric.data import DataLoader
 from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.preprocessing import StandardScaler
+import random
+import os
+import pandas as pd
 
 from Dataset import IL_set
 from Model import IL_GAT
 
+
+# ============================================================
+# [改动1] Dataset_v2: 继承 IL_set，追加对 T 和 P 的标准化
+# ============================================================
+class IL_set_v2(IL_set):
+    """
+    在原始 IL_set 基础上，对温度 T 和压力 P 进行 StandardScaler 标准化。
+    """
+    def __init__(self, path):
+        super().__init__(path)
+
+        raw_T = np.array([self.data[i][3] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        raw_P = np.array([self.data[i][4] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+        self.scaler_T = StandardScaler().fit(raw_T)
+        self.scaler_P = StandardScaler().fit(raw_P)
+
+        T_mean, T_std = self.scaler_T.mean_[0], self.scaler_T.scale_[0]
+        P_mean, P_std = self.scaler_P.mean_[0], self.scaler_P.scale_[0]
+        print(f"  [v2 数据增强] T 标准化: 均值={T_mean:.1f}K, 标准差={T_std:.1f}K")
+        print(f"  [v2 数据增强] P 标准化: 均值={P_mean:.4f}MPa, 标准差={P_std:.4f}MPa")
+
+    def __getitem__(self, idx):
+        Combine_Graph, condition, label = super().__getitem__(idx)
+        T_scaled = float(self.scaler_T.transform([[self.data[idx][3]]])[0][0])
+        P_scaled = float(self.scaler_P.transform([[self.data[idx][4]]])[0][0])
+        condition[0] = T_scaled
+        condition[1] = P_scaled
+        return Combine_Graph, condition, label
+
+
+# ============================================================
+# 工具函数
+# ============================================================
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    print(f"  Random seed set to: {seed}")
+
+
+class EarlyStopping:
+    def __init__(self, patience=20, delta=0.0):
+        self.patience = patience
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.delta = delta
+
+    def __call__(self, val_loss):
+        score = -val_loss
+        if self.best_score is None:
+            self.best_score = score
+        elif score < self.best_score + self.delta:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.counter = 0
+
+
+# ============================================================
+# 超参数配置
+# ============================================================
 Args = {
-    # general arguments
-    'smiles_dict_path':'data/smiles.csv',
-    'data_path':'../processed_tri_data/',
-    'load_history_model':False,
-    'batch_size':64,
-    'lr':0.001,
-    'epoch':0,
-    'weight_decay':1e-6,
-    'warmup': 40,
+    'data_path':     '../processed_tri_data/',
+    'batch_size':    64,
+    'lr':            0.001,
+    'epoch':         100,       
+    'weight_decay':  1e-6,
 
-    # GAT model hyperparameter
-    'dropout_rate':0.2,
-    'n_features':5,
-    'return_attention':False,
-    'gat_emb_dim':1
+    # GAT 模型超参数
+    'emb_dim':       300,
+    'dropout_rate':  0.2,
 
+    # Early Stopping
+    'patience':      20,
 }
 
-class Runner(object):
-    """
-    include all the function needed for training
-    """
-    def __init__(self,args):
+
+# ============================================================
+# Runner
+# ============================================================
+class Runner:
+    def __init__(self, args, seed=42):
         self.args = args
-        self._device = self._get_device()
+        self.seed = seed
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"  Running on: {self._device}")
 
-        if args['load_history_model'] == True:
-            print("loading history model..")
-            self._model = IL_GAT(args)
-            state_dict_mod = torch.load('pretrained_model/GAT_300/best_model_para.pth')
-            self._model.load_state_dict(state_dict_mod)
+        self._model = IL_GAT(args).to(self._device)
+        self._optimizer = torch.optim.Adam(
+            self._model.parameters(),
+            lr=args['lr'],
+            weight_decay=args['weight_decay']
+        )
 
-            self._optimizer = torch.optim.Adam(self._model.parameters(), lr=args['lr'], weight_decay=args['weight_decay'])
-            # state_dict_opt = torch.load('pretrained_model/GAT_300/best_optimizer_para.pth')
-            # self._optimizer.load_state_dict(state_dict_opt)
-            # self._optimizer.lr = args['lr']
+        self._scheduler = CosineAnnealingLR(
+            self._optimizer,
+            T_max=args['epoch'],
+            eta_min=1e-5
+        )
 
-            self._scheduler = CosineAnnealingLR(self._optimizer, T_max=args['epoch']-9)
-            # state_dict_sch = torch.load('pretrained_model/GAT_300/best_scheduler_para.pth')
-            # self._scheduler.load_state_dict(state_dict_sch)
-            print("finish loading")
-        else:
-            self._model = IL_GAT(args)
-            self._optimizer = torch.optim.Adam(self._model.parameters(), lr=args['lr'], weight_decay=args['weight_decay'])
-            self._scheduler = CosineAnnealingLR(self._optimizer, T_max=args['epoch'] - 9)
+        # HuberLoss 替代 L1Loss
+        self._criterion = nn.HuberLoss(delta=1.0)
 
-        self._criterion = nn.L1Loss()
+    def _save(self, title):
+        os.makedirs('checkpoints_v2', exist_ok=True)
+        path = f"checkpoints_v2/{title}_gat_seed_{self.seed}.pth"
+        torch.save({'model_state_dict': self._model.state_dict()}, path)
 
+    def _load_best(self):
+        path = f"checkpoints_v2/best_gat_seed_{self.seed}.pth"
+        if os.path.exists(path):
+            ckpt = torch.load(path, map_location=self._device)
+            self._model.load_state_dict(ckpt['model_state_dict'])
 
-    def _get_device(self):
-        """
-
-        Returns: the device for the training process
-
-        """
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print("Running on:", device)
-
-        return device
-
-    def _save_para(self,title):
-        """
-        save the state_dict for the model and other workers
-        Returns: N/A
-
-        """
-        print("current epoch is more accurate than before and did not overfit the data, so save it")
-        torch.save(self._model.state_dict(), title + '_model_para.pth')
-        torch.save(self._optimizer.state_dict(), title + '_optimizer_para.pth')
-        torch.save(self._scheduler.state_dict(), title + '_scheduler_para.pth')
-
-
-    def train(self,train_loader,dev_loader,args):
-        """
-
-        Args:
-            train_loader: Dataloader
-            dev_loader: Dataloader
-
-        Returns: float type validate loss
-
-        """
-
-        # initialize the parameter
-        model = self._model.to(self._device)
+    def train(self, train_loader, dev_loader):
+        model = self._model
         optimizer = self._optimizer
         scheduler = self._scheduler
+        early_stopping = EarlyStopping(patience=self.args['patience'])
+        best_v_loss = float('inf')
 
-        # initialize the recorder
-        batch_loss = []
-        v_loss = -1
-        for epoch in range(1,args['epoch'] + 1):
-
+        for epoch in range(1, self.args['epoch'] + 1):
             model.train()
-            batch_bar = tqdm(total=len(train_loader), dynamic_ncols=True, position=0, leave=False, desc='Train')
-            # training process
-            train_loss = 0
-            for batch_idx,(graph,cond,label) in enumerate(train_loader):
+            train_loss = 0.0
+
+            bar = tqdm(total=len(train_loader), dynamic_ncols=True,
+                       leave=False, desc=f"Epoch {epoch:>3d} Train")
+            for batch_idx, (graph, cond, label) in enumerate(train_loader):
                 graph = graph.to(self._device)
-                cond = cond.to(self._device)
+                cond  = cond.to(self._device)
                 label = label.to(self._device)
 
                 optimizer.zero_grad()
-                y = model(graph,cond)
-                loss = self._criterion(y.flatten(),label.flatten())
+                y    = model(graph, cond)
+                loss = self._criterion(y.flatten(), label.flatten())
                 loss.backward()
                 optimizer.step()
-                train_loss += loss
 
-                batch_loss.append(loss)
-                # record the progress
-                batch_bar.set_postfix(
-                    loss="{:.04f}".format(float(train_loss/(batch_idx + 1))),
-                    lr="{:.04f}".format(float(optimizer.param_groups[0]['lr'])))
-                batch_bar.update()
-            batch_bar.close()
-            # validate process
+                train_loss += loss.item()
+                bar.set_postfix(
+                    loss=f"{train_loss/(batch_idx+1):.4f}",
+                    lr=f"{optimizer.param_groups[0]['lr']:.6f}"
+                )
+                bar.update()
+            bar.close()
+
+            scheduler.step()
+
+            # 验证
             model.eval()
-            batch_bar = tqdm(total=len(dev_loader), dynamic_ncols=True, position=0, leave=False, desc='Val')
+            val_loss = 0.0
             with torch.no_grad():
-                Loss_v = 0
-                batch_num = 0
-                for batch_idx,(graph,cond,label) in enumerate(dev_loader):
+                for graph, cond, label in dev_loader:
                     graph = graph.to(self._device)
-                    cond = cond.to(self._device)
+                    cond  = cond.to(self._device)
                     label = label.to(self._device)
+                    y = model(graph, cond)
+                    val_loss += self._criterion(y.flatten(), label.flatten()).item()
 
-                    y = model(graph,cond)
-                    loss_v = self._criterion(y.flatten(),label.flatten())
-                    Loss_v += loss_v
-                    batch_num += 1
+            avg_train = train_loss / len(train_loader)
+            avg_val   = val_loss   / len(dev_loader)
 
-                    batch_bar.set_postfix(
-                        v_loss="{:.04f}".format(float(Loss_v / (batch_idx + 1)))
-                    )
-                    batch_bar.update()
+            if avg_val < best_v_loss:
+                best_v_loss = avg_val
+                self._save('best')
 
-                batch_bar.close()
-                total_loss = Loss_v# TODO: check if the loss is right
+            print(f"  Epoch {epoch:>3d}/{self.args['epoch']} | "
+                  f"Train: {avg_train:.4f} | Val: {avg_val:.4f} | "
+                  f"LR: {optimizer.param_groups[0]['lr']:.6f}")
 
-                if v_loss == -1:
-                    v_loss = total_loss
-                    self._save_para('init')
-                elif total_loss <= v_loss:
-                    v_loss = total_loss
-                    self._save_para('best')
+            early_stopping(avg_val)
+            if early_stopping.early_stop:
+                print(f"  ⏹ Early stopping at epoch {epoch}")
+                break
 
-                if epoch == 80:
-                    self._save_para('80')
+        return best_v_loss
 
-
-
-            # scheduler step
-            if epoch >= args['warmup']:
-                scheduler.step()
-
-            # basic information for the current epoch
-            print(
-                "Epoch {}/{}: Train loss {:.04f}, Validation Loss {:.04f}, Learning Rate {:.04f}".format(
-                    epoch,
-                    args['epoch'],
-                    float(train_loss / len(train_loader)),
-                    float(total_loss / len(dev_loader)),
-                    float(optimizer.param_groups[0]['lr'])))
-
-        return total_loss
-
-    def test(self,test_loader):
-        """
-
-        Args:
-            test_loader: Dataloader
-
-        Returns: list(), list()
-
-        """
-        # initialize the parameter
-        model = self._model.to(self._device)
-
-        pred_y = []
-        true_y = []
+    def test(self, test_loader):
+        self._load_best()
+        model = self._model
         model.eval()
-        batch_bar = tqdm(total=len(test_loader), dynamic_ncols=True, position=0, leave=False, desc='Test')
+        pred_y, true_y = [], []
         with torch.no_grad():
-            for batch_idx,(graph,cond,label) in enumerate(test_loader):
+            for graph, cond, label in tqdm(test_loader, desc="Testing", leave=False):
                 graph = graph.to(self._device)
-                cond = cond.to(self._device)
-                label = label.to(self._device)
+                cond  = cond.to(self._device)
+                pred  = model(graph, cond)
+                pred_y.extend(pred.flatten().cpu().numpy().tolist())
+                true_y.extend(label.numpy().tolist())
 
-
-                pred = model(graph,cond)
-
-                try:
-                    pred_y.extend(pred.flatten().tolist())
-                    true_y.extend(label.flatten().tolist())
-                except:
-                    print("test result appended failed, seems like need to clarify the device")
-
-                batch_bar.set_postfix()
-                batch_bar.update()
-        batch_bar.close()
         mae = mean_absolute_error(true_y, pred_y)
-        r2 = r2_score(true_y,pred_y)
-        print("MAE: {} ,R2: {} ".format(mae,r2))
-        return pred_y,true_y
-
-    def get_model(self):
-        """
-
-        Returns:torch.nn.model
-
-        """
-        return self._model
+        r2  = r2_score(true_y, pred_y)
+        print(f"  ✅ Test → MAE: {mae:.4f}, R²: {r2:.4f}")
+        return pred_y, true_y
 
 
-def plot(labels, predictions, tl, tp, name):
-    xymin = min(np.min(labels), np.max(predictions))
-    xymax = max(np.max(labels), np.max(predictions))
-
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.scatter(labels, predictions, s=25, edgecolors='None', linewidths=0.4, c='orange', label='train data')
-    ax.scatter(tl, tp, s=25, edgecolors='None', linewidths=0.4, c='yellow', label='test data')
-    x = np.linspace(xymin, xymax)
-    y = np.linspace(xymin, xymax)
-    ax.plot(x, y, linestyle='dashed', c='black')
-
-    ax.set_xlabel('Label', fontsize=18)
-    ax.set_ylabel('Prediction', fontsize=18)
-    ax.tick_params(direction='in', width=2, labelsize=15)
-    for axis in ['top', 'bottom', 'left', 'right']:
-        ax.spines[axis].set_linewidth(2.5)
-    ax.legend(fontsize=15)
-    plt.savefig(name)
+def plot_results(true_y, pred_y, title, filename):
+    plt.figure(figsize=(7, 7))
+    plt.scatter(true_y, pred_y, alpha=0.45, color='darkorange', s=18, label='Predictions')
+    lims = [min(min(true_y), min(pred_y)), max(max(true_y), max(pred_y))]
+    plt.plot(lims, lims, 'r--', lw=1.5, label='Ideal (y=x)')
+    plt.xlabel('Experimental x₁', fontsize=12)
+    plt.ylabel('Predicted x₁',    fontsize=12)
+    plt.title(title, fontsize=13)
+    plt.legend(fontsize=10)
+    plt.grid(True, linestyle='--', alpha=0.5)
+    os.makedirs('figure_v2', exist_ok=True)
+    plt.savefig(f"figure_v2/{filename}.png", dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"  📊 图已保存: figure_v2/{filename}.png")
 
 
+# ============================================================
+# 主程序入口
+# ============================================================
 if __name__ == '__main__':
-    # init dataset
-    Whole_set = IL_set(path = Args['data_path'])
+    seeds = [42, 7, 1]
 
-    # print basic information
-    Whole_size = len(Whole_set)
-    print("num of data",Whole_size)
+    # ── 固定测试集切分 (与 GIN 保持相同的 SPLIT_SEED=42，确保对比公平) ──
+    SPLIT_SEED = 42
+    print(f"\n{'='*55}")
+    print(f"  GAT_Runner | 核心改动: T/P归一化 + HuberLoss + 余弦退火")
+    print(f"  种子数: {len(seeds)}  最大Epoch: {Args['epoch']}  总迭代上限: {len(seeds)*Args['epoch']}")
+    print(f"{'='*55}\n")
 
-    # data split
-    train_size = int(len(Whole_set) * 0.8)
-    dev_size = Whole_size - train_size
-    train_set,dev_set = random_split(Whole_set,[train_size,dev_size])
+    print("正在加载数据集 (v2 版本，T/P 已追加标准化)...")
+    Whole_set = IL_set_v2(path=Args['data_path'])
 
-    # data loading
-    train_loader = DataLoader(train_set,batch_size = Args['batch_size'],shuffle=True)
-    dev_loader = DataLoader(dev_set,batch_size = Args['batch_size'],shuffle=True)
-    explain_loader = DataLoader(dev_set,batch_size = Args['batch_size'],shuffle=False)
+    train_size = int(len(Whole_set) * 0.7)
+    test_size  = int(len(Whole_set) * 0.2)
+    dev_size   = len(Whole_set) - train_size - test_size
 
-    # init Runner
-    run_G = Runner(Args)
+    train_set, dev_set, test_set = random_split(
+        Whole_set, [train_size, dev_size, test_size],
+        generator=torch.Generator().manual_seed(SPLIT_SEED)
+    )
+    test_loader = DataLoader(test_set, batch_size=Args['batch_size'], shuffle=False)
+    print(f"  数据划分 → Train: {train_size}, Dev: {dev_size}, Test: {test_size}\n")
 
-    # model train & test
-    if Args['epoch'] != 0:# for test mode
-        run_G.train(train_loader,dev_loader,Args)
+    all_preds      = []
+    test_true      = None
+    ensemble_results = []
 
-    # train plot
-    train_pred, train_true = run_G.test(train_loader)
+    for seed in seeds:
+        print(f"\n{'─'*55}")
+        print(f"  训练 GAT Seed: {seed}")
+        print(f"{'─'*55}")
+        set_seed(seed)
 
-    # test plot
-    test_pred,test_true = run_G.test(explain_loader)
-    plot(train_true, train_pred,test_true,test_pred,'GAT')
+        train_loader = DataLoader(train_set, batch_size=Args['batch_size'], shuffle=True)
+        dev_loader   = DataLoader(dev_set,   batch_size=Args['batch_size'], shuffle=False)
+
+        runner = Runner(Args, seed=seed)
+        runner.train(train_loader, dev_loader)
+
+        test_pred, test_true = runner.test(test_loader)
+        all_preds.append(test_pred)
+
+        mae = mean_absolute_error(test_true, test_pred)
+        r2  = r2_score(test_true, test_pred)
+        ensemble_results.append({'seed': seed, 'mae': mae, 'r2': r2})
+
+        plot_results(test_true, test_pred,
+                     f"GAT v2 Seed {seed} (R²={r2:.4f})",
+                     f"gat_pred_v2_seed_{seed}")
+
+    # ── 集成结果 ──
+    ensemble_pred = np.mean(all_preds, axis=0).tolist()
+    ens_mae = mean_absolute_error(test_true, ensemble_pred)
+    ens_r2  = r2_score(test_true, ensemble_pred)
+
+    print(f"\n{'='*55}")
+    print(f"  GAT 单体模型结果汇总:")
+    df = pd.DataFrame(ensemble_results)
+    print(df.to_string(index=False))
+    print(f"\n  GAT 平均单体 R²: {df['r2'].mean():.4f} (±{df['r2'].std():.4f})")
+
+    print(f"\n  🏆 GAT 集成 (3模型均值) → MAE: {ens_mae:.4f}, R²: {ens_r2:.4f}")
+    print(f"{'='*55}\n")
+
+    # 保存摘要
+    df['ensemble_mae'] = ens_mae
+    df['ensemble_r2']  = ens_r2
+    df.to_csv('gat_ensemble_results_v2.csv', index=False)
+    print("  📄 结果已保存至: gat_ensemble_results_v2.csv")
+
+    plot_results(test_true, ensemble_pred,
+                 f"GAT v2 Ensemble (3 Seeds, R²={ens_r2:.4f})",
+                 "gat_ensemble_v2_final")

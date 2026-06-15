@@ -124,7 +124,7 @@ Args = {
     'weight_decay':  1e-6,
 
     # GIN 模型超参数 (与 v1 保持一致，便于对比)
-    'num_gin_layer': 5,
+    'num_gin_layer': 3,
     'emb_dim':       300,
     'feat_dim':      512,
     'drop_ratio':    0.2,
