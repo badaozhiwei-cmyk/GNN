@@ -19,18 +19,40 @@ num_bond_type = 5
 num_bond_isAromatic = 2
 num_bond_isInRing = 2
 
-# GCN
+# GCN (3-layer version)
+# n_features should be 7 (atomic_number, hybridization, aromatic, degree, charge, electronegativity, cov_radius)
+# cond is 7-dim (T, P, ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa)
+# Graph conv output: 512-dim  →  MLP input: 512 + 7 = 519
 class IL_Net_GCN(torch.nn.Module):
     def __init__(self, args):
         super(IL_Net_GCN,self).__init__()
         self.args = args
-        n_features = self.args['n_features']
-        self.l1 = GCNConv(n_features, 512, normalize = True)
-        self.l2 = GCNConv(512, 1024, normalize=True)
-        self.l3 = GCNConv(1024, 1024, normalize=True)
-        self.l4 = GCNConv(1024, 512, normalize=True)
+        self.emb_dim = args.get('emb_dim', 300)
+        
+        # 添加与 GIN 相同的 Embedding 层，避免直接将分类序号当做连续变量计算
+        self.x_embedding1 = nn.Embedding(num_atom_type, self.emb_dim)
+        self.x_embedding2 = nn.Embedding(num_Hbrid, self.emb_dim)
+        self.x_embedding3 = nn.Embedding(num_Aro, self.emb_dim)
+        self.x_embedding4 = nn.Embedding(num_degree, self.emb_dim)
+        self.x_embedding5 = nn.Embedding(num_charge, self.emb_dim)
+        self.x_embedding6 = nn.Embedding(num_eneg,   self.emb_dim)
+        self.x_embedding7 = nn.Embedding(num_radius, self.emb_dim)
 
-        self.l5 = nn.Sequential(
+        nn.init.xavier_uniform_(self.x_embedding1.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding2.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding3.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding4.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding5.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding6.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding7.weight.data)
+
+        # 3-layer GCN: emb_dim → 512 → 1024 → 512
+        self.l1 = GCNConv(self.emb_dim, 512, normalize=True)
+        self.l2 = GCNConv(512, 1024, normalize=True)
+        self.l3 = GCNConv(1024, 512, normalize=True)
+
+        # MLP head: graph_repr(512) + cond(7) = 519
+        self.l4 = nn.Sequential(
             nn.Linear(519, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
@@ -47,8 +69,9 @@ class IL_Net_GCN(torch.nn.Module):
         self.act = nn.ReLU()
         self.dropout = nn.Dropout(p=args['dropout_rate'])
 
-    def extract(self,x,batch):
-        output, count= torch.unique(batch, return_counts=True)
+    def extract(self, x, batch):
+        """Extract the global node (last node of each graph in batch) as graph representation."""
+        output, count = torch.unique(batch, return_counts=True)
         count = count.tolist()
 
         l = []
@@ -58,36 +81,44 @@ class IL_Net_GCN(torch.nn.Module):
             l.append(cur)
         re = []
         for j in l:
-            re.append(x[j - 1].reshape(1,-1))
+            re.append(x[j - 1].reshape(1, -1))
 
-        g = torch.cat(re,dim = 0)
-
+        g = torch.cat(re, dim=0)
         return g
 
     def forward(self, data_i, cond):
-        x, edge_index = data_i.x.to(torch.float), data_i.edge_index
-        edge_weight = torch.sum(data_i.edge_attr,dim=1).to(torch.float)
+        h = self.x_embedding1(data_i.x[:, 0]) + \
+            self.x_embedding2(data_i.x[:, 1]) + \
+            self.x_embedding3(data_i.x[:, 2]) + \
+            self.x_embedding4(data_i.x[:, 3]) + \
+            self.x_embedding5(data_i.x[:, 4]) + \
+            self.x_embedding6(data_i.x[:, 5]) + \
+            self.x_embedding7(data_i.x[:, 6])
+            
+        edge_index = data_i.edge_index
+        edge_weight = torch.sum(data_i.edge_attr, dim=1).to(torch.float)
 
-        x = self.l1(x, edge_index,edge_weight )
+        # Layer 1
+        x = self.l1(h, edge_index, edge_weight)
         x = self.act(x)
         x = self.dropout(x)
 
-        x = self.l2(x, edge_index,edge_weight )
+        # Layer 2
+        x = self.l2(x, edge_index, edge_weight)
         x = self.act(x)
         x = self.dropout(x)
 
-        x = self.l3(x, edge_index,edge_weight )
+        # Layer 3
+        x = self.l3(x, edge_index, edge_weight)
         x = self.act(x)
         x = self.dropout(x)
 
-        x = self.l4(x, edge_index,edge_weight )
-        x = self.act(x)
-        x = self.dropout(x)
+        # Extract global node representation
+        x = self.extract(x, data_i.batch)
 
-        x = self.extract(x,data_i.batch)
-
+        # Concatenate with physical condition vector and predict
         x = torch.cat([x, cond], dim=1)
-        x = self.l5(x)
+        x = self.l4(x)
 
         return x
 

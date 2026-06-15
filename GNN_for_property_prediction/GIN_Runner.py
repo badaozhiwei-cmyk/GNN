@@ -60,7 +60,7 @@ Args = {
     'weight_decay':1e-6,
 
     # GIN model hyperparameter
-    'num_gin_layer':5,
+    'num_gin_layer':3,
     'emb_dim':300,
     'feat_dim':512,
     'drop_ratio':0.2,
