@@ -31,7 +31,7 @@ from Dataset_explain_v2 import IL_set_v2
 
 # GIN 模型超参数（与训练/预测时完全一致）
 Args = {
-    'num_gin_layer': 5,
+    'num_gin_layer': 3,
     'emb_dim': 300,
     'feat_dim': 512,
     'drop_ratio': 0.2,
