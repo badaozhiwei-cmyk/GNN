@@ -181,7 +181,7 @@ class IL_GAT(torch.nn.Module):
         for j in l:
             re.append(x[j - 1].reshape(1,-1))
 
-        g = torch.cat(re,dim = 0).to('cuda')
+        g = torch.cat(re,dim = 0)
 
         return g
 
