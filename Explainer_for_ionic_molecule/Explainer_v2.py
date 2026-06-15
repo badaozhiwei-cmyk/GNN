@@ -145,8 +145,10 @@ class IL_Explainer_v2(torch.nn.Module):
         use_embedding_patch = hasattr(self.model, 'x_embedding1')
         
         if use_embedding_patch:
-            # 动态覆写 GIN 的 forward 方法，让梯度可以通过连续的 float 掩码流回 node_feat_mask
+            # 动态覆写 forward 方法，让梯度可以通过连续的 float 掩码流回 node_feat_mask
             import torch.nn.functional as F_func
+            model_type = type(self.model).__name__
+            
             def masked_forward(pair_graph, cond_val):
                 m = self.node_feat_mask.sigmoid()
                 # 分别对 7 个特征的 Embedding 乘以其对应的可微分特征掩码
@@ -158,16 +160,59 @@ class IL_Explainer_v2(torch.nn.Module):
                     self.model.x_embedding6(pair_graph.x[:, 5]) * m[5] + \
                     self.model.x_embedding7(pair_graph.x[:, 6]) * m[6]
                 
-                # 后面保持与 Model.py 中 GIN 层的传播完全一致
-                for layer in range(self.model.num_layer):
-                    h = self.model.gnns[layer](h, pair_graph.edge_index, pair_graph.edge_attr)
-                    h = self.model.batch_norms[layer](h)
-                    h = F_func.dropout(F_func.relu(h), self.model.drop_ratio, training=self.model.training)
-
-                h = self.model.feat_lin(h)
-                h_pair = self.model.extract(h, pair_graph.batch)
-                h = torch.cat([h_pair, cond_val], dim=1) 
-                return self.model.pred_head(h)
+                if model_type == 'GIN':
+                    for layer in range(self.model.num_layer):
+                        h = self.model.gnns[layer](h, pair_graph.edge_index, pair_graph.edge_attr)
+                        h = self.model.batch_norms[layer](h)
+                        h = F_func.dropout(F_func.relu(h), self.model.drop_ratio, training=self.model.training)
+                    h = self.model.feat_lin(h)
+                    h_pair = self.model.extract(h, pair_graph.batch)
+                    h = torch.cat([h_pair, cond_val], dim=1) 
+                    return self.model.pred_head(h)
+                    
+                elif model_type == 'IL_Net_GCN':
+                    x = h
+                    edge_index = pair_graph.edge_index
+                    edge_weight = torch.sum(pair_graph.edge_attr, dim=1).to(torch.float)
+                    
+                    x = self.model.l1(x, edge_index, edge_weight)
+                    x = self.model.act(x)
+                    x = self.model.dropout(x)
+                    
+                    x = self.model.l2(x, edge_index, edge_weight)
+                    x = self.model.act(x)
+                    x = self.model.dropout(x)
+                    
+                    x = self.model.l3(x, edge_index, edge_weight)
+                    x = self.model.act(x)
+                    x = self.model.dropout(x)
+                    
+                    x = self.model.extract(x, pair_graph.batch)
+                    x = torch.cat([x, cond_val], dim=1)
+                    return self.model.l4(x)
+                    
+                elif model_type == 'IL_GAT':
+                    x = h
+                    edge_index = pair_graph.edge_index
+                    
+                    x, _ = self.model.l1(x, edge_index, return_attention_weights=True)
+                    x = self.model.act(x)
+                    x = self.model.dropout(x)
+                    
+                    x, _ = self.model.l2(x, edge_index, return_attention_weights=True)
+                    x = self.model.act(x)
+                    x = self.model.dropout(x)
+                    
+                    x, _ = self.model.l3(x, edge_index, return_attention_weights=True)
+                    x = self.model.act(x)
+                    x = self.model.dropout(x)
+                    
+                    x = self.model.extract(x, pair_graph.batch)
+                    x = torch.cat([x, cond_val], dim=1)
+                    return self.model.l5(x)
+                    
+                else:
+                    raise ValueError(f"不支持的带有 Embedding 的模型类型: {model_type}")
                 
             original_forward = self.model.forward
             self.model.forward = masked_forward
