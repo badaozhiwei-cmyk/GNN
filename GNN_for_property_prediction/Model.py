@@ -114,7 +114,9 @@ class IL_Net_GCN(torch.nn.Module):
         x = self.dropout(x)
 
         # Extract global node representation
-        x = self.extract(x, data_i.batch)
+        # [修复] 放弃 extract(虚拟节点)，改用 global_mean_pool
+        # 因为 GCNConv 会按度数(Degree)归一化，全局节点的度数极大，导致其特征被严重压缩近乎于 0。
+        x = global_mean_pool(x, data_i.batch)
 
         # Concatenate with physical condition vector and predict
         x = torch.cat([x, cond], dim=1)
