@@ -34,11 +34,14 @@ args = {
 def combine_Graph(Graph_list):
     """将多个子图（阳+阴+制冷剂）拼接为单一大图"""
     combined = Batch.from_data_list(Graph_list)
-    return Data(
+    # [修复] 注入 mol_type，利用 PyG 的 batch 张量（0 代表阳离子，1 代表阴离子，2 代表制冷剂）
+    combined_Graph = Data(
         x=combined.x,
         edge_index=combined.edge_index,
-        edge_attr=combined.edge_attr
+        edge_attr=combined.edge_attr,
+        mol_type=combined.batch
     )
+    return combined_Graph
 
 
 def add_global(graph):
@@ -75,7 +78,15 @@ def add_global(graph):
     edge_index = torch.cat([graph.edge_index, new_edge], dim=1)
     edge_attr  = torch.cat([graph.edge_attr, torch.tensor(attr)], dim=0)
 
-    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+    # [修复] 为全局虚拟节点分配特殊的 mol_type = 3
+    if hasattr(graph, 'mol_type'):
+        global_mol_type = torch.tensor([3], dtype=torch.long)
+        new_mol_type = torch.cat([graph.mol_type, global_mol_type], dim=0)
+        g = Data(x=x, edge_index=edge_index, edge_attr=edge_attr, mol_type=new_mol_type)
+    else:
+        g = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
+
+    return g
 
 
 # ══════════════════════════════════════════════════════════════
