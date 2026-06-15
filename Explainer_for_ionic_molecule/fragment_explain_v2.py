@@ -25,7 +25,7 @@ from torch_geometric.data import DataLoader
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'GNN_for_property_prediction'))
 
-from Model import GIN
+from Model import GIN, IL_Net_GCN, IL_GAT
 from Explainer_v2 import IL_Explainer_v2
 from Dataset_explain_v2 import IL_set_v2
 
@@ -93,7 +93,21 @@ def main(model_path: str, data_root: str, explainer_epochs: int = 100, num_sampl
 
     # ── 1. 加载模型（带状态字典自适应） ──────────────────────────
     print(f"[加载模型] 路径: {model_path}")
-    model = GIN(Args).to(device)
+    
+    # 根据模型路径名称自适应推断模型架构
+    model_name_lower = os.path.basename(model_path).lower()
+    if 'gcn' in model_name_lower:
+        print("  => 检测到 GCN 模型权重，正在实例化 IL_Net_GCN")
+        gcn_args = {'emb_dim': 300, 'dropout_rate': 0.4}
+        model = IL_Net_GCN(gcn_args).to(device)
+    elif 'gat' in model_name_lower:
+        print("  => 检测到 GAT 模型权重，正在实例化 IL_GAT")
+        gat_args = {'emb_dim': 300, 'dropout_rate': 0.2}
+        model = IL_GAT(gat_args).to(device)
+    else:
+        print("  => 默认使用 GIN 模型架构")
+        model = GIN(Args).to(device)
+
     checkpoint = torch.load(model_path, map_location=device)
     if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
         model.load_state_dict(checkpoint['model_state_dict'])
