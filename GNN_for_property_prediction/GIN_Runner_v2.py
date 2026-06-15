@@ -44,36 +44,27 @@ from Model import GIN
 # ============================================================
 class IL_set_v2(IL_set):
     """
-    在原始 IL_set 基础上，对温度 T 和压力 P 进行 StandardScaler 标准化。
-    其余逻辑（分子图构造、边特征等）完全继承，不做任何修改。
+    [修复] 数据泄露和特征错位：只在训练集上拟合 StandardScaler，并作用于 7 个物理量
     """
     def __init__(self, path):
-        super().__init__(path)  # 调用父类，完成原始初始化（包括 ref_charge/logp/mw 的 scaler）
+        super().__init__(path)
+        self.scalers = None
 
-        # 新增：对 T 和 P 进行 StandardScaler 拟合
-        raw_T = np.array([self.data[i][3] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_P = np.array([self.data[i][4] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        self.scaler_T = StandardScaler().fit(raw_T)
-        self.scaler_P = StandardScaler().fit(raw_P)
-
-        T_mean, T_std = self.scaler_T.mean_[0], self.scaler_T.scale_[0]
-        P_mean, P_std = self.scaler_P.mean_[0], self.scaler_P.scale_[0]
-        print(f"  [v2 数据增强] T 标准化: 均值={T_mean:.1f}K, 标准差={T_std:.1f}K")
-        print(f"  [v2 数据增强] P 标准化: 均值={P_mean:.4f}MPa, 标准差={P_std:.4f}MPa")
+    def fit_scalers(self, train_indices):
+        self.scalers = [StandardScaler() for _ in range(7)]
+        for feature_idx in range(7):
+            # 7 个物理量在 self.data 中的索引是从 3 到 9
+            raw_vals = np.array([self.data[i][feature_idx + 3] for i in train_indices], dtype=np.float32).reshape(-1, 1)
+            self.scalers[feature_idx].fit(raw_vals)
+        print("  [v2 数据增强] 7个物理量的 StandardScaler 拟合完成 (无数据泄露)")
 
     def __getitem__(self, idx):
-        """重写 __getitem__，用归一化的 T 和 P 替换原始物理数值"""
-        # 调用父类获取全部数据（包含图结构和条件向量）
         Combine_Graph, condition, label = super().__getitem__(idx)
-
-        # 父类返回的 condition 格式: [T_raw, P_raw, ref_charge_scaled, ref_logp_scaled, ani_mw_scaled]
-        # 此处用标准化后的 T, P 覆盖前两个分量
-        T_scaled = float(self.scaler_T.transform([[self.data[idx][3]]])[0][0])
-        P_scaled = float(self.scaler_P.transform([[self.data[idx][4]]])[0][0])
-
-        condition[0] = T_scaled
-        condition[1] = P_scaled
-
+        if self.scalers is not None:
+            for feature_idx in range(7):
+                raw_val = float(self.data[idx][feature_idx + 3])
+                scaled_val = float(self.scalers[feature_idx].transform([[raw_val]])[0][0])
+                condition[feature_idx] = scaled_val
         return Combine_Graph, condition, label
 
 
@@ -302,6 +293,7 @@ if __name__ == '__main__':
         Whole_set, [train_size, dev_size, test_size],
         generator=torch.Generator().manual_seed(SPLIT_SEED)
     )
+    Whole_set.fit_scalers(train_set.indices)
     test_loader = DataLoader(test_set, batch_size=Args['batch_size'], shuffle=False)
     print(f"  数据划分 → Train: {train_size}, Dev: {dev_size}, Test: {test_size}\n")
 

@@ -51,9 +51,9 @@ class IL_Net_GCN(torch.nn.Module):
         self.l2 = GCNConv(512, 1024, normalize=True)
         self.l3 = GCNConv(1024, 512, normalize=True)
 
-        # MLP head: graph_repr(512) + cond(7) = 519
+        # MLP head: graph_repr(512*3) + cond(7) = 1543
         self.l4 = nn.Sequential(
-            nn.Linear(519, 1024),
+            nn.Linear(1543, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
             nn.Dropout(p=0.4),
@@ -113,16 +113,16 @@ class IL_Net_GCN(torch.nn.Module):
         x = self.act(x)
         x = self.dropout(x)
 
-        # Extract global node representation
-        # [修复] 放弃 extract(虚拟节点)，改用 global_mean_pool
-        # 因为 GCNConv 会按度数(Degree)归一化，全局节点的度数极大，导致其特征被严重压缩近乎于 0。
-        x = global_mean_pool(x, data_i.batch)
+        # [修复] 彻底解决池化灾难：分别对阳离子、阴离子、制冷剂进行池化，防止大分子稀释小分子
+        x_c = global_mean_pool(x[data_i.mol_type == 0], data_i.batch[data_i.mol_type == 0])
+        x_a = global_mean_pool(x[data_i.mol_type == 1], data_i.batch[data_i.mol_type == 1])
+        x_r = global_mean_pool(x[data_i.mol_type == 2], data_i.batch[data_i.mol_type == 2])
 
         # Concatenate with physical condition vector and predict
-        x = torch.cat([x, cond], dim=1)
-        x = self.l4(x)
+        x_concat = torch.cat([x_c, x_a, x_r, cond], dim=1)
+        x_out = self.l4(x_concat)
 
-        return x
+        return x_out
 
 # GAT
 class IL_GAT(torch.nn.Module):
@@ -153,8 +153,9 @@ class IL_GAT(torch.nn.Module):
         self.l2 = GATv2Conv(512, 1024)
         self.l3 = GATv2Conv(1024, 512)
 
+        # MLP head
         self.l5 = nn.Sequential(
-            nn.Linear(519, 1024),
+            nn.Linear(1543, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
             nn.Dropout(p=0.4),
@@ -210,12 +211,15 @@ class IL_GAT(torch.nn.Module):
         x = self.act(x)
         x = self.dropout(x)
 
-        x = self.extract(x,data_i.batch)
+        # [修复] 彻底解决池化灾难：分别对阳离子、阴离子、制冷剂进行池化，防止大分子稀释小分子
+        x_c = global_mean_pool(x[data_i.mol_type == 0], data_i.batch[data_i.mol_type == 0])
+        x_a = global_mean_pool(x[data_i.mol_type == 1], data_i.batch[data_i.mol_type == 1])
+        x_r = global_mean_pool(x[data_i.mol_type == 2], data_i.batch[data_i.mol_type == 2])
 
-        x = torch.cat([x, cond], dim=1)
-        x = self.l5(x)
+        x_concat = torch.cat([x_c, x_a, x_r, cond], dim=1)
+        x_out = self.l5(x_concat)
 
-        return x
+        return x_out
 
 
 # GIN
@@ -304,7 +308,7 @@ class GIN(nn.Module):
         self.feat_lin = nn.Linear(self.emb_dim, self.feat_dim)
 
         self.pred_head = nn.Sequential(
-            nn.Linear(self.feat_dim + 7, self.feat_dim),  # V2 cond: [T, P, Ref_Charge, Ref_LogP, Ani_MW, Cat_RotBonds, Cat_LogP]
+            nn.Linear(self.feat_dim * 3 + 7, self.feat_dim),  # 3 graphs + 7 cond
             nn.Softplus(),
             nn.Linear(self.feat_dim, int(self.feat_dim/2)),
             nn.Softplus(),
@@ -339,14 +343,19 @@ class GIN(nn.Module):
         for layer in range(self.num_layer):
             h = self.gnns[layer](h, pair_graph.edge_index, pair_graph.edge_attr)
             h = self.batch_norms[layer](h)
+            import torch.nn.functional as F
             h = F.dropout(F.relu(h), self.drop_ratio, training=self.training)
 
         h = self.feat_lin(h)
-        h_pair = self.extract(h, pair_graph.batch)
+        
+        # [修复] 彻底解决池化灾难：分别对阳离子、阴离子、制冷剂进行池化，防止大分子稀释小分子
+        h_c = self.pool(h[pair_graph.mol_type == 0], pair_graph.batch[pair_graph.mol_type == 0])
+        h_a = self.pool(h[pair_graph.mol_type == 1], pair_graph.batch[pair_graph.mol_type == 1])
+        h_r = self.pool(h[pair_graph.mol_type == 2], pair_graph.batch[pair_graph.mol_type == 2])
+
         # 【特征融合层】
-        # 将 GNN 提取出的分子结构特征 (h_pair) 与 5 个全局物理量 (cond) 进行拼接
         # 这一步实现了“物理增强”：模型同时参考了结构和物理常数
-        h = torch.cat([h_pair, cond], dim=1) 
+        h_concat = torch.cat([h_c, h_a, h_r, cond], dim=1) 
         
         # 将融合后的总特征送入 MLP 输出头进行最终的溶解度预测
-        return self.pred_head(h)
+        return self.pred_head(h_concat)

@@ -19,7 +19,9 @@ def combine_Graph(Graph_list):
 
     """
     combined = Batch.from_data_list(Graph_list)
-    combined_Graph = Data(x=combined.x, edge_index=combined.edge_index, edge_attr=combined.edge_attr)
+    # [修复] 引入 mol_type 用于解决池化灾难
+    # combined.batch 原生自带了 0(阳离子), 1(阴离子), 2(制冷剂) 的区分子图索引
+    combined_Graph = Data(x=combined.x, edge_index=combined.edge_index, edge_attr=combined.edge_attr, mol_type=combined.batch)
 
     return combined_Graph
 
@@ -56,7 +58,14 @@ def add_global(graph):
     edge_index = torch.cat([graph.edge_index, new_edge], dim=1)
     attr = torch.tensor(attr)
     edge_attr = torch.cat([graph.edge_attr, attr], dim=0)
-    g = Data(x = x,edge_index = edge_index,edge_attr = edge_attr)
+    
+    # [修复] 给全局节点分配特殊的 mol_type = 3
+    if hasattr(graph, 'mol_type'):
+        global_mol_type = torch.tensor([3], dtype=torch.long)
+        new_mol_type = torch.cat([graph.mol_type, global_mol_type], dim=0)
+        g = Data(x = x,edge_index = edge_index,edge_attr = edge_attr, mol_type=new_mol_type)
+    else:
+        g = Data(x = x,edge_index = edge_index,edge_attr = edge_attr)
 
     return g
 
@@ -75,20 +84,7 @@ class IL_set(torch.utils.data.Dataset):
 
         self.length = self.label.shape[0]
 
-        # 对 5 个全局特征做 StandardScaler 归一化，统一量级：
-        # index[5]=Ref_Charge, index[6]=Ref_LogP, index[7]=Ani_MW,
-        # index[8]=Cat_Charge, index[9]=Cat_TPSA  ← V2 依据热图更新
-        raw_ref_charge  = np.array([self.data[i][5] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_ref_logp    = np.array([self.data[i][6] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_ani_mw      = np.array([self.data[i][7] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_cat_charge  = np.array([self.data[i][8] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)  # V2
-        raw_cat_tpsa    = np.array([self.data[i][9] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)  # V2
-        self.scaler_ref_charge  = StandardScaler().fit(raw_ref_charge)
-        self.scaler_ref_logp    = StandardScaler().fit(raw_ref_logp)
-        self.scaler_ani_mw      = StandardScaler().fit(raw_ani_mw)
-        self.scaler_cat_charge  = StandardScaler().fit(raw_cat_charge)  # V2
-        self.scaler_cat_tpsa    = StandardScaler().fit(raw_cat_tpsa)    # V2
-
+        # [修复] 消除数据泄露，移除 Dataset 内置的 StandardScaler
         # show basic information
         print("----info----")
         print("data_length",self.length)
@@ -99,14 +95,10 @@ class IL_set(torch.utils.data.Dataset):
         return self.length
 
     def __getitem__(self, idx):
-        cation = self.data[idx][0]
-        anion = self.data[idx][1]
-        refri = self.data[idx][2]
-        T          = self.data[idx][3]
-        P          = self.data[idx][4]
-        ref_charge = float(self.scaler_ref_charge.transform([[self.data[idx][5]]])[0][0])
-        ref_logp   = float(self.scaler_ref_logp.transform([[self.data[idx][6]]])[0][0])
-        ani_mw     = float(self.scaler_ani_mw.transform([[self.data[idx][7]]])[0][0])
+        data = self.data[idx]
+        cation = data[0]
+        anion  = data[1]
+        refri  = data[2]
 
         cation = self.mol2graph(cation)
         anion  = self.mol2graph(anion)
@@ -116,22 +108,18 @@ class IL_set(torch.utils.data.Dataset):
         if args['add_global'] == True:
             Combine_Graph = add_global(Combine_Graph)
 
-        # 提取存储在仓库中的后 7 位数据（T, P, 3个制冷剂/阴离子描述符, 2个阳离子描述符）并张量化标准化
-        data = self.data[idx]
+        # 提取 7 位原始数据（T, P, 3个制冷剂/阴离子描述符, 2个阳离子描述符）
+        # [修复] 不在这里进行 scaler.transform()，统一交由外部 Runner 或封装的 Dataset 处理
         T, P = data[3], data[4]
-        ref_charge   = float(self.scaler_ref_charge.transform([[data[5]]])[0][0])
-        ref_logp     = float(self.scaler_ref_logp.transform([[data[6]]])[0][0])
-        ani_mw       = float(self.scaler_ani_mw.transform([[data[7]]])[0][0])
-        cat_charge   = float(self.scaler_cat_charge.transform([[data[8]]])[0][0])  # V2
-        cat_tpsa     = float(self.scaler_cat_tpsa.transform([[data[9]]])[0][0])    # V2
+        ref_charge   = data[5]
+        ref_logp     = data[6]
+        ani_mw       = data[7]
+        cat_charge   = data[8]
+        cat_tpsa     = data[9]
         
-        # 将这 7 个物理量打包成一个 condition 向量，作为全局环境输入
-        # 模型最后的 MLP 将直接读到这 7 个标准化后的数字
+        # 将这 7 个物理量打包成一个 condition 向量
         condition = torch.tensor([T, P, ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa], dtype=torch.float)
-
-
         label = torch.tensor(self.label[idx],dtype=torch.float)
-
 
         return Combine_Graph,condition,label
 
@@ -140,11 +128,10 @@ class IL_set(torch.utils.data.Dataset):
         edge_index = torch.tensor(mol[1], dtype=torch.long)
 
         # 关键修复：单原子离子（如 [I-], [Cl-]）没有化学键，
-        # mol[2] 为空列表 []，torch.tensor([]) 会产生 shape=[0] 的1D张量，
-        # 而后续拼接和Embedding需要 shape=[0, 3] 的2D张量，否则会导致
-        # CUDA scatter/gather index out of bounds 崩溃。
+        # 如果边为空，强行给它加一个指向自己的自环，防止 Message Passing 忽略它
         if len(mol[2]) == 0:
-            edge_attr = torch.zeros((0, 3), dtype=torch.long)
+            edge_index = torch.tensor([[0], [0]], dtype=torch.long)
+            edge_attr = torch.zeros((1, 3), dtype=torch.long)
         else:
             edge_attr = torch.tensor(mol[2], dtype=torch.long)
 

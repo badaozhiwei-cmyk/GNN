@@ -166,11 +166,17 @@ class IL_Explainer_v2(torch.nn.Module):
                         h = self.model.batch_norms[layer](h)
                         h = F_func.dropout(F_func.relu(h), self.model.drop_ratio, training=self.model.training)
                     h = self.model.feat_lin(h)
-                    h_pair = self.model.extract(h, pair_graph.batch)
-                    h = torch.cat([h_pair, cond_val], dim=1) 
-                    return self.model.pred_head(h)
+                    
+                    # [修复] 三头分别池化
+                    h_c = self.model.pool(h[pair_graph.mol_type == 0], pair_graph.batch[pair_graph.mol_type == 0])
+                    h_a = self.model.pool(h[pair_graph.mol_type == 1], pair_graph.batch[pair_graph.mol_type == 1])
+                    h_r = self.model.pool(h[pair_graph.mol_type == 2], pair_graph.batch[pair_graph.mol_type == 2])
+                    
+                    h_concat = torch.cat([h_c, h_a, h_r, cond_val], dim=1) 
+                    return self.model.pred_head(h_concat)
                     
                 elif model_type == 'IL_Net_GCN':
+                    from torch_geometric.nn import global_mean_pool
                     x = h
                     edge_index = pair_graph.edge_index
                     edge_weight = torch.sum(pair_graph.edge_attr, dim=1).to(torch.float)
@@ -187,11 +193,16 @@ class IL_Explainer_v2(torch.nn.Module):
                     x = self.model.act(x)
                     x = self.model.dropout(x)
                     
-                    x = self.model.extract(x, pair_graph.batch)
-                    x = torch.cat([x, cond_val], dim=1)
-                    return self.model.l4(x)
+                    # [修复] 三头分别池化
+                    x_c = global_mean_pool(x[pair_graph.mol_type == 0], pair_graph.batch[pair_graph.mol_type == 0])
+                    x_a = global_mean_pool(x[pair_graph.mol_type == 1], pair_graph.batch[pair_graph.mol_type == 1])
+                    x_r = global_mean_pool(x[pair_graph.mol_type == 2], pair_graph.batch[pair_graph.mol_type == 2])
+                    
+                    x_concat = torch.cat([x_c, x_a, x_r, cond_val], dim=1)
+                    return self.model.l4(x_concat)
                     
                 elif model_type == 'IL_GAT':
+                    from torch_geometric.nn import global_mean_pool
                     x = h
                     edge_index = pair_graph.edge_index
                     
@@ -207,9 +218,13 @@ class IL_Explainer_v2(torch.nn.Module):
                     x = self.model.act(x)
                     x = self.model.dropout(x)
                     
-                    x = self.model.extract(x, pair_graph.batch)
-                    x = torch.cat([x, cond_val], dim=1)
-                    return self.model.l5(x)
+                    # [修复] 三头分别池化
+                    x_c = global_mean_pool(x[pair_graph.mol_type == 0], pair_graph.batch[pair_graph.mol_type == 0])
+                    x_a = global_mean_pool(x[pair_graph.mol_type == 1], pair_graph.batch[pair_graph.mol_type == 1])
+                    x_r = global_mean_pool(x[pair_graph.mol_type == 2], pair_graph.batch[pair_graph.mol_type == 2])
+                    
+                    x_concat = torch.cat([x_c, x_a, x_r, cond_val], dim=1)
+                    return self.model.l5(x_concat)
                     
                 else:
                     raise ValueError(f"不支持的带有 Embedding 的模型类型: {model_type}")
