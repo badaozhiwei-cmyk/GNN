@@ -36,7 +36,7 @@ from Dataset_explain_v2 import IL_set_v2
 
 # GIN 超参数（与训练时完全一致）
 Args = {
-    'num_gin_layer': 5,
+    'num_gin_layer': 3,
     'emb_dim': 300,
     'feat_dim': 512,
     'drop_ratio': 0.2,
@@ -282,8 +282,11 @@ def main(model_path: str, data_root: str, n_steps: int = 50, num_samples: int = 
                 h = torch.nn.functional.dropout(torch.nn.functional.relu(h), model.drop_ratio, training=model.training)
                 
             h = model.feat_lin(h)
-            h_pair = model.extract(h, _batch)
-            h_final = torch.cat([h_pair, cond], dim=1)
+            _mol_type = G.mol_type.to(device)
+            h_c = model.pool(h[_mol_type == 0], _batch[_mol_type == 0])
+            h_a = model.pool(h[_mol_type == 1], _batch[_mol_type == 1])
+            h_r = model.pool(h[_mol_type == 2], _batch[_mol_type == 2])
+            h_final = torch.cat([h_c, h_a, h_r, cond], dim=1)
             return model.pred_head(h_final)
 
         try:
