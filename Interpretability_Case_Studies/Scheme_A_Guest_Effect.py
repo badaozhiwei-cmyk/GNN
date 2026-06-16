@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 
 from Group_Explainer_Engine import Group_Explainer
@@ -19,6 +19,11 @@ def main():
     print("=======================================================")
     
     # 1. 对比目标 1: R32 (Polar, H-bond donor)
+    explainer.explain(
+        title="Scheme A - Target 1: R32 (Polar, H-bond donor)",
+        c_smi=c_smi, a_smi=a_smi, r_smi="C(F)F", T=T, P=P,
+        save_name="Scheme_A_R32"
+    )
     explainer.group_explain(
         title="Scheme A - Target 1: R32 (Polar, H-bond donor)",
         c_smi=c_smi, a_smi=a_smi, r_smi="C(F)F", T=T, P=P,
@@ -26,6 +31,11 @@ def main():
     )
     
     # 2. 对比目标 2: R134a (Bulky, High-F)
+    explainer.explain(
+        title="Scheme A - Target 2: R134a (Bulky, High-F)",
+        c_smi=c_smi, a_smi=a_smi, r_smi="C(C(F)(F)F)F", T=T, P=P,
+        save_name="Scheme_A_R134a"
+    )
     explainer.group_explain(
         title="Scheme A - Target 2: R134a (Bulky, High-F)",
         c_smi=c_smi, a_smi=a_smi, r_smi="C(C(F)(F)F)F", T=T, P=P,
@@ -33,6 +43,11 @@ def main():
     )
     
     # 3. 对比目标 3: R22 (Chlorine atom added)
+    explainer.explain(
+        title="Scheme A - Target 3: R22 (Chlorine atom added)",
+        c_smi=c_smi, a_smi=a_smi, r_smi="ClC(F)F", T=T, P=P,
+        save_name="Scheme_A_R22"
+    )
     explainer.group_explain(
         title="Scheme A - Target 3: R22 (Chlorine atom added)",
         c_smi=c_smi, a_smi=a_smi, r_smi="ClC(F)F", T=T, P=P,
