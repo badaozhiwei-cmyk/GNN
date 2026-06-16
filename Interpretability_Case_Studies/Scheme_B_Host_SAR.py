@@ -5,7 +5,7 @@ import sys
 from Explainer_Engine import Explainer_Engine
 
 def main():
-    model_path = os.path.join('..', 'GNN_for_property_prediction', 'checkpoints_v2', 'best_gat_seed_1.pth')
+    model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'GNN_for_property_prediction', 'checkpoints_v2', 'best_gat_seed_1.pth')
     if not os.path.exists(model_path):
         print(f"找不到权重文?{model_path}，请确保您已经跑完了 GAT_Runner_v3.py")
         return
