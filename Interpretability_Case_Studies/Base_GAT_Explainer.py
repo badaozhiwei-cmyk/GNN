@@ -187,17 +187,21 @@ class UniversalGATExplainer:
         num_real_atom = G.x.shape[0] - 1
         node_scores = np.zeros(num_real_atom)
         
-        # 2. 依次遮蔽每个原子计算扰动后预测值 (Y_mask)
+        # 2. 依次突变每个原子计算反事实预测值 (Y_mask)
         for i in range(num_real_atom):
             G_mask = G.clone()
-            # 将该原子特征置零（抹除其物理化学属性）
-            G_mask.x[i] = torch.zeros_like(G_mask.x[i])
+            # 【反事实突变】将目标原子强行变为氢原子 (H)
+            # 保留原有的拓扑连接度(degree)，但抹除其化学异质性
+            G_mask.x[i][0] = 1  # 元素周期表序数: 1 (H)
+            G_mask.x[i][5] = 0  # 电负性 bucket: H 属于最低档 0
+            G_mask.x[i][6] = 0  # 共价半径 bucket: H 属于最低档 0
+            
             G_mask_batch = Batch.from_data_list([G_mask]).to(self.device)
             
             with torch.no_grad():
                 y_mask = self.model(G_mask_batch, cond_device).item()
                 
-            # 计算该原子的重要性得分：导致预测结果改变的绝对幅度
+            # 计算因果差值
             node_scores[i] = np.abs(y_base - y_mask)
 
         atom_types = G.x[:num_real_atom, 0].cpu().numpy()
@@ -226,13 +230,16 @@ class UniversalGATExplainer:
             y_base = self.model(G_batch, cond_device).item()
         print(f"📊 [GNN基准预测溶解度 x1]: {y_base:.4f}")
         
-        # 2. 运行微扰计算
+        # 2. 运行反事实微扰计算
         num_real_atom = G.x.shape[0] - 1
         node_scores = np.zeros(num_real_atom)
         
         for i in range(num_real_atom):
             G_mask = G.clone()
-            G_mask.x[i] = torch.zeros_like(G_mask.x[i])
+            G_mask.x[i][0] = 1  # 变为 H
+            G_mask.x[i][5] = 0
+            G_mask.x[i][6] = 0
+            
             G_mask_batch = Batch.from_data_list([G_mask]).to(self.device)
             with torch.no_grad():
                 y_mask = self.model(G_mask_batch, cond_device).item()
