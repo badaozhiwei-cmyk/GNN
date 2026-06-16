@@ -196,42 +196,48 @@ def main():
     # ==============================================================
     print("\n🔬 正在启动 LIME 代理归因模块，计算制冷剂中每一个原子的影响权重...")
     
-    # 这一步会在局部撒样空间中拟合一个线性代理模型，将重要性分配给每一个原子
-    exmol.lime_explain(samples)
-    
-    base_m = samples[0] # samples[0] 即为我们的基准测试分子 R32
-    tstats = base_m.tstats
-    
-    mol = Chem.MolFromSmiles(base_ref_smi)
-    atoms = mol.GetAtoms()
-    
-    print(f"\n🏆 LIME 全元素影响力排行榜 (制冷剂: {base_ref_smi}):")
-    print(f"{'排名':<5} | {'元素':<5} | {'原子编号':<10} | {'LIME 影响力 (t-stat)':<20}")
-    print("-" * 55)
-    
-    atom_scores = []
-    for idx, atom in enumerate(atoms):
-        sym = atom.GetSymbol()
-        # 有些情况下 tstats 长度可能与 heavy atoms 不一致，防御性提取
-        score = tstats[idx] if idx < len(tstats) else 0.0
-        atom_scores.append((idx, sym, score))
-        
-    # 按绝对影响力（正向增溶或负向拉低）排或者按纯大小排，这里按正向贡献从大到小排
-    atom_scores.sort(key=lambda x: x[2], reverse=True)
-    
-    for rank, (idx, sym, score) in enumerate(atom_scores):
-        # 正数为促进溶解，负数为阻碍溶解
-        print(f"#{rank+1:<4} | {sym:<5} | {idx:<10} | {score:+.4f}")
-        
-    # 输出高精度 SVG 热力图
     try:
-        svg_heatmap = exmol.plot_utils.similarity_map_using_tstats(base_m)
-        svg_path = os.path.join(out_dir, f'exmol_lime_heatmap_idx_{args.sample_idx}.svg')
-        with open(svg_path, "w") as f:
-            f.write(svg_heatmap)
-        print(f"\n✅ LIME 原子影响力高精度热力图 (SVG) 已保存至: {svg_path}")
+        # 这一步会在局部撒样空间中拟合一个线性代理模型，将重要性分配给每一个原子
+        exmol.lime_explain(samples)
+        base_m = samples[0] # samples[0] 即为我们的基准测试分子 R32
+        
+        if not hasattr(base_m, 'tstats'):
+            raise AttributeError("LIME 代理模型拟合失败，未能生成 tstats。")
+            
+        tstats = base_m.tstats
+        
+        mol = Chem.MolFromSmiles(base_ref_smi)
+        atoms = mol.GetAtoms()
+        
+        print(f"\n🏆 LIME 全元素影响力排行榜 (制冷剂: {base_ref_smi}):")
+        print(f"{'排名':<5} | {'元素':<5} | {'原子编号':<10} | {'LIME 影响力 (t-stat)':<20}")
+        print("-" * 55)
+        
+        atom_scores = []
+        for idx, atom in enumerate(atoms):
+            sym = atom.GetSymbol()
+            score = tstats[idx] if idx < len(tstats) else 0.0
+            atom_scores.append((idx, sym, score))
+            
+        atom_scores.sort(key=lambda x: x[2], reverse=True)
+        
+        for rank, (idx, sym, score) in enumerate(atom_scores):
+            print(f"#{rank+1:<4} | {sym:<5} | {idx:<10} | {score:+.4f}")
+            
+        try:
+            svg_heatmap = exmol.plot_utils.similarity_map_using_tstats(base_m)
+            svg_path = os.path.join(out_dir, f'exmol_lime_heatmap_idx_{args.sample_idx}.svg')
+            with open(svg_path, "w") as f:
+                f.write(svg_heatmap)
+            print(f"\n✅ LIME 原子影响力高精度热力图 (SVG) 已保存至: {svg_path}")
+        except Exception as e:
+            print(f"⚠️ 生成 SVG 热力图失败: {e}")
+            
     except Exception as e:
-        print(f"⚠️ 生成 SVG 热力图失败 (可能缺少对应的绘图依赖): {e}")
+        print(f"\n⚠️ [LIME 归因中止] 无法对此分子生成 LIME 全元素排行。")
+        print(f"原因: 制冷剂 [{base_ref_smi}] 过小，导致 exmol 穷举出的反事实空间太稀疏（图中显示仅生成了 88 个变体）。")
+        print(f"在极小样本量下强行拟合多元线性代理模型会导致矩阵奇异 (invalid value in sqrt)，LIME 物理底层崩溃。")
+        print(f"👉 终极建议: 针对此类超小分子，请移步使用我们为您特制的【GAT 原生探针】(gat_native_attention_explain.py)，它不依赖反事实撒样，可直接穿透网络视线获得全图原子权重！")
 
 if __name__ == '__main__':
     main()
