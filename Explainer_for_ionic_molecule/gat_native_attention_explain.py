@@ -140,12 +140,32 @@ def main():
     
     print(f"\n✅ [出图] 纯天然的 GAT 注意力图已生成:\n   => {save_path}")
     
-    print("\n🏆 GAT 网络“视线”最聚焦的 TOP 5 核心原子:")
+    print("\n🏆 GAT 全元素注意力排行榜 (所有原子):")
+    
+    # 统计三部分的长度，方便打标签
+    # mol_type 存着每个原子的归属: 0=阳离子, 1=阴离子, 2=制冷剂
+    mol_type = G.mol_type[:num_real_atom].cpu().numpy()
+    
     sorted_idx = np.argsort(node_scores)[::-1]
-    for rank, idx in enumerate(sorted_idx[:5]):
+    
+    # 分类打印排行榜
+    print(f"{'排名':<5} | {'归属部位':<10} | {'元素':<5} | {'原子编号':<10} | {'相对吸引力得分':<15}")
+    print("-" * 65)
+    for rank, idx in enumerate(sorted_idx):
         at_num = int(atom_types[idx])
         sym = ELEMENT_SYMBOL.get(at_num, f"Z{at_num}")
-        print(f"   第 {rank+1} 名: 【{sym:2s}】(原子编号 {idx:2d}) | 相对吸引力得分 = {node_scores[idx]:.4f}")
+        score = node_scores[idx]
+        
+        # 判断属于哪一部分
+        part = "未知"
+        if mol_type[idx] == 0:
+            part = "阳离子(Cation)"
+        elif mol_type[idx] == 1:
+            part = "阴离子(Anion)"
+        elif mol_type[idx] == 2:
+            part = "制冷剂(Ref)"
+            
+        print(f"#{rank+1:<4} | {part:<14} | {sym:<5} | {idx:<10} | {score:.4f}")
 
 if __name__ == '__main__':
     main()
