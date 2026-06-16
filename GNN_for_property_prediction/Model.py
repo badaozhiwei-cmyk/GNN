@@ -51,9 +51,9 @@ class IL_Net_GCN(torch.nn.Module):
         self.l2 = GCNConv(512, 1024, normalize=True)
         self.l3 = GCNConv(1024, 512, normalize=True)
 
-        # MLP head: graph_repr(512) + cond(7) = 519
+        # MLP head: graph_repr(512*4) + cond(7) = 2055
         self.l4 = nn.Sequential(
-            nn.Linear(519, 1024),
+            nn.Linear(2055, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
             nn.Dropout(p=0.4),
@@ -68,23 +68,6 @@ class IL_Net_GCN(torch.nn.Module):
 
         self.act = nn.ReLU()
         self.dropout = nn.Dropout(p=args['dropout_rate'])
-
-    def extract(self, x, batch):
-        """Extract the global node (last node of each graph in batch) as graph representation."""
-        output, count = torch.unique(batch, return_counts=True)
-        count = count.tolist()
-
-        l = []
-        cur = 0
-        for i in count:
-            cur += i
-            l.append(cur)
-        re = []
-        for j in l:
-            re.append(x[j - 1].reshape(1, -1))
-
-        g = torch.cat(re, dim=0)
-        return g
 
     def forward(self, data_i, cond):
         h = self.x_embedding1(data_i.x[:, 0]) + \
@@ -113,14 +96,17 @@ class IL_Net_GCN(torch.nn.Module):
         x = self.act(x)
         x = self.dropout(x)
 
-        # Extract global node representation
-        x = self.extract(x, data_i.batch)
+        # [修改] 提取阳离子、阴离子、制冷剂的特征，并额外提取全局节点(mol_type=3)的特征！
+        x_c = global_mean_pool(x[data_i.mol_type == 0], data_i.batch[data_i.mol_type == 0])
+        x_a = global_mean_pool(x[data_i.mol_type == 1], data_i.batch[data_i.mol_type == 1])
+        x_r = global_mean_pool(x[data_i.mol_type == 2], data_i.batch[data_i.mol_type == 2])
+        x_g = global_mean_pool(x[data_i.mol_type == 3], data_i.batch[data_i.mol_type == 3])
 
         # Concatenate with physical condition vector and predict
-        x = torch.cat([x, cond], dim=1)
-        x = self.l4(x)
+        x_concat = torch.cat([x_c, x_a, x_r, x_g, cond], dim=1)
+        x_out = self.l4(x_concat)
 
-        return x
+        return x_out
 
 # GAT
 class IL_GAT(torch.nn.Module):
@@ -302,7 +288,7 @@ class GIN(nn.Module):
         self.feat_lin = nn.Linear(self.emb_dim, self.feat_dim)
 
         self.pred_head = nn.Sequential(
-            nn.Linear(self.feat_dim + 7, self.feat_dim),  # V2 cond: [T, P, Ref_Charge, Ref_LogP, Ani_MW, Cat_RotBonds, Cat_LogP]
+            nn.Linear(self.feat_dim * 4 + 7, self.feat_dim),  # 3 graphs + 1 global + 7 cond
             nn.Softplus(),
             nn.Linear(self.feat_dim, int(self.feat_dim/2)),
             nn.Softplus(),
@@ -340,11 +326,14 @@ class GIN(nn.Module):
             h = F.dropout(F.relu(h), self.drop_ratio, training=self.training)
 
         h = self.feat_lin(h)
-        h_pair = self.extract(h, pair_graph.batch)
-        # 【特征融合层】
-        # 将 GNN 提取出的分子结构特征 (h_pair) 与 5 个全局物理量 (cond) 进行拼接
-        # 这一步实现了“物理增强”：模型同时参考了结构和物理常数
-        h = torch.cat([h_pair, cond], dim=1) 
+        # [修改] 提取阳离子、阴离子、制冷剂的特征，并额外提取全局节点(mol_type=3)的特征！
+        h_c = self.pool(h[pair_graph.mol_type == 0], pair_graph.batch[pair_graph.mol_type == 0])
+        h_a = self.pool(h[pair_graph.mol_type == 1], pair_graph.batch[pair_graph.mol_type == 1])
+        h_r = self.pool(h[pair_graph.mol_type == 2], pair_graph.batch[pair_graph.mol_type == 2])
+        h_g = self.pool(h[pair_graph.mol_type == 3], pair_graph.batch[pair_graph.mol_type == 3])
+
+        # 融合四部分的特征和物理条件
+        h_concat = torch.cat([h_c, h_a, h_r, h_g, cond], dim=1) 
         
-        # 将融合后的总特征送入 MLP 输出头进行最终的溶解度预测
-        return self.pred_head(h)
+        # 融合后送入 MLP 得到最终溶解度预测
+        return self.pred_head(h_concat)

@@ -46,7 +46,13 @@ class IL_set_v2(IL_set):
             # 7 个物理量在 self.data 中的索引是从 3 到 9
             raw_vals = np.array([self.data[i][feature_idx + 3] for i in train_indices], dtype=np.float32).reshape(-1, 1)
             self.scalers[feature_idx].fit(raw_vals)
-        print("  [v2 数据增强] 7个物理量的 StandardScaler 拟合完成 (无数据泄露)")
+        
+        # [模型优化]: 持久化保存 Scaler，供可解释性脚本在推理时加载，避免数据泄露
+        import joblib
+        import os
+        os.makedirs('checkpoints_v2', exist_ok=True)
+        joblib.dump(self.scalers, 'checkpoints_v2/scalers.pkl')
+        print("  [v2 数据增强] 7个物理量的 StandardScaler 拟合完成并已保存至 checkpoints_v2/scalers.pkl")
 
     def __getitem__(self, idx):
         Combine_Graph, condition, label = super().__getitem__(idx)
