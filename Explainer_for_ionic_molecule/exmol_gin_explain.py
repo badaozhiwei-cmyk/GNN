@@ -100,7 +100,11 @@ def create_model_wrapper(model, device, c_smi, a_smi, cond_tensor, scaler_ref_ch
     专门为 exmol 打造的预测管线：
     在固定的阳离子、阴离子和实验条件(T,P)下，只突变制冷剂的结构，看溶解度变化。
     """
-    def wrapper(smiles_list, selfies=None):
+    def wrapper(smiles_input, selfies=None):
+        # 兼容 batched=False (传入字符串) 和 batched=True (传入列表)
+        is_single = isinstance(smiles_input, str)
+        smiles_list = [smiles_input] if is_single else smiles_input
+
         preds = []
         for smi in smiles_list:
             data = build_tri_graph(c_smi, a_smi, smi)
@@ -130,7 +134,8 @@ def create_model_wrapper(model, device, c_smi, a_smi, cond_tensor, scaler_ref_ch
             with torch.no_grad():
                 out = model(batch, c).flatten().item()
             preds.append(out)
-        return np.array(preds)
+            
+        return preds[0] if is_single else np.array(preds)
     return wrapper
 
 def main():
