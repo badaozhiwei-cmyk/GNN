@@ -204,34 +204,63 @@ class Explainer_Engine:
                 
             print(f"#{rank+1:<4} | {part:<14} | {sym:<5} | {score:.4f}")
             
-        g = nx.Graph()
-        labels_dict = {}
+        # 构建 1x3 的三分屏画布
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+        titles = ["Cation", "Anion", "Refrigerant"]
+        
+        subgraphs = {0: nx.Graph(), 1: nx.Graph(), 2: nx.Graph()}
+        labels_dict = {0: {}, 1: {}, 2: {}}
+        scores_dict = {0: [], 1: [], 2: []}
+        nodelist_dict = {0: [], 1: [], 2: []}
+        
         for i in range(num_real_atom):
-            g.add_node(i)
-            at_num = int(atom_types[i])
-            sym = ELEMENT_SYMBOL.get(at_num, f"Z{at_num}")
-            labels_dict[i] = f"{sym}\n({node_scores[i]:.2f})"
-            
+            m_type = int(mol_type[i])
+            if m_type in subgraphs:
+                subgraphs[m_type].add_node(i)
+                at_num = int(atom_types[i])
+                sym = ELEMENT_SYMBOL.get(at_num, f"Z{at_num}")
+                labels_dict[m_type][i] = f"{sym}\n({node_scores[i]:.2f})"
+                scores_dict[m_type].append(node_scores[i])
+                nodelist_dict[m_type].append(i)
+                
         node_a = G.edge_index[0][:num_bond].cpu().numpy()
         node_b = G.edge_index[1][:num_bond].cpu().numpy()
         for u, v in zip(node_a, node_b):
             if u < num_real_atom and v < num_real_atom:
-                g.add_edge(u, v)
+                if mol_type[u] == mol_type[v] and mol_type[u] in subgraphs:
+                    subgraphs[mol_type[u]].add_edge(u, v)
 
-        plt.figure(figsize=(10, 8))
-        pos = nx.kamada_kawai_layout(g)
-        nx.draw_networkx_edges(g, pos, alpha=0.4, edge_color='gray', width=1.5)
-        nodes = nx.draw_networkx_nodes(
-            g, pos, nodelist=list(g.nodes), node_size=800,
-            node_color=node_scores, cmap=plt.cm.Reds, edgecolors='black', linewidths=1.2
-        )
-        nx.draw_networkx_labels(g, pos, labels=labels_dict, font_size=9, font_color='black', font_weight='bold')
+        vmax = node_scores.max() if node_scores.max() > 0 else 1.0
+        vmin = 0.0
         
-        cbar = plt.colorbar(nodes, pad=0.02, shrink=0.8)
-        cbar.set_label('IG Attribution Importance', rotation=270, labelpad=15)
-        plt.title(f"{title} (Target: {r_smi})", fontsize=14, pad=15)
-        plt.axis("off")
-        plt.tight_layout()
+        nodes_ref = None
+        for m_type in [0, 1, 2]:
+            ax = axes[m_type]
+            g_sub = subgraphs[m_type]
+            
+            if len(g_sub.nodes) == 0:
+                ax.axis("off")
+                continue
+                
+            pos = nx.kamada_kawai_layout(g_sub)
+            nx.draw_networkx_edges(g_sub, pos, ax=ax, alpha=0.4, edge_color='gray', width=1.5)
+            nodes = nx.draw_networkx_nodes(
+                g_sub, pos, nodelist=nodelist_dict[m_type], ax=ax, node_size=800,
+                node_color=scores_dict[m_type], cmap=plt.cm.Reds, vmin=vmin, vmax=vmax,
+                edgecolors='black', linewidths=1.2
+            )
+            nx.draw_networkx_labels(g_sub, pos, labels=labels_dict[m_type], ax=ax, font_size=10, font_color='black', font_weight='bold')
+            ax.set_title(titles[m_type], fontsize=16, pad=10, weight='bold')
+            ax.axis("off")
+            if nodes_ref is None: nodes_ref = nodes
+            
+        fig.subplots_adjust(right=0.9, top=0.85, wspace=0.1)
+        if nodes_ref is not None:
+            cbar_ax = fig.add_axes([0.92, 0.15, 0.02, 0.7])
+            cbar = fig.colorbar(nodes_ref, cax=cbar_ax)
+            cbar.set_label('IG Attribution Importance', rotation=270, labelpad=15)
+        
+        plt.suptitle(f"{title} (Target: {r_smi})", fontsize=20, weight='bold')
         
         out_dir = os.path.join(ROOT, 'Interpretability_Case_Studies', 'Results')
         os.makedirs(out_dir, exist_ok=True)
