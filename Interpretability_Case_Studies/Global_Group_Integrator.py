@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import pandas as pd
 import numpy as np
@@ -51,12 +51,12 @@ def lookup(name):
 
 def main():
     build_smiles_dict()
-    data_path = os.path.join(ROOT, 'Original_Data', 'original_data.xlsx')
+    data_path = os.path.join(ROOT, 'ZLJ_DATA.xlsx')
     if not os.path.exists(data_path):
-        print("未找到 original_data.xlsx")
+        print("未找到 ZLJ_DATA.xlsx")
         return
 
-    df = pd.read_excel(data_path, sheet_name='Sheet1')
+    df = pd.read_excel(data_path)
     
     # ------------------------------------------
     # 2. 定义子宇宙 (Sub-Universe) 规则

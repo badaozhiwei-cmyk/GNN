@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
-from Explainer_Engine import GAT_Explainer
+from Explainer_Engine import Explainer_Engine as GAT_Explainer
 from smarts_dict import get_group_matches
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
