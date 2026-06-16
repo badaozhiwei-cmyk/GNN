@@ -180,7 +180,7 @@ class IL_set_v2(torch.utils.data.Dataset):
         edge_index = torch.tensor(mol[1], dtype=torch.long)
 
         # 单原子离子（?[I-]、[Cl-]）没有化学键，需要特殊处?
-    if len(mol[2]) == 0:
+        if len(mol[2]) == 0:
             edge_attr = torch.zeros((0, 3), dtype=torch.long)
         else:
             edge_attr = torch.tensor(mol[2], dtype=torch.long)
