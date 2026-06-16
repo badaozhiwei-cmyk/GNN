@@ -69,7 +69,7 @@ def main():
     explainer = Explainer_Engine(model_path)
     
     # 步骤二：读取数据
-    print("\n[进度 3/5] 正在读取全宇�?4444 条原始数�?(ZLJ_DATA.xlsx)...")
+    print("\n[进度 3/5] 正在读取全宇?4444 条原始数?(ZLJ_DATA.xlsx)...")
     excel_path = os.path.join(ROOT, 'ZLJ_DATA.xlsx')
     dfs = []
     for sheet in ['Table S3. VLE HFCs', 'Table S4. VLE HFOs', 'Table S5. VLE Other']:
@@ -79,30 +79,30 @@ def main():
     df = pd.concat(dfs, ignore_index=True)
     df = df.dropna(subset=['IL cation', 'IL anion', 'Refrigerant', 'T (K)', 'P (MPa)', 'x1'])
     total_len = len(df)
-    print(f"   => 成功读取全宇宙记录数: {total_len} �?)
+    print(f"   => 成功读取全宇宙记录数: {total_len} ")
     
-    # 步骤三：切割子宇�?(咪唑 + 氟系)
+    # 步骤三：切割子宇?(咪唑 + 氟系)
     print("\n[进度 4/5] 正在施加环境场约束：切割『咪唑类 + 高氟阴离子』子宇宙...")
     # 阳离子带 mim
     mask_cation = df['IL cation'].str.contains('mim', case=False, na=False)
-    # 阴离子带�?(枚举最典型的高氟阴离子)
+    # 阴离子带?(枚举最典型的高氟阴离子)
     F_ANIONS = ['[Tf2N]', '[PF6]', '[BF4]', '[OTf]', '[PFBS]', '[PFP]', '[FEP]', '[HFPS]']
     mask_anion = df['IL anion'].isin(F_ANIONS)
     
     sub_df = df[mask_cation & mask_anion]
     sub_len = len(sub_df)
-    print(f"   => 🎯 精准锁定子宇宙！该特定大体系下共�?{sub_len} 条数�?(占比 {sub_len/total_len*100:.1f}%)")
+    print(f"   => 🎯 精准锁定子宇宙！该特定大体系下共?{sub_len} 条数?(占比 {sub_len/total_len*100:.1f}%)")
     
     if sub_len == 0:
-        print("无数据！请检查过滤条件�?)
+        print("无数据！请检查过滤条件")
         return
 
-    # 步骤四：开始暴力积�?    print("\n[进度 5/5] 🚀 开始批�?GAT 推断，收集制冷剂吸收的『靶向注意力碎片�?..")
+    # 步骤四：开始暴力积?    print("\n[进度 5/5] 🚀 开始批?GAT 推断，收集制冷剂吸收的『靶向注意力碎片?..")
     
-    # 记录制冷剂内部，各个元素的总得�?    element_score_bank = defaultdict(float)
+    # 记录制冷剂内部，各个元素的总得?    element_score_bank = defaultdict(float)
     valid_count = 0
     
-    for idx, row in tqdm(sub_df.iterrows(), total=sub_len, desc="GAT 积分�?):
+    for idx, row in tqdm(sub_df.iterrows(), total=sub_len, desc="GAT 积分"):
         cat = row['IL cation']
         ani = row['IL anion']
         ref = row['Refrigerant']
@@ -119,7 +119,7 @@ def main():
         scores, atom_types, mol_types = explainer.get_attention_scores(c_smi, a_smi, r_smi, T, P)
         if scores is None: continue
             
-        # 只提取制冷剂 (mol_type == 2) 的原�?        for i in range(len(scores)):
+        # 只提取制冷剂 (mol_type == 2) 的原?        for i in range(len(scores)):
             if mol_types[i] == 2:
                 element = ELEMENT_MAP.get(int(atom_types[i]), 'Other')
                 element_score_bank[element] += scores[i]
@@ -127,16 +127,16 @@ def main():
         valid_count += 1
 
     print(f"\n==================================================")
-    print(f"🎉 积分完成�?成功解析 {valid_count} 条有效数�?")
+    print(f"🎉 积分完成?成功解析 {valid_count} 条有效数?")
     print("==================================================")
     
     total_score = sum(element_score_bank.values())
-    print("\n🏆 『咪�?高氟体系』制冷剂各元素吸引力绝对占比排行榜：")
+    print("\n🏆 『咪?高氟体系』制冷剂各元素吸引力绝对占比排行榜：")
     for elem, sc in sorted(element_score_bank.items(), key=lambda x: x[1], reverse=True):
         ratio = sc / total_score * 100
-        print(f"  �?{elem} 元素: {ratio:5.2f}% (总积�? {sc:.2f})")
+        print(f"  ?{elem} 元素: {ratio:5.2f}% (总积? {sc:.2f})")
 
-    # 步骤五：画饼�?    labels = []
+    # 步骤五：画饼?    labels = []
     sizes = []
     for elem, sc in sorted(element_score_bank.items(), key=lambda x: x[1], reverse=True):
         labels.append(f"{elem} ({sc/total_score*100:.1f}%)")
@@ -146,7 +146,7 @@ def main():
     colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#c2c2f0']
     plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=140, pctdistance=0.85, shadow=True, textprops={'fontsize': 12, 'weight': 'bold'})
     
-    # 画个白圈，做成甜甜圈�?    centre_circle = plt.Circle((0,0),0.70,fc='white')
+    # 画个白圈，做成甜甜圈?    centre_circle = plt.Circle((0,0),0.70,fc='white')
     fig = plt.gcf()
     fig.gca().add_artist(centre_circle)
     
@@ -159,7 +159,7 @@ def main():
     plt.savefig(save_path, dpi=300)
     plt.close()
     
-    print(f"\n�?全局注意力占比饼图已生成，保存在：{save_path}")
+    print(f"\n?全局注意力占比饼图已生成，保存在：{save_path}")
 
 if __name__ == "__main__":
     main()
