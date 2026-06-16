@@ -6,6 +6,7 @@ import argparse
 from rdkit import Chem
 from torch_geometric.data import Data, Batch
 import matplotlib.pyplot as plt
+from rdkit.Chem import Descriptors
 
 try:
     import exmol
@@ -94,7 +95,7 @@ def build_tri_graph(c_smi, a_smi, r_smi):
     return data
 
 # ================= 黑盒预测管线 (Wrapper for exmol) =================
-def create_model_wrapper(model, device, c_smi, a_smi, cond_tensor):
+def create_model_wrapper(model, device, c_smi, a_smi, cond_tensor, scaler_ref_charge, scaler_ref_logp):
     """
     专门为 exmol 打造的预测管线：
     在固定的阳离子、阴离子和实验条件(T,P)下，只突变制冷剂的结构，看溶解度变化。
@@ -103,11 +104,29 @@ def create_model_wrapper(model, device, c_smi, a_smi, cond_tensor):
         preds = []
         for smi in smiles_list:
             data = build_tri_graph(c_smi, a_smi, smi)
-            if data is None:
+            mol = Chem.MolFromSmiles(smi)
+            if data is None or mol is None:
                 preds.append(0.0) # 非法分子惩罚
                 continue
+            
+            # 动态重新计算突变分子的宏观物理特征
+            try:
+                new_charge = float(Descriptors.MaxAbsPartialCharge(mol))
+            except:
+                new_charge = 0.0
+            new_logp = float(Descriptors.MolLogP(mol))
+            
+            # 使用原数据集的 scaler 标准化
+            scaled_charge = scaler_ref_charge.transform([[new_charge]])[0][0]
+            scaled_logp = scaler_ref_logp.transform([[new_logp]])[0][0]
+            
+            # 复制一份 condition，避免修改原对象，并替换对应的特征位置
+            new_cond = cond_tensor.clone()
+            new_cond[2] = scaled_charge
+            new_cond[3] = scaled_logp
+
             batch = Batch.from_data_list([data]).to(device)
-            c = cond_tensor.unsqueeze(0).to(device)
+            c = new_cond.unsqueeze(0).to(device)
             with torch.no_grad():
                 out = model(batch, c).flatten().item()
             preds.append(out)
@@ -142,7 +161,7 @@ def main():
     # 我们的目标干预对象：制冷剂 R32 (可以从数据集中抓取，这里为了演示使用固定的)
     base_ref_smi = "C(F)F" 
     
-    wrapper = create_model_wrapper(model, device, c_smi, a_smi, cond_tensor)
+    wrapper = create_model_wrapper(model, device, c_smi, a_smi, cond_tensor, dataset.scaler_ref_charge, dataset.scaler_ref_logp)
     orig_pred = wrapper([base_ref_smi])[0]
     print(f"🧪 原始分子 [{base_ref_smi}] 在该条件下的预测溶解度: {orig_pred:.4f}")
     
