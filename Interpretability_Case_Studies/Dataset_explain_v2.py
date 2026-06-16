@@ -214,3 +214,21 @@ if __name__ == '__main__':
     print(f"  num_bond (真实): {nb}")
     print(f"  条件向量: {cond}")
     print(f"  标签 x1: {label.item():.4f}")
+
+def smiles_to_graph(smiles_string):
+    import sys, os
+    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if ROOT not in sys.path:
+        sys.path.append(ROOT)
+    from prepare_tri_graph_data import mol2graph_components
+    mol = mol2graph_components(smiles_string)
+    if mol is None: return None
+    import torch
+    from torch_geometric.data import Data
+    x = torch.tensor(mol[0], dtype=torch.long)
+    edge_index = torch.tensor(mol[1], dtype=torch.long)
+    if len(mol[2]) == 0:
+        edge_attr = torch.zeros((0, 3), dtype=torch.long)
+    else:
+        edge_attr = torch.tensor(mol[2], dtype=torch.long)
+    return Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
