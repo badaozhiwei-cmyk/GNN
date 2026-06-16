@@ -119,7 +119,8 @@ def main():
         scores, atom_types, mol_types = explainer.get_attention_scores(c_smi, a_smi, r_smi, T, P)
         if scores is None: continue
             
-        # 只提取制冷剂 (mol_type == 2) 的原?        for i in range(len(scores)):
+        # 只提取制冷剂 (mol_type == 2) 的原子
+        for i in range(len(scores)):
             if mol_types[i] == 2:
                 element = ELEMENT_MAP.get(int(atom_types[i]), 'Other')
                 element_score_bank[element] += scores[i]
@@ -136,7 +137,8 @@ def main():
         ratio = sc / total_score * 100
         print(f"  ?{elem} 元素: {ratio:5.2f}% (总积? {sc:.2f})")
 
-    # 步骤五：画饼?    labels = []
+    # 步骤五：画饼图
+    labels = []
     sizes = []
     for elem, sc in sorted(element_score_bank.items(), key=lambda x: x[1], reverse=True):
         labels.append(f"{elem} ({sc/total_score*100:.1f}%)")
