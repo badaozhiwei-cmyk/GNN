@@ -10,7 +10,6 @@ from torch_geometric.data import Data, Batch
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'GNN_for_property_prediction'))
-sys.path.insert(0, os.path.join(ROOT, 'Explainer_for_ionic_molecule'))
 
 from Model import IL_GAT
 from Dataset_explain_v2 import IL_set_v2
@@ -92,15 +91,14 @@ def build_tri_graph_with_global(c_smi, a_smi, r_smi):
         torch.full((nr,), 2, dtype=torch.long)
     ], dim=0)
     
-    # ── 添加全局虚拟节点 (GNN 模型需要) ──
+    # 添加全局虚拟节点 (GNN 模型需要)
     num_real_nodes = x.shape[0]
     global_node_feat = torch.zeros((1, x.shape[1]), dtype=torch.long)
-    global_node_feat[0, 0] = 0 # 虚拟原子编号
+    global_node_feat[0, 0] = 0 
     x_new = torch.cat([x, global_node_feat], dim=0)
     
     global_edges = []
     global_edge_attrs = []
-    # 从虚拟节点(num_real_nodes) 到 所有真实节点 的单向连线
     for i in range(num_real_nodes):
         global_edges.append([num_real_nodes, i])
         global_edge_attrs.append([0, 0, 0])
@@ -114,7 +112,6 @@ def build_tri_graph_with_global(c_smi, a_smi, r_smi):
         edge_index_new = edge_index
         edge_attr_new = edge_attr
 
-    # 扩展 mol_type 给虚拟节点一个标记 (比如 3)
     mol_type_new = torch.cat([mol_type, torch.tensor([3], dtype=torch.long)])
 
     data = Data(x=x_new, edge_index=edge_index_new, edge_attr=edge_attr_new)
@@ -123,26 +120,19 @@ def build_tri_graph_with_global(c_smi, a_smi, r_smi):
 
 
 # ─────────────────────────────────────────────────────────
-# 核心 GAT 分析类
+# 核心 GAT 分析类 (重构为 反事实微扰法 Counterfactual Perturbation)
 # ─────────────────────────────────────────────────────────
 class UniversalGATExplainer:
     def __init__(self, model_path):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f"[初始化] 加载 GAT 权重: {model_path} on {self.device}")
+        print(f"[引擎切换] 正在使用端到端反事实微扰法 (Counterfactual Perturbation Explainer)")
         
         Args = {'emb_dim': 300, 'dropout_rate': 0.2, 'n_features': 7}
         self.model = IL_GAT(Args).to(self.device)
         ckpt = torch.load(model_path, map_location=self.device)
         self.model.load_state_dict(ckpt['model_state_dict'] if 'model_state_dict' in ckpt else ckpt)
         self.model.eval()
-        
-        # 挂载注意力钩子
-        self.attentions = {}
-        def hook_fn(layer_name):
-            def hook(module, inp, out):
-                self.attentions[layer_name] = out[1] # edge_index, alpha
-            return hook
-        self.model.l3.register_forward_hook(hook_fn('l3'))
         
         # 加载 IL_set_v2 以获取缩放器 (Scaler)
         data_path = os.path.join(ROOT, 'processed_tri_data')
@@ -178,30 +168,41 @@ class UniversalGATExplainer:
         return torch.tensor([T_s, P_s, rc_s, rl_s, am_s, cc_s, ct_s], dtype=torch.float)
 
     def get_attention_scores(self, c_smi, a_smi, r_smi, T, P):
+        """
+        核心物理重构：反事实微扰法
+        保留原函数名以兼容 Scheme A/B/C，但内部逻辑彻底改为：
+        遮蔽每个原子特征 -> 观测最终溶解度预测值的绝对变化量 |Y_base - Y_mask|
+        """
         G, num_bond = build_tri_graph_with_global(c_smi, a_smi, r_smi)
         if G is None: return None, None, None
             
         cond = self.compute_condition(c_smi, a_smi, r_smi, T, P)
-        G_batch = Batch.from_data_list([G]).to(self.device)
         cond_device = cond.unsqueeze(0).to(self.device)
         
-        self.attentions.clear()
+        # 1. 计算基准预测值 (Y_base)
+        G_batch = Batch.from_data_list([G]).to(self.device)
         with torch.no_grad():
-            _ = self.model(G_batch, cond_device)
-        
-        edge_index, alpha = self.attentions['l3']
-        edge_index = edge_index.cpu()
-        alpha = alpha.cpu().mean(dim=-1).numpy()
+            y_base = self.model(G_batch, cond_device).item()
         
         num_real_atom = G.x.shape[0] - 1
         node_scores = np.zeros(num_real_atom)
-        for i in range(edge_index.shape[1]):
-            u, v = edge_index[0, i].item(), edge_index[1, i].item()
-            if u < num_real_atom and v < num_real_atom:
-                node_scores[v] += alpha[i]
+        
+        # 2. 依次遮蔽每个原子计算扰动后预测值 (Y_mask)
+        for i in range(num_real_atom):
+            G_mask = G.clone()
+            # 将该原子特征置零（抹除其物理化学属性）
+            G_mask.x[i] = torch.zeros_like(G_mask.x[i])
+            G_mask_batch = Batch.from_data_list([G_mask]).to(self.device)
+            
+            with torch.no_grad():
+                y_mask = self.model(G_mask_batch, cond_device).item()
+                
+            # 计算该原子的重要性得分：导致预测结果改变的绝对幅度
+            node_scores[i] = np.abs(y_base - y_mask)
 
         atom_types = G.x[:num_real_atom, 0].cpu().numpy()
         mol_type = G.mol_type[:num_real_atom].cpu().numpy()
+        
         return node_scores, atom_types, mol_type
 
     def explain(self, title, c_smi, a_smi, r_smi, T, P, save_name):
@@ -217,28 +218,27 @@ class UniversalGATExplainer:
             return
             
         cond = self.compute_condition(c_smi, a_smi, r_smi, T, P)
-        
-        G_batch = Batch.from_data_list([G]).to(self.device)
         cond_device = cond.unsqueeze(0).to(self.device)
         
-        self.attentions.clear()
+        # 1. 计算基准预测值
+        G_batch = Batch.from_data_list([G]).to(self.device)
         with torch.no_grad():
-            pred = self.model(G_batch, cond_device)
-        print(f"📊 [GNN预测溶解度]: {pred.item():.4f}")
+            y_base = self.model(G_batch, cond_device).item()
+        print(f"📊 [GNN基准预测溶解度 x1]: {y_base:.4f}")
         
-        # 解析注意力
-        edge_index, alpha = self.attentions['l3']
-        edge_index = edge_index.cpu()
-        alpha = alpha.cpu().mean(dim=-1).numpy()
-        
+        # 2. 运行微扰计算
         num_real_atom = G.x.shape[0] - 1
         node_scores = np.zeros(num_real_atom)
         
-        for i in range(edge_index.shape[1]):
-            u, v = edge_index[0, i].item(), edge_index[1, i].item()
-            if u < num_real_atom and v < num_real_atom:
-                node_scores[v] += alpha[i]
+        for i in range(num_real_atom):
+            G_mask = G.clone()
+            G_mask.x[i] = torch.zeros_like(G_mask.x[i])
+            G_mask_batch = Batch.from_data_list([G_mask]).to(self.device)
+            with torch.no_grad():
+                y_mask = self.model(G_mask_batch, cond_device).item()
+            node_scores[i] = np.abs(y_base - y_mask)
 
+        # 为了作图美观，归一化到 0-1
         if node_scores.max() > 0:
             node_scores = node_scores / node_scores.max()
 
@@ -246,9 +246,9 @@ class UniversalGATExplainer:
         mol_type = G.mol_type[:num_real_atom].cpu().numpy()
         
         # 打印排行榜
-        print("\n🏆 GAT 靶向全元素注意力排行榜:")
+        print("\n🏆 微扰重要性排行榜 (Counterfactual Importance):")
         sorted_idx = np.argsort(node_scores)[::-1]
-        print(f"{'排名':<5} | {'归属部位':<14} | {'元素':<5} | {'得分':<8}")
+        print(f"{'排名':<5} | {'归属部位':<14} | {'元素':<5} | {'相对得分':<8}")
         print("-" * 45)
         
         for rank, idx in enumerate(sorted_idx):
@@ -288,7 +288,7 @@ class UniversalGATExplainer:
         nx.draw_networkx_labels(g, pos, labels=labels_dict, font_size=9, font_color='black', font_weight='bold')
         
         cbar = plt.colorbar(nodes, pad=0.02, shrink=0.8)
-        cbar.set_label('Targeted Attention Weight', rotation=270, labelpad=15)
+        cbar.set_label('Counterfactual Perturbation Importance', rotation=270, labelpad=15)
         plt.title(f"{title} (Target: {r_smi})", fontsize=14, pad=15)
         plt.axis("off")
         plt.tight_layout()
