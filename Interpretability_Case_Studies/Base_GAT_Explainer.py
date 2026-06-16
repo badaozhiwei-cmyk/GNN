@@ -177,6 +177,33 @@ class UniversalGATExplainer:
 
         return torch.tensor([T_s, P_s, rc_s, rl_s, am_s, cc_s, ct_s], dtype=torch.float)
 
+    def get_attention_scores(self, c_smi, a_smi, r_smi, T, P):
+        G, num_bond = build_tri_graph_with_global(c_smi, a_smi, r_smi)
+        if G is None: return None, None, None
+            
+        cond = self.compute_condition(c_smi, a_smi, r_smi, T, P)
+        G_batch = Batch.from_data_list([G]).to(self.device)
+        cond_device = cond.unsqueeze(0).to(self.device)
+        
+        self.attentions.clear()
+        with torch.no_grad():
+            _ = self.model(G_batch, cond_device)
+        
+        edge_index, alpha = self.attentions['l3']
+        edge_index = edge_index.cpu()
+        alpha = alpha.cpu().mean(dim=-1).numpy()
+        
+        num_real_atom = G.x.shape[0] - 1
+        node_scores = np.zeros(num_real_atom)
+        for i in range(edge_index.shape[1]):
+            u, v = edge_index[0, i].item(), edge_index[1, i].item()
+            if u < num_real_atom and v < num_real_atom:
+                node_scores[v] += alpha[i]
+
+        atom_types = G.x[:num_real_atom, 0].cpu().numpy()
+        mol_type = G.mol_type[:num_real_atom].cpu().numpy()
+        return node_scores, atom_types, mol_type
+
     def explain(self, title, c_smi, a_smi, r_smi, T, P, save_name):
         print(f"\n==================================================")
         print(f"🚀 开始分析: {title}")
