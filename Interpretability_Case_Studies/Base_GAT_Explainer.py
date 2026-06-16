@@ -190,11 +190,9 @@ class UniversalGATExplainer:
         # 2. 依次突变每个原子计算反事实预测值 (Y_mask)
         for i in range(num_real_atom):
             G_mask = G.clone()
-            # 【反事实突变】将目标原子强行变为氢原子 (H)
-            # 保留原有的拓扑连接度(degree)，但抹除其化学异质性
-            G_mask.x[i][0] = 1  # 元素周期表序数: 1 (H)
-            G_mask.x[i][5] = 0  # 电负性 bucket: H 属于最低档 0
-            G_mask.x[i][6] = 0  # 共价半径 bucket: H 属于最低档 0
+            # 【反事实突变】将目标原子整体强行变为标准端基氢原子 (H)
+            # 彻底覆盖：[原子序数1, 杂化0, 芳香性0, 连接度1, 形式电荷1(即0), 电负性0, 半径0]
+            G_mask.x[i] = torch.tensor([1, 0, 0, 1, 1, 0, 0], dtype=torch.long)
             
             G_mask_batch = Batch.from_data_list([G_mask]).to(self.device)
             
@@ -236,9 +234,8 @@ class UniversalGATExplainer:
         
         for i in range(num_real_atom):
             G_mask = G.clone()
-            G_mask.x[i][0] = 1  # 变为 H
-            G_mask.x[i][5] = 0
-            G_mask.x[i][6] = 0
+            # 彻底覆盖：[原子序数1, 杂化0, 芳香性0, 连接度1, 形式电荷1(即0), 电负性0, 半径0]
+            G_mask.x[i] = torch.tensor([1, 0, 0, 1, 1, 0, 0], dtype=torch.long)
             
             G_mask_batch = Batch.from_data_list([G_mask]).to(self.device)
             with torch.no_grad():
