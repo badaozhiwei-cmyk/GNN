@@ -97,9 +97,11 @@ def main():
         print("无数据！请检查过滤条件")
         return
 
-    # 步骤四：开始暴力积?    print("\n[进度 5/5] 🚀 开始批?GAT 推断，收集制冷剂吸收的『靶向注意力碎片?..")
+    # 步骤四：开始暴力积
+    print("\n[进度 5/5] 🚀 开始批GAT 推断，收集制冷剂吸收的『靶向注意力碎片..")
     
-    # 记录制冷剂内部，各个元素的总得?    element_score_bank = defaultdict(float)
+    # 记录制冷剂内部，各个元素的总得
+    element_score_bank = defaultdict(float)
     valid_count = 0
     
     for idx, row in tqdm(sub_df.iterrows(), total=sub_len, desc="GAT 积分"):
@@ -148,7 +150,8 @@ def main():
     colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#c2c2f0']
     plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=140, pctdistance=0.85, shadow=True, textprops={'fontsize': 12, 'weight': 'bold'})
     
-    # 画个白圈，做成甜甜圈?    centre_circle = plt.Circle((0,0),0.70,fc='white')
+    # 画个白圈，做成甜甜圈
+    centre_circle = plt.Circle((0,0),0.70,fc='white')
     fig = plt.gcf()
     fig.gca().add_artist(centre_circle)
     

@@ -28,7 +28,8 @@ def main():
     T = 298.15
     P = 1.0
 
-    # 竞争气体?    r1_name = "R32"
+    # 竞争气体?
+    r1_name = "R32"
     r1_smi = "C(F)F"
     
     r2_name = "R134a"
@@ -52,7 +53,8 @@ def main():
     cat_score2 = sum([s for s, m in zip(scores2, mol_types2) if m == 0])
     ani_score2 = sum([s for s, m in zip(scores2, mol_types2) if m == 1])
 
-    # 为了更公平，计算在“离子液体内部”的注意力占?    total_il1 = cat_score1 + ani_score1
+    # 为了更公平，计算在“离子液体内部”的注意力占?
+    total_il1 = cat_score1 + ani_score1
     total_il2 = cat_score2 + ani_score2
 
     cat_ratio1 = (cat_score1 / total_il1) * 100
