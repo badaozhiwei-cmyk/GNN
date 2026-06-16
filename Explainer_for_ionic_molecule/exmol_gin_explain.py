@@ -191,5 +191,47 @@ def main():
     
     print(f"\n✅ exmol 逆向靶向生成分析出炉！\n图表已保存至: {save_path}")
 
+    # ==============================================================
+    # 🌟 新增：切换至 LIME 代理归因模块，提取全元素影响排行 (t-statistics)
+    # ==============================================================
+    print("\n🔬 正在启动 LIME 代理归因模块，计算制冷剂中每一个原子的影响权重...")
+    
+    # 这一步会在局部撒样空间中拟合一个线性代理模型，将重要性分配给每一个原子
+    exmol.lime_explain(samples)
+    
+    base_m = samples[0] # samples[0] 即为我们的基准测试分子 R32
+    tstats = base_m.tstats
+    
+    mol = Chem.MolFromSmiles(base_ref_smi)
+    atoms = mol.GetAtoms()
+    
+    print(f"\n🏆 LIME 全元素影响力排行榜 (制冷剂: {base_ref_smi}):")
+    print(f"{'排名':<5} | {'元素':<5} | {'原子编号':<10} | {'LIME 影响力 (t-stat)':<20}")
+    print("-" * 55)
+    
+    atom_scores = []
+    for idx, atom in enumerate(atoms):
+        sym = atom.GetSymbol()
+        # 有些情况下 tstats 长度可能与 heavy atoms 不一致，防御性提取
+        score = tstats[idx] if idx < len(tstats) else 0.0
+        atom_scores.append((idx, sym, score))
+        
+    # 按绝对影响力（正向增溶或负向拉低）排或者按纯大小排，这里按正向贡献从大到小排
+    atom_scores.sort(key=lambda x: x[2], reverse=True)
+    
+    for rank, (idx, sym, score) in enumerate(atom_scores):
+        # 正数为促进溶解，负数为阻碍溶解
+        print(f"#{rank+1:<4} | {sym:<5} | {idx:<10} | {score:+.4f}")
+        
+    # 输出高精度 SVG 热力图
+    try:
+        svg_heatmap = exmol.plot_utils.similarity_map_using_tstats(base_m)
+        svg_path = os.path.join(out_dir, f'exmol_lime_heatmap_idx_{args.sample_idx}.svg')
+        with open(svg_path, "w") as f:
+            f.write(svg_heatmap)
+        print(f"\n✅ LIME 原子影响力高精度热力图 (SVG) 已保存至: {svg_path}")
+    except Exception as e:
+        print(f"⚠️ 生成 SVG 热力图失败 (可能缺少对应的绘图依赖): {e}")
+
 if __name__ == '__main__':
     main()
