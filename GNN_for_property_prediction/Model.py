@@ -154,9 +154,9 @@ class IL_GAT(torch.nn.Module):
         self.l2 = GATv2Conv(512, 1024)
         self.l3 = GATv2Conv(1024, 512)
 
-        # MLP head: graph_repr(512*4) + cond(7) = 2055
+        # MLP head: graph_repr(512) + cond(7) = 519
         self.l5 = nn.Sequential(
-            nn.Linear(2055, 1024),
+            nn.Linear(519, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
             nn.Dropout(p=0.4),
@@ -212,13 +212,10 @@ class IL_GAT(torch.nn.Module):
         x = self.act(x)
         x = self.dropout(x)
 
-        # [修复] 分别对阳离子、阴离子、制冷剂进行池化，同时保留全局节点！
-        x_c = global_mean_pool(x[data_i.mol_type == 0], data_i.batch[data_i.mol_type == 0])
-        x_a = global_mean_pool(x[data_i.mol_type == 1], data_i.batch[data_i.mol_type == 1])
-        x_r = global_mean_pool(x[data_i.mol_type == 2], data_i.batch[data_i.mol_type == 2])
-        x_g = global_mean_pool(x[data_i.mol_type == 3], data_i.batch[data_i.mol_type == 3])
+        # [回退] 统一池化，为了兼容你的旧版权重文件 (519维)
+        x_pool = global_mean_pool(x, data_i.batch)
 
-        x_concat = torch.cat([x_c, x_a, x_r, x_g, cond], dim=1)
+        x_concat = torch.cat([x_pool, cond], dim=1)
         x_out = self.l5(x_concat)
 
         return x_out
