@@ -20,6 +20,7 @@ GROUP_SMARTS = {
     # 2. 阴离子特征基团 (Anion Groups)
     # ----------------------------------
     'Sulfonyl_SO2':     'S(=O)(=O)',                       # 磺酰基 (Tf2N 等)
+    'Sulfonimide_N':    '[N-](S)(S)',                      # 磺酰亚胺中心N (Tf2N 等)
     'Carboxylate_COO':  'C(=O)[O-]',                       # 羧酸根 (OAc 等)
     'BF4_Core':         '[B-](F)(F)(F)F',                  # 四氟硼酸根
     'PF6_Core':         '[P-](F)(F)(F)(F)(F)F',            # 六氟磷酸根
@@ -51,7 +52,7 @@ GROUP_PRIORITY = [
     'BF4_Core', 'PF6_Core',
     # 中高优先级：杂原子和特异骨架
     'Imidazolium_Ring', 'Imidazolium_Alt', 'Pyridinium_Ring', 'Phosphonium', 'Ammonium',
-    'Sulfonyl_SO2', 'Carboxylate_COO', 'Phosphate_PO4',
+    'Sulfonimide_N', 'Sulfonyl_SO2', 'Carboxylate_COO', 'Phosphate_PO4',
     'Double_Bond_C=C', 'Chlorine_Cl', 'Bromine_Br', 'Iodine_I',
     # 最低优先级：普通烷基碳链
     'Alkyl_Chain'
