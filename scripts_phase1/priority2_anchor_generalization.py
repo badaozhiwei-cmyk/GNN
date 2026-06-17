@@ -21,7 +21,7 @@ def lookup_smiles_inline(name, smiles_dict):
     return None
 
 def main():
-    model_path = os.path.join(ROOT, 'GNN_for_property_prediction', 'pretrained_model', 'GAT_300', 'best_model_para.pth')
+    model_path = os.path.join(ROOT, 'GNN_for_property_prediction', 'checkpoints_v2', 'best_gat_seed_1.pth')
     if not os.path.exists(model_path):
         print(f"Error: Model not found at {model_path}")
         return
