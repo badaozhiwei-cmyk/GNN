@@ -98,35 +98,11 @@ def main():
         if node_scores.max() > 0:
             node_scores = node_scores / node_scores.max()
 
-        from rdkit import Chem
-        c_mol = Chem.MolFromSmiles(c_smi)
-        a_mol = Chem.MolFromSmiles(a_smi)
-        r_mol = Chem.MolFromSmiles(r_smi)
+        # 调用公共聚合方法（消除与 Group_Explainer_Engine 的重复实现）
+        sample_group_scores = explainer.aggregate_to_groups(node_scores, c_smi, a_smi, r_smi)
         
-        c_num = c_mol.GetNumAtoms() if c_mol else 0
-        a_num = a_mol.GetNumAtoms() if a_mol else 0
-        r_num = r_mol.GetNumAtoms() if r_mol else 0
-
-        c_groups = get_group_matches(c_smi)
-        a_groups = get_group_matches(a_smi)
-        r_groups = get_group_matches(r_smi)
-
-        # 阳离子
-        for g_name, atoms in c_groups.items():
-            score = sum([node_scores[i] for i in atoms])
-            global_group_scores[f"{g_name} (Cat)"] += score
-            
-        # 阴离子
-        a_offset = c_num
-        for g_name, atoms in a_groups.items():
-            score = sum([node_scores[i + a_offset] for i in atoms])
-            global_group_scores[f"{g_name} (Ani)"] += score
-            
-        # 制冷剂
-        r_offset = c_num + a_num
-        for g_name, atoms in r_groups.items():
-            score = sum([node_scores[i + r_offset] for i in atoms])
-            global_group_scores[f"{g_name} (Ref)"] += score
+        for g_name, score in sample_group_scores.items():
+            global_group_scores[g_name] += score
             
         valid_count += 1
         

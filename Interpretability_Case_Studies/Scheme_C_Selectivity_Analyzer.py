@@ -2,25 +2,20 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
-# 引入基座
-from Explainer_Engine import Explainer_Engine
+# 升级引擎：从原子级 Explainer_Engine 升级到基团级 Group_Explainer
+from Group_Explainer_Engine import Group_Explainer
 
 def main():
     print("=" * 70)
-    print(" ⚖️ 启动理想选择性分析器 (Selectivity Analyzer)")
+    print(" ⚖️ 启动理想选择性分析器 (Selectivity Analyzer) — 基团级版本")
     print("=" * 70)
 
-    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    model_path = os.path.join(ROOT, 'GNN_for_property_prediction', 'checkpoints_v2', 'best_gat_seed_1.pth')
+    explainer = Group_Explainer()
     
-    if not os.path.exists(model_path):
-        print(f"找不到权重文?{model_path}，请确保您在 Kaggle 上正确配置了路径")
-        return
-        
-    explainer = Explainer_Engine(model_path)
-    
-    # 【实验设定：锁定离子液体，对比两种相近制冷剂?    # 分离主场：[BMIM][Tf2N]
+    # 【实验设定：锁定离子液体，对比两种相近制冷剂】
+    # 分离主场：[BMIM][Tf2N]
     c_smi = "CCCC[n+]1cccc(C)c1" # [BMIM]
     a_smi = "FC(S(=O)(=O)[N-]S(=O)(=O)C(F)(F)F)(F)F" # [Tf2N]
     
@@ -28,91 +23,120 @@ def main():
     T = 298.15
     P = 1.0
 
-    # 竞争气体?
+    # 竞争气体对
     r1_name = "R32"
     r1_smi = "C(F)F"
     
     r2_name = "R134a"
     r2_smi = "C(C(F)(F)F)F"
 
-    print(f"\n[任务] 正在分析 [BMIM][Tf2N] 吸收 {r1_name} vs {r2_name} 时的注意力重分配...")
+    print(f"\n[任务] 正在分析 [BMIM][Tf2N] 吸收 {r1_name} vs {r2_name} 时的基团级注意力重分配...")
 
-    # 获取 R32 的注意力
-    scores1, atom_types1, mol_types1 = explainer.get_attention_scores(c_smi, a_smi, r1_smi, T, P)
-    # 获取 R134a 的注意力
-    scores2, atom_types2, mol_types2 = explainer.get_attention_scores(c_smi, a_smi, r2_smi, T, P)
+    # ============================================================
+    # Step 1: 同时输出原子图 + 基团条形图（与 Scheme A 深度一致）
+    # ============================================================
+    explainer.explain(
+        title=f"Scheme C - {r1_name} in [BMIM][Tf2N]",
+        c_smi=c_smi, a_smi=a_smi, r_smi=r1_smi, T=T, P=P,
+        save_name=f"Scheme_C_{r1_name}"
+    )
+    explainer.group_explain(
+        title=f"Scheme C - {r1_name} in [BMIM][Tf2N]",
+        c_smi=c_smi, a_smi=a_smi, r_smi=r1_smi, T=T, P=P,
+        save_name=f"Scheme_C_{r1_name}"
+    )
+
+    explainer.explain(
+        title=f"Scheme C - {r2_name} in [BMIM][Tf2N]",
+        c_smi=c_smi, a_smi=a_smi, r_smi=r2_smi, T=T, P=P,
+        save_name=f"Scheme_C_{r2_name}"
+    )
+    explainer.group_explain(
+        title=f"Scheme C - {r2_name} in [BMIM][Tf2N]",
+        c_smi=c_smi, a_smi=a_smi, r_smi=r2_smi, T=T, P=P,
+        save_name=f"Scheme_C_{r2_name}"
+    )
+
+    # ============================================================
+    # Step 2: 基团级选择性对比柱状图
+    # ============================================================
+    # 获取 R32 的基团级得分
+    scores1, _, _ = explainer.get_attention_scores(c_smi, a_smi, r1_smi, T, P)
+    scores2, _, _ = explainer.get_attention_scores(c_smi, a_smi, r2_smi, T, P)
 
     if scores1 is None or scores2 is None:
         print("推断失败，请检查模型与 SMILES")
         return
 
-    # 分离出阳离子 (mol=0) ?阴离?(mol=1) 的总注意力
-    cat_score1 = sum([s for s, m in zip(scores1, mol_types1) if m == 0])
-    ani_score1 = sum([s for s, m in zip(scores1, mol_types1) if m == 1])
-    
-    cat_score2 = sum([s for s, m in zip(scores2, mol_types2) if m == 0])
-    ani_score2 = sum([s for s, m in zip(scores2, mol_types2) if m == 1])
+    if scores1.max() > 0:
+        scores1 = scores1 / scores1.max()
+    if scores2.max() > 0:
+        scores2 = scores2 / scores2.max()
 
-    # 为了更公平，计算在“离子液体内部”的注意力占?
-    total_il1 = cat_score1 + ani_score1
-    total_il2 = cat_score2 + ani_score2
+    # 使用公共聚合方法
+    gs1 = explainer.aggregate_to_groups(scores1, c_smi, a_smi, r1_smi)
+    gs2 = explainer.aggregate_to_groups(scores2, c_smi, a_smi, r2_smi)
 
-    cat_ratio1 = (cat_score1 / total_il1) * 100
-    ani_ratio1 = (ani_score1 / total_il1) * 100
+    # 收集所有基团名称的并集（仅取离子液体部分 Cat + Ani，制冷剂部分因结构不同不可直接对比）
+    il_groups = sorted(set(
+        [k for k in gs1 if "(Cat)" in k or "(Ani)" in k] +
+        [k for k in gs2 if "(Cat)" in k or "(Ani)" in k]
+    ))
 
-    cat_ratio2 = (cat_score2 / total_il2) * 100
-    ani_ratio2 = (ani_score2 / total_il2) * 100
+    vals1 = [gs1.get(g, 0.0) for g in il_groups]
+    vals2 = [gs2.get(g, 0.0) for g in il_groups]
 
-    print(f"\n当吸?{r1_name} ?")
-    print(f"  ?[BMIM]+ 关注? {cat_ratio1:.1f}%")
-    print(f"  ?[Tf2N]- 关注? {ani_ratio1:.1f}%")
+    # ============================================================
+    # Step 3: 画分组柱状图
+    # ============================================================
+    x = np.arange(len(il_groups))
+    width = 0.35
 
-    print(f"\n当吸?{r2_name} ?")
-    print(f"  ?[BMIM]+ 关注? {cat_ratio2:.1f}%")
-    print(f"  ?[Tf2N]- 关注? {ani_ratio2:.1f}%")
+    fig, ax = plt.subplots(figsize=(12, 7))
+    rects1 = ax.bar(x - width/2, vals1, width, label=r1_name, color='#1f77b4', edgecolor='black')
+    rects2 = ax.bar(x + width/2, vals2, width, label=r2_name, color='#ff7f0e', edgecolor='black')
 
-    # ==========================
-    # 开始画对比分组柱状?    # ==========================
-    labels = ['Cation: [BMIM]+', 'Anion: [Tf2N]-']
-    r32_ratios = [cat_ratio1, ani_ratio1]
-    r134a_ratios = [cat_ratio2, ani_ratio2]
-
-    x = np.arange(len(labels))  # label locations
-    width = 0.35  # width of the bars
-
-    fig, ax = plt.subplots(figsize=(8, 6))
-    rects1 = ax.bar(x - width/2, r32_ratios, width, label=r1_name, color='#1f77b4', edgecolor='black')
-    rects2 = ax.bar(x + width/2, r134a_ratios, width, label=r2_name, color='#ff7f0e', edgecolor='black')
-
-    # Add some text for labels, title and custom x-axis tick labels, etc.
-    ax.set_ylabel('Attention Share within Ionic Liquid (%)', fontsize=12, weight='bold')
-    ax.set_title('Attention Reallocation for Refrigerant Selectivity\n(R32 vs R134a in [BMIM][Tf2N])', fontsize=14, weight='bold')
+    ax.set_ylabel('Aggregated IG Score (Normalized)', fontsize=12, weight='bold')
+    ax.set_title('Group-Level Attention Reallocation for Refrigerant Selectivity\n'
+                 f'({r1_name} vs {r2_name} in [BMIM][Tf2N])', fontsize=14, weight='bold')
     ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=12)
+    ax.set_xticklabels(il_groups, fontsize=9, rotation=35, ha='right')
     ax.legend(fontsize=12)
 
     def autolabel(rects):
-        """Attach a text label above each bar in *rects*, displaying its height."""
         for rect in rects:
             height = rect.get_height()
-            ax.annotate(f'{height:.1f}%',
-                        xy=(rect.get_x() + rect.get_width() / 2, height),
-                        xytext=(0, 3),  # 3 points vertical offset
-                        textcoords="offset points",
-                        ha='center', va='bottom', weight='bold')
+            if height > 0.01:
+                ax.annotate(f'{height:.2f}',
+                            xy=(rect.get_x() + rect.get_width() / 2, height),
+                            xytext=(0, 3),
+                            textcoords="offset points",
+                            ha='center', va='bottom', fontsize=8, weight='bold')
 
     autolabel(rects1)
     autolabel(rects2)
 
+    ax.grid(axis='y', linestyle='--', alpha=0.4)
     fig.tight_layout()
 
+    ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     out_dir = os.path.join(ROOT, 'Interpretability_Case_Studies', 'Results')
     os.makedirs(out_dir, exist_ok=True)
-    save_path = os.path.join(out_dir, 'Scheme_C_Selectivity_Analyzer.png')
+    save_path = os.path.join(out_dir, 'Scheme_C_Group_Selectivity.png')
     plt.savefig(save_path, dpi=300)
     plt.close()
 
-    print(f"\n?方案 C 对比柱状图已生成，保存在：{save_path}")
+    # ============================================================
+    # Step 4: 打印定量对比表格
+    # ============================================================
+    print(f"\n{'基团':<30} | {r1_name:<10} | {r2_name:<10} | {'差异 (Δ)':<10}")
+    print("-" * 65)
+    for g, v1, v2 in zip(il_groups, vals1, vals2):
+        delta = v1 - v2
+        arrow = "↑" if delta > 0 else "↓" if delta < 0 else "="
+        print(f"{g:<30} | {v1:<10.4f} | {v2:<10.4f} | {delta:>+.4f} {arrow}")
+
+    print(f"\n✅ 基团级选择性对比柱状图已保存至: {save_path}")
 
 if __name__ == "__main__":
     main()

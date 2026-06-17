@@ -116,24 +116,55 @@ class IL_set_v2(torch.utils.data.Dataset):
         self.label = np.load(label_npy_path, allow_pickle=True)
         self.length = self.label.shape[0]
 
-        # ── ?5 ?RDKit 特征?StandardScaler（与 Dataset.py 完全一致）──
-        # index[5]=Ref_Charge, index[6]=Ref_LogP, index[7]=Ani_MW,
-        # index[8]=Cat_Charge, index[9]=Cat_TPSA  ?V2 依据热图更新
-        raw_T           = np.array([self.data[i][3] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_P           = np.array([self.data[i][4] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_ref_charge  = np.array([self.data[i][5] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_ref_logp    = np.array([self.data[i][6] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_ani_mw      = np.array([self.data[i][7] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
-        raw_cat_charge  = np.array([self.data[i][8] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)  # V2
-        raw_cat_tpsa    = np.array([self.data[i][9] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)  # V2
+        # ── 尝试加载训练集上拟合的 Scaler（严格避免数据泄露）──
+        scalers_loaded = False
+        
+        # 候选路径：GAT_Runner_v3 保存的 scalers.pkl
+        import os as _os
+        _root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+        candidate_paths = [
+            _os.path.join(_root, 'GNN_for_property_prediction', 'checkpoints_v2', 'scalers.pkl'),
+            _os.path.join(_root, 'GNN_for_property_prediction', 'pretrained_model', 'GAT_300', 'scalers.pkl'),
+        ]
+        
+        for spath in candidate_paths:
+            if _os.path.exists(spath):
+                try:
+                    import joblib
+                    saved_scalers = joblib.load(spath)
+                    # GAT_Runner_v3 保存的是 list[StandardScaler] 长度为7
+                    # 对应顺序: T, P, Ref_Charge, Ref_LogP, Ani_MW, Cat_Charge, Cat_TPSA
+                    self.scaler_T           = saved_scalers[0]
+                    self.scaler_P           = saved_scalers[1]
+                    self.scaler_ref_charge  = saved_scalers[2]
+                    self.scaler_ref_logp    = saved_scalers[3]
+                    self.scaler_ani_mw      = saved_scalers[4]
+                    self.scaler_cat_charge  = saved_scalers[5]
+                    self.scaler_cat_tpsa    = saved_scalers[6]
+                    scalers_loaded = True
+                    print(f"[Dataset_explain_v2] ✅ 已从训练集 Scaler 加载: {spath}")
+                    break
+                except Exception as e:
+                    print(f"[Dataset_explain_v2] ⚠️ 加载 {spath} 失败 ({e})，将 fallback 到全量 fit")
 
-        self.scaler_T           = StandardScaler().fit(raw_T)
-        self.scaler_P           = StandardScaler().fit(raw_P)
-        self.scaler_ref_charge  = StandardScaler().fit(raw_ref_charge)
-        self.scaler_ref_logp    = StandardScaler().fit(raw_ref_logp)
-        self.scaler_ani_mw      = StandardScaler().fit(raw_ani_mw)
-        self.scaler_cat_charge  = StandardScaler().fit(raw_cat_charge)  # V2
-        self.scaler_cat_tpsa    = StandardScaler().fit(raw_cat_tpsa)    # V2
+        if not scalers_loaded:
+            # Fallback：用全量数据 fit（用于推理阶段，统计量差异极小，但不如训练集 Scaler 严谨）
+            print("[Dataset_explain_v2] ⚠️ 未找到训练集 Scaler，fallback 到全量数据 fit（推理可用，论文建议补充 scalers.pkl）")
+            raw_T           = np.array([self.data[i][3] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+            raw_P           = np.array([self.data[i][4] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+            raw_ref_charge  = np.array([self.data[i][5] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+            raw_ref_logp    = np.array([self.data[i][6] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+            raw_ani_mw      = np.array([self.data[i][7] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+            raw_cat_charge  = np.array([self.data[i][8] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+            raw_cat_tpsa    = np.array([self.data[i][9] for i in range(self.length)], dtype=np.float32).reshape(-1, 1)
+
+            self.scaler_T           = StandardScaler().fit(raw_T)
+            self.scaler_P           = StandardScaler().fit(raw_P)
+            self.scaler_ref_charge  = StandardScaler().fit(raw_ref_charge)
+            self.scaler_ref_logp    = StandardScaler().fit(raw_ref_logp)
+            self.scaler_ani_mw      = StandardScaler().fit(raw_ani_mw)
+            self.scaler_cat_charge  = StandardScaler().fit(raw_cat_charge)
+            self.scaler_cat_tpsa    = StandardScaler().fit(raw_cat_tpsa)
 
         print(f"[Dataset_explain_v2] 加载完毕，共 {self.length} 条数据。")
 

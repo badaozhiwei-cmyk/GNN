@@ -71,9 +71,8 @@ class Explainer_Engine:
         r_data = smiles_to_graph(r_smi)
         if not (c_data and a_data and r_data): return None, 0
         
-        c_data.batch = torch.zeros(c_data.x.shape[0], dtype=torch.long)
-        a_data.batch = torch.ones(a_data.x.shape[0], dtype=torch.long)
-        r_data.batch = torch.full((r_data.x.shape[0],), 2, dtype=torch.long)
+        # 注意：batch 索引由 combine_Graph() 内部的 Batch.from_data_list() 自动生成
+        # 阳离子=0, 阴离子=1, 制冷剂=2，顺序由传参顺序决定
         
         num_real_bonds = c_data.edge_index.shape[1] + a_data.edge_index.shape[1] + r_data.edge_index.shape[1]
         combined = combine_Graph([c_data, a_data, r_data])
