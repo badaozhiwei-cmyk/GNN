@@ -68,23 +68,34 @@ def main():
         print("推断失败，请检查模型与 SMILES")
         return
 
+    # 归一化逻辑：对于“选择性比较”，最科学的方法是计算“相对百分比”
+    # 将注意力得分除以该分子全图最高分，统一基础尺度
     if scores1.max() > 0:
         scores1 = scores1 / scores1.max()
     if scores2.max() > 0:
         scores2 = scores2 / scores2.max()
-
-    # 使用公共聚合方法
+        
+    # 获取 R32 环境下的基团总分
     gs1 = explainer.aggregate_to_groups(scores1, c_smi, a_smi, r1_smi)
+    # 获取 R134a 环境下的基团总分
     gs2 = explainer.aggregate_to_groups(scores2, c_smi, a_smi, r2_smi)
 
-    # 收集所有基团名称的并集（仅取离子液体部分 Cat + Ani，制冷剂部分因结构不同不可直接对比）
+    # 收集所有基团名称的并集（仅取离子液体部分 Cat + Ani）
     il_groups = sorted(set(
         [k for k in gs1 if "(Cat)" in k or "(Ani)" in k] +
         [k for k in gs2 if "(Cat)" in k or "(Ani)" in k]
     ))
-
-    vals1 = [gs1.get(g, 0.0) for g in il_groups]
-    vals2 = [gs2.get(g, 0.0) for g in il_groups]
+    
+    # 提取绝对分数
+    vals1_abs = [gs1.get(g, 0.0) for g in il_groups]
+    vals2_abs = [gs2.get(g, 0.0) for g in il_groups]
+    
+    # 【核心数学升级】：计算每个基团在离子液体内部争夺注意力的“百分比占比”
+    sum_il1 = sum(vals1_abs)
+    sum_il2 = sum(vals2_abs)
+    
+    vals1 = [v / sum_il1 * 100 if sum_il1 > 0 else 0 for v in vals1_abs]
+    vals2 = [v / sum_il2 * 100 if sum_il2 > 0 else 0 for v in vals2_abs]
 
     # ============================================================
     # Step 3: 画分组柱状图

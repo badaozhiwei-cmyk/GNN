@@ -209,10 +209,10 @@ class IL_GAT(torch.nn.Module):
         x = self.act(x)
         x = self.dropout(x)
 
-        # [回退] 统一池化，为了兼容你的旧版权重文件 (519维)
-        x_pool = global_mean_pool(x, data_i.batch)
+        # 统一使用提取全局节点特征作为图表示（上帝视角枢纽），完美支撑后续 IG 积分梯度解释
+        x_g = self.extract(x, data_i.batch)
 
-        x_concat = torch.cat([x_pool, cond], dim=1)
+        x_concat = torch.cat([x_g, cond], dim=1)
         x_out = self.l5(x_concat)
 
         return x_out
