@@ -20,7 +20,7 @@ GROUP_SMARTS = {
     # 2. 阴离子特征基团 (Anion Groups)
     # ----------------------------------
     'Sulfonyl_SO2':     'S(=O)(=O)',                       # 磺酰基 (Tf2N 等)
-    'Sulfonimide_N':    '[N-](S)(S)',                      # 磺酰亚胺中心N (Tf2N 等)
+    'Sulfonimide_N':    '[N-]',                            # 亚胺中心N (Tf2N, DCA 等)
     'Carboxylate_COO':  'C(=O)[O-]',                       # 羧酸根 (OAc 等)
     'BF4_Core':         '[B-](F)(F)(F)F',                  # 四氟硼酸根
     'PF6_Core':         '[P-](F)(F)(F)(F)(F)F',            # 六氟磷酸根
