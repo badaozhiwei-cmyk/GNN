@@ -80,9 +80,8 @@ def main():
                 h_mod[idx] = 0.0 # Knock out the embedding
                 
             # Hook
-            h_injected = None
             def pre_hook(module, args):
-                return (h_injected, args[1])
+                return (h_mod, args[1])
             handle = model.l1.register_forward_pre_hook(pre_hook)
             
             with torch.no_grad():
