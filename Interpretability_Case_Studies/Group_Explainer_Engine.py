@@ -54,20 +54,23 @@ class Group_Explainer(GAT_Explainer):
 
         # 阳离子（偏移量 = 0）
         for g_name, atoms in c_groups.items():
-            score = sum([node_scores[idx] for idx in atoms])
-            group_scores[f"{g_name} (Cat)"] += score
+            if len(atoms) > 0:
+                score = sum([node_scores[idx] for idx in atoms]) / len(atoms)
+                group_scores[f"{g_name} (Cat)"] += score
             
         # 阴离子（偏移量 = 阳离子原子数）
         a_offset = c_num
         for g_name, atoms in a_groups.items():
-            score = sum([node_scores[idx + a_offset] for idx in atoms])
-            group_scores[f"{g_name} (Ani)"] += score
+            if len(atoms) > 0:
+                score = sum([node_scores[idx + a_offset] for idx in atoms]) / len(atoms)
+                group_scores[f"{g_name} (Ani)"] += score
             
         # 制冷剂（偏移量 = 阳离子 + 阴离子原子数）
         r_offset = c_num + a_num
         for g_name, atoms in r_groups.items():
-            score = sum([node_scores[idx + r_offset] for idx in atoms])
-            group_scores[f"{g_name} (Ref)"] += score
+            if len(atoms) > 0:
+                score = sum([node_scores[idx + r_offset] for idx in atoms]) / len(atoms)
+                group_scores[f"{g_name} (Ref)"] += score
 
         return group_scores
 
@@ -136,8 +139,8 @@ class Group_Explainer(GAT_Explainer):
             plt.text(width + 0.05, bar.get_y() + bar.get_height()/2, 
                      f'{width:.2f}', ha='left', va='center', fontsize=10)
 
-        plt.xlabel('Aggregated IG Importance Score', fontsize=12)
-        plt.title(f'Functional Group Contributions\n{title}', fontsize=14, pad=15)
+        plt.xlabel('Average IG Score per Atom (Density of Importance)', fontsize=12)
+        plt.title(f'Functional Group Importance Density\n{title}', fontsize=14, pad=15)
         
         # 添加图例
         from matplotlib.patches import Patch
@@ -161,7 +164,7 @@ class Group_Explainer(GAT_Explainer):
 if __name__ == '__main__':
     explainer = Group_Explainer()
     # Test with BMIM Tf2N + R1234yf
-    c_smi = 'CCCC[n+]1cccc(C)c1' # [BMIM] (will match Pyridinium as earlier issue, but works for test)
+    c_smi = 'CCCCn1cc[n+](C)c1' # [BMIM]
     a_smi = 'FC(S(=O)(=O)[N-]S(=O)(=O)C(F)(F)F)(F)F' # [Tf2N]
     r_smi = 'C(=C(F)F)(C(F)(F)F)F' # R1234yf
     T = 298.15
