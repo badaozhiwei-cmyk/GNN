@@ -1,4 +1,4 @@
-﻿"""
+"""
 step0_5_dataset_stats.py
 ========================
 【目的】
@@ -195,12 +195,12 @@ print("\n  📄 比例检查报告已保存：split_B_proportion_check.txt")
 # ──────────────────────────────────────────────────────────
 # 颜色方案：测试集家族用暖色（红/橙），训练集家族用冷色（蓝/绿/灰）
 FAMILY_COLORS = {
-    'F1_Sulfonimide': '#E74C3C',  # 红：测试集
-    'F2_FluoroAlkyl': '#E67E22',  # 橙：测试集
+    'F1_Sulfonimide': '#E74C3C',  # 红：测试集（OOD）
+    'F2_FluoroAlkyl': '#E74C3C',  # 红：测试集（OOD）
     'F3_InorganicF':  '#3498DB',  # 蓝：训练集
-    'A1_OrganicAcid': '#27AE60',  # 绿：训练集
-    'A2_Halide':      '#8E44AD',  # 紫：训练集
-    'Other':          '#95A5A6',  # 灰：训练集
+    'A1_OrganicAcid': '#3498DB',  # 蓝：训练集
+    'A2_Halide':      '#3498DB',  # 蓝：训练集
+    'Other':          '#3498DB',  # 蓝：训练集
 }
 
 # 按各家族包含的具体阴离子展示（更细粒度）
@@ -282,7 +282,7 @@ ax1 = axes[0]
 bins = np.linspace(0, 1, 40)
 ax1.hist(x1_train, bins=bins, color='#3498DB', alpha=0.6, label=f'Train ({len(x1_train)} pts)', density=True)
 ax1.hist(x1_test,  bins=bins, color='#E74C3C', alpha=0.6, label=f'Test-OOD ({len(x1_test)} pts)', density=True)
-ax1.set_xlabel('CO₂ solubility x₁', fontsize=12)
+ax1.set_xlabel('Refrigerant solubility x₁', fontsize=12)
 ax1.set_ylabel('Density', fontsize=12)
 ax1.set_title('(a) x₁ distribution: Train vs OOD-Test', fontsize=13, fontweight='bold')
 ax1.legend(fontsize=10)
@@ -306,7 +306,7 @@ for patch, color in zip(bp['boxes'], box_colors):
     patch.set_alpha(0.75)
 
 ax2.set_xticklabels(box_labels, fontsize=8, rotation=15, ha='right')
-ax2.set_ylabel('CO₂ solubility x₁', fontsize=12)
+ax2.set_ylabel('Refrigerant solubility x₁', fontsize=12)
 ax2.set_title('(b) x₁ distribution by anion family', fontsize=13, fontweight='bold')
 ax2.grid(axis='y', linestyle='--', alpha=0.4)
 ax2.spines['top'].set_visible(False)
