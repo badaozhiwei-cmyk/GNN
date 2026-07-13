@@ -52,28 +52,47 @@ N = len(df)
 print(f"读取成功，共 {N} 条数据")
 
 # ──────────────────────────────────────────────────────────
-# 1. 阴离子家族映射（与 step0_5 保持完全一致）
+# 1. 阴离子家族映射（V2：修复 F1 过大导致 Split B 测试集占 48% 的问题）
 # ──────────────────────────────────────────────────────────
+# 设计原则：
+#   - F1a (Tf2N/TFSI/NTf2) 是数据集主体(~4300条,42%)，必须留在训练集
+#   - F1b (TfO) 三氟甲磺酸盐 555 条 → 测试集（与 Tf2N 共享 CF3 基团但骨架不同）
+#   - F4  (NfO/TDfO/C3F7CO2/methide/FSA) 稀有含氟阴离子 → 测试集
+#   - 这样测试集 ≈ 700~800 条 (7~8%)，训练集保留 90%+ 的数据
 ANION_FAMILY_MAP = {
-    # F1: 含氟有机磺酸盐／磺酰亚胺 → Test
-    'TF2N': 'F1', 'TFSI': 'F1', 'NTF2': 'F1',
-    'OTF':  'F1', 'TFO':  'F1', 'TTES': 'F1',
-    'HFPS': 'F1', 'PFBS': 'F1', 'TFES': 'F1',
-    'TPES': 'F1', 'FS':   'F1',
-    # F2: 氟代烷基磷酸盐 → Test
+    # F1a: 磺酰亚胺（Tf2N 核心，~4300条）→ 留在 Train
+    'TF2N': 'F1a', 'TFSI': 'F1a', 'NTF2': 'F1a',
+    # F1b: 三氟甲磺酸盐（TfO/OTf，~555条）→ Test OOD
+    'OTF':  'F1b', 'TFO':  'F1b',
+    # F2: 氟代烷基磷酸盐 → Test OOD（如果数据中有）
     'FEP':  'F2', 'BEI':  'F2', 'TMEM': 'F2', 'PFP': 'F2',
     # F3: 无机球形氟 → Train
     'BF4':  'F3', 'PF6':  'F3',
+    # F4: 稀有含氟阴离子（原 Other 中的含氟类）→ Test OOD
+    'NFO':  'F4', 'TDFO': 'F4', 'C3F7CO2': 'F4',
+    'METHIDE': 'F4', 'FSA': 'F4',
+    # F5: 原 F1 中的其他有机磺酸盐（极少量）→ Test OOD
+    'TTES': 'F5', 'HFPS': 'F5', 'PFBS': 'F5', 'TFES': 'F5',
+    'TPES': 'F5', 'FS':   'F5',
     # A1: 有机酸根 → Train
     'AC':   'A1', 'DCA':  'A1', 'SCN':  'A1',
     'PR':   'A1', 'PE':   'A1', 'ET2PO4': 'A1', 'TMPP': 'A1',
+    'FOR':  'A1', 'TFA':  'A1', 'BETA': 'A1',
     # A2: 卤素/无机 → Train
-    'CL':   'A2', 'BR':   'A2', 'I': 'A2', 'NO3': 'A2',
+    'CL':   'A2', 'BR':   'A2', 'I': 'A2', 'NO3': 'A2', 'HSO4': 'A2',
+    # A3: 有机磺酸/硫酸盐 → Train
+    'MESO3': 'A3', 'MESO4': 'A3', 'ETSO4': 'A3',
+    'MDEGSO4': 'A3', 'TOS': 'A3', 'C12PHSO3': 'A3',
+    # A4: 磷酸盐 → Train
+    'DMPO4': 'A4', 'DEPO4': 'A4', 'DBPO4': 'A4',
+    # A5: 氰基硼酸盐 → Train
+    'CCN3': 'A5', 'TCB': 'A5',
 }
 
 def assign_family(name):
     key = str(name).strip().upper().replace('[','').replace(']','').replace('-','')
     return ANION_FAMILY_MAP.get(key, 'Other')
+
 
 df['family'] = df['anion'].apply(assign_family)
 
@@ -127,45 +146,32 @@ report.append(f"  Test : {len(test_A_idx)}  ({len(test_A_idx)/N*100:.1f}%)")
 report.append(f"  说明 : seed={SPLIT_SEED}，完全随机，用于与文献公平比较")
 
 # ──────────────────────────────────────────────────────────
-# 4. Split B：阴离子家族 OOD 划分
+# 4. Split B：阴离子结构 OOD 划分（V2 修复版）
 # ──────────────────────────────────────────────────────────
+# 设计：
+#   训练集：F1a(Tf2N) + F3(BF4/PF6) + A1~A5 + Other → 模型见过含氟阴离子
+#   测试集：F1b(TfO) + F4(NfO/TDfO等稀有含氟) + F5(极少量有机磺酸) → 结构 OOD
+#   科学问题："学会了 Tf2N 的吸收规律，能泛化到 TfO、NfO 等不同骨架的含氟阴离子吗？"
 print("\n" + "─" * 50)
-print("【Split B：阴离子家族 OOD 划分】")
+print("【Split B：阴离子结构 OOD 划分（V2）】")
 
-TEST_FAMILIES = {'F1', 'F2'}
+TEST_FAMILIES_B = {'F1b', 'F2', 'F4', 'F5'}
+TRAIN_FAMILIES_B = {'F1a', 'F3', 'A1', 'A2', 'A3', 'A4', 'A5', 'Other'}
 
-test_B_mask  = df['family'].isin(TEST_FAMILIES)
+test_B_mask  = df['family'].isin(TEST_FAMILIES_B)
 train_B_pool = df.loc[~test_B_mask, 'npy_idx'].values
 test_B_idx   = df.loc[test_B_mask,  'npy_idx'].values
 
 test_B_pct = len(test_B_idx) / N * 100
-print(f"  测试集（F1+F2）：{len(test_B_idx)} 条 ({test_B_pct:.1f}%)")
+print(f"  测试集（F1b+F2+F4+F5）：{len(test_B_idx)} 条 ({test_B_pct:.1f}%)")
+print(f"  训练池（F1a+F3+A1~A5+Other）：{len(train_B_pool)} 条 ({len(train_B_pool)/N*100:.1f}%)")
 
-# 自动调整：如果比例不在 15~25%，给出明确提示
-if test_B_pct < 15:
-    print(f"\n  ⚠️  测试集比例 {test_B_pct:.1f}% 偏小（<15%）")
-    print("      建议：将 DCA / SCN 家族也划入测试集")
-    print("      → 已自动将 A1 中的 DCA 和 SCN 加入测试集")
-    # 自动补充
-    extra_mask = df['anion'].str.upper().str.replace('[','').str.replace(']','').isin(['DCA','SCN'])
-    test_B_mask = test_B_mask | extra_mask
-    test_B_idx  = df.loc[test_B_mask, 'npy_idx'].values
-    train_B_pool = df.loc[~test_B_mask, 'npy_idx'].values
-    test_B_pct  = len(test_B_idx) / N * 100
-    print(f"      调整后测试集：{len(test_B_idx)} 条 ({test_B_pct:.1f}%)")
-
-elif test_B_pct > 25:
-    print(f"\n  ⚠️  测试集比例 {test_B_pct:.1f}% 偏大（>25%）")
-    print("      建议：将 OTF/TTES 移回训练集，只保留 Tf2N 和 FEP 作测试")
-    print("      → 已自动调整：测试集仅保留 TF2N 和 FEP")
-    keep_test = {'TF2N', 'TFSI', 'NTF2', 'FEP'}
-    test_B_mask2 = df['anion'].str.upper().str.replace('[','').str.replace(']','').str.replace('-','').isin(keep_test)
-    test_B_idx   = df.loc[test_B_mask2, 'npy_idx'].values
-    train_B_pool = df.loc[~test_B_mask2, 'npy_idx'].values
-    test_B_pct   = len(test_B_idx) / N * 100
-    print(f"      调整后测试集：{len(test_B_idx)} 条 ({test_B_pct:.1f}%)")
+if test_B_pct < 3:
+    print(f"\n  ⚠️  测试集比例 {test_B_pct:.1f}% 偏小（<3%），建议检查阴离子映射")
+elif test_B_pct > 20:
+    print(f"\n  ⚠️  测试集比例 {test_B_pct:.1f}% 偏大（>20%），建议重新划分")
 else:
-    print(f"  ✅ 测试集比例 {test_B_pct:.1f}% 在合理范围（15~25%）内")
+    print(f"  ✅ 测试集比例 {test_B_pct:.1f}% 在合理范围内")
 
 # 从 train_pool 里切出 10% 作为验证集
 train_B_idx, val_B_idx = train_test_split(
@@ -181,18 +187,26 @@ test_B_families = df.loc[df['npy_idx'].isin(test_B_idx), 'anion'].value_counts()
 print("\n  测试集阴离子详细分布：")
 print(test_B_families.to_string())
 
+# 打印标签分布对比
+y_all = df['x1'].values
+print(f"\n  标签分布对比：")
+print(f"    Train x1 mean = {y_all[train_B_idx].mean():.4f}")
+print(f"    Test  x1 mean = {y_all[test_B_idx].mean():.4f}")
+print(f"    偏移量 = {abs(y_all[train_B_idx].mean() - y_all[test_B_idx].mean()):.4f}")
+
 np.savez('split_B_indices.npz',
          train=train_B_idx,
          val=val_B_idx,
          test=test_B_idx)
 print("\n  ✅ 已保存：split_B_indices.npz")
 
-report.append("\n【Split B：阴离子家族 OOD 划分】")
-report.append(f"  测试集家族 : F1（含氟磺酸盐/磺酰亚胺） + F2（氟代烷基链）")
+report.append("\n【Split B：阴离子结构 OOD 划分（V2）】")
+report.append(f"  测试集家族 : F1b（TfO三氟甲磺酸盐） + F4（稀有含氟） + F5（其他有机磺酸盐）")
+report.append(f"  训练集含有 : F1a（Tf2N 磺酰亚胺，模型见过含氟结构的先验知识）")
 report.append(f"  Train: {len(train_B_idx)} ({len(train_B_idx)/N*100:.1f}%)")
 report.append(f"  Val  : {len(val_B_idx)}   ({len(val_B_idx)/N*100:.1f}%)")
 report.append(f"  Test : {len(test_B_idx)}  ({len(test_B_idx)/N*100:.1f}%)")
-report.append(f"  说明 : 真正的 OOD 实验，测试集不含训练集阴离子家族")
+report.append(f"  说明 : 结构 OOD — 测试集阴离子骨架未在训练中出现，但训练集含有含氟阴离子先验")
 
 # ──────────────────────────────────────────────────────────
 # 5. Split C：制冷剂类别 OOD（两个方向）

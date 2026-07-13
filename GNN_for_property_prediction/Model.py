@@ -64,6 +64,7 @@ class IL_Net_GCN(torch.nn.Module):
             nn.Dropout(p=0.3),
 
             nn.Linear(512, 1),
+            nn.Sigmoid(), # Constrain output to [0, 1] for mole fraction
         )
 
         self.act = nn.ReLU()
@@ -164,6 +165,7 @@ class IL_GAT(torch.nn.Module):
             nn.Dropout(p=0.3),
 
             nn.Linear(512, 1),
+            nn.Sigmoid(), # Constrain output to [0, 1] for mole fraction
         )
 
         self.act = nn.ReLU()
@@ -308,7 +310,8 @@ class GIN(nn.Module):
             nn.Softplus(),
             nn.Linear(self.feat_dim, int(self.feat_dim/2)),
             nn.Softplus(),
-            nn.Linear(int(self.feat_dim/2), 1)
+            nn.Linear(int(self.feat_dim/2), 1),
+            nn.Sigmoid(), # Constrain output to [0, 1] for mole fraction
         )
     def extract(self,x,batch):
         output, count= torch.unique(batch, return_counts=True)
