@@ -44,7 +44,7 @@ from smarts_dict import get_group_matches
 # 命令行参数
 # ============================================================
 parser = argparse.ArgumentParser(description='Step 4A — FGCA Global Ranking')
-parser.add_argument('--split', type=str, default='B', choices=['A', 'B'],
+parser.add_argument('--split', type=str, default='B', choices=['A', 'B', 'D'],
                     help='使用哪种划分训练的 GAT 模型')
 parser.add_argument('--seed',  type=int, default=42,
                     help='使用哪个种子的 checkpoint（默认 42）')

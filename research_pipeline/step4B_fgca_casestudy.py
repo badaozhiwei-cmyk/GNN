@@ -44,7 +44,7 @@ from smarts_dict import get_group_matches
 # 命令行参数
 # ============================================================
 parser = argparse.ArgumentParser(description='Step 4B — FGCA Case Study')
-parser.add_argument('--split', type=str, default='B', choices=['A', 'B'])
+parser.add_argument('--split', type=str, default='B', choices=['A', 'B', 'D'])
 parser.add_argument('--seed',  type=int, default=42)
 args_cli = parser.parse_args()
 

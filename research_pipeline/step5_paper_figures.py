@@ -1,4 +1,4 @@
-﻿"""
+"""
 step5_paper_figures.py
 ======================
 【目的】
@@ -104,6 +104,7 @@ print("=" * 60)
 
 results_A = []
 results_B = []
+results_D = []
 
 # GNN 模型
 for model_name, prefix in [('GAT (ours)', 'gat'), ('GIN', 'gin'), ('MPNN', 'mpnn')]:
@@ -111,22 +112,27 @@ for model_name, prefix in [('GAT (ours)', 'gat'), ('GIN', 'gin'), ('MPNN', 'mpnn
     if r: results_A.append(r)
     r = read_gnn_results(f'{prefix}_splitB_results.csv', model_name)
     if r: results_B.append(r)
+    r = read_gnn_results(f'{prefix}_splitD_results.csv', model_name)
+    if r: results_D.append(r)
 
 # ML 基线
 ml_A = read_ml_results(os.path.join(ML_DIR, 'ml_baselines_splitA_results.csv'))
 ml_B = read_ml_results(os.path.join(ML_DIR, 'ml_baselines_splitB_results.csv'))
+ml_D = read_ml_results(os.path.join(ML_DIR, 'ml_baselines_splitD_results.csv'))
 results_A.extend(ml_A)
 results_B.extend(ml_B)
+results_D.extend(ml_D)
 
 df_A = pd.DataFrame(results_A)
 df_B = pd.DataFrame(results_B)
+df_D = pd.DataFrame(results_D)
 
-if df_A.empty and df_B.empty:
+if df_A.empty and df_B.empty and df_D.empty:
     print("\n⚠️  没有找到任何结果 CSV，请先运行所有训练脚本。")
-    print("   预期文件：gat_splitA_results.csv / gin_splitB_results.csv 等")
+    print("   预期文件：gat_splitA_results.csv / gin_splitB_results.csv / gat_splitD_results.csv 等")
     raise SystemExit(0)
 
-print(f"\n  读取完成：Split A {len(df_A)} 个模型 | Split B {len(df_B)} 个模型")
+print(f"\n  读取完成：Split A {len(df_A)} 个模型 | Split B {len(df_B)} 个模型 | Split D {len(df_D)} 个模型")
 
 # ============================================================
 # 2. 生成 Table 2（论文级别格式）
@@ -143,6 +149,8 @@ print("  Table 2：模型性能对比")
 print("=" * 65)
 
 def build_table(df, split_name):
+    if df.empty:
+        return pd.DataFrame()
     rows = []
     for _, r in df.iterrows():
         rows.append({
@@ -158,13 +166,16 @@ def build_table(df, split_name):
 
 tbl_A = build_table(df_A, 'A (Random)')
 tbl_B = build_table(df_B, 'B (Anion OOD)')
+tbl_D = build_table(df_D, 'D (Cation OOD)')
 
-# 保存 CSV（双 header：先 Split A，再 Split B）
+# 保存 CSV（多 header：先 Split A，再 Split B，再 Split D）
 with open('table2_model_comparison.csv', 'w', encoding='utf-8-sig') as f:
     f.write('Split A (Random 70/10/20)\n')
-    tbl_A.to_csv(f, index=False)
+    if not tbl_A.empty: tbl_A.to_csv(f, index=False)
     f.write('\nSplit B (Anion Family OOD)\n')
-    tbl_B.to_csv(f, index=False)
+    if not tbl_B.empty: tbl_B.to_csv(f, index=False)
+    f.write('\nSplit D (Cation Family OOD)\n')
+    if not tbl_D.empty: tbl_D.to_csv(f, index=False)
 
 print(f"\n  📄 Table 2 已保存：table2_model_comparison.csv")
 
@@ -190,54 +201,75 @@ def get_color(name):
             return v
     return '#BDC3C7'
 
-def plot_comparison(df_A, df_B, metric, ylabel, save_path, higher_better=True):
-    """绘制 Split A / Split B 并排对比"""
-    # 取两个 split 都有的模型
-    common = set(df_A['Model'].tolist()) & set(df_B['Model'].tolist())
-    order  = [m for m in df_A['Model'].tolist() if m in common]
+def plot_comparison(df_A, df_B, df_D, metric, ylabel, save_path, higher_better=True):
+    """绘制 Split A / Split B / Split D 三向对比"""
+    # 取都有的模型
+    common = set(df_A['Model'].tolist()) if not df_A.empty else set()
+    if not df_B.empty:
+        common = common & set(df_B['Model'].tolist()) if common else set(df_B['Model'].tolist())
+    if not df_D.empty:
+        common = common & set(df_D['Model'].tolist()) if common else set(df_D['Model'].tolist())
+        
+    order  = [m for m in (df_A['Model'].tolist() if not df_A.empty else df_B['Model'].tolist()) if m in common]
 
     n   = len(order)
     x   = np.arange(n)
-    w   = 0.38
+    w   = 0.25 # 调窄一些以容纳 3 根柱子
 
-    fig, ax = plt.subplots(figsize=(max(10, n * 1.4), 6))
+    fig, ax = plt.subplots(figsize=(max(12, n * 1.6), 6))
     col_mean = f'{metric}_mean'
     col_std  = f'{metric}_std'
 
-    vals_A = df_A.set_index('Model').loc[order, col_mean].values
-    stds_A = df_A.set_index('Model').loc[order, col_std].values
-    vals_B = df_B.set_index('Model').loc[order, col_mean].values
-    stds_B = df_B.set_index('Model').loc[order, col_std].values
+    vals_A = df_A.set_index('Model').loc[order, col_mean].values if not df_A.empty else np.zeros(n)
+    stds_A = df_A.set_index('Model').loc[order, col_std].values if not df_A.empty else np.zeros(n)
+    
+    vals_B = df_B.set_index('Model').loc[order, col_mean].values if not df_B.empty else np.zeros(n)
+    stds_B = df_B.set_index('Model').loc[order, col_std].values if not df_B.empty else np.zeros(n)
+    
+    vals_D = df_D.set_index('Model').loc[order, col_mean].values if not df_D.empty else np.zeros(n)
+    stds_D = df_D.set_index('Model').loc[order, col_std].values if not df_D.empty else np.zeros(n)
 
     colors = [get_color(m) for m in order]
 
-    bars_A = ax.bar(x - w/2, vals_A,
+    bars_A = ax.bar(x - w, vals_A,
                     yerr=np.nan_to_num(stds_A), width=w,
                     color=colors, alpha=0.90,
                     edgecolor='white', linewidth=0.7,
                     error_kw=dict(elinewidth=1.2, capsize=3),
                     label='Split A (Random)')
-    bars_B = ax.bar(x + w/2, vals_B,
+                    
+    bars_B = ax.bar(x, vals_B,
                     yerr=np.nan_to_num(stds_B), width=w,
-                    color=colors, alpha=0.50,
+                    color=colors, alpha=0.60,
                     edgecolor='white', linewidth=0.7, hatch='//',
                     error_kw=dict(elinewidth=1.2, capsize=3),
                     label='Split B (Anion OOD)')
+                    
+    bars_D = ax.bar(x + w, vals_D,
+                    yerr=np.nan_to_num(stds_D), width=w,
+                    color=colors, alpha=0.40,
+                    edgecolor='white', linewidth=0.7, hatch='..',
+                    error_kw=dict(elinewidth=1.2, capsize=3),
+                    label='Split D (Cation OOD)')
 
     # 数值标注
     for bar, v in zip(bars_A, vals_A):
         ax.text(bar.get_x() + bar.get_width()/2,
                 bar.get_height() + (max(vals_A)*0.01 if not np.isnan(bar.get_height()) else 0),
-                f'{v:.3f}', ha='center', va='bottom', fontsize=8, rotation=45)
+                f'{v:.3f}', ha='center', va='bottom', fontsize=7.5, rotation=45)
     for bar, v in zip(bars_B, vals_B):
         ax.text(bar.get_x() + bar.get_width()/2,
                 bar.get_height() + (max(vals_B)*0.01 if not np.isnan(bar.get_height()) else 0),
-                f'{v:.3f}', ha='center', va='bottom', fontsize=8, rotation=45)
+                f'{v:.3f}', ha='center', va='bottom', fontsize=7.5, rotation=45)
+    for bar, v in zip(bars_D, vals_D):
+        ax.text(bar.get_x() + bar.get_width()/2,
+                bar.get_height() + (max(vals_D)*0.01 if not np.isnan(bar.get_height()) else 0),
+                f'{v:.3f}', ha='center', va='bottom', fontsize=7.5, rotation=45)
 
     ax.set_xticks(x)
     ax.set_xticklabels(order, fontsize=10, rotation=20, ha='right')
     ax.set_ylabel(ylabel, fontsize=12)
-    ax.set_title(f'{ylabel}: All Models — Split A (Solid) vs Split B (Hatched)',
+    ax.set_title(f'{ylabel}: All Models — Split A (Solid) vs Split B (Hatched) vs Split D (Dotted)',
                  fontsize=12, fontweight='bold', pad=10)
     ax.legend(fontsize=10)
     ax.grid(axis='y', linestyle='--', alpha=0.4)
@@ -249,10 +281,10 @@ def plot_comparison(df_A, df_B, metric, ylabel, save_path, higher_better=True):
     plt.close()
     print(f"  📊 已保存：{save_path}")
 
-if not df_A.empty and not df_B.empty:
-    plot_comparison(df_A, df_B, 'R2',   'R²',   'figure/Fig2a_R2_comparison.png',  higher_better=True)
-    plot_comparison(df_A, df_B, 'MAE',  'MAE',  'figure/Fig2b_MAE_comparison.png', higher_better=False)
-    plot_comparison(df_A, df_B, 'RMSE', 'RMSE', 'figure/Fig2c_RMSE_comparison.png',higher_better=False)
+if not df_A.empty or not df_B.empty or not df_D.empty:
+    plot_comparison(df_A, df_B, df_D, 'R2',   'R²',   'figure/Fig2a_R2_comparison.png',  higher_better=True)
+    plot_comparison(df_A, df_B, df_D, 'MAE',  'MAE',  'figure/Fig2b_MAE_comparison.png', higher_better=False)
+    plot_comparison(df_A, df_B, df_D, 'RMSE', 'RMSE', 'figure/Fig2c_RMSE_comparison.png',higher_better=False)
 
 # ============================================================
 # 4. Figure 3：OOD 泛化差距（Δ = Split A - Split B）

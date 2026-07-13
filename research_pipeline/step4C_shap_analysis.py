@@ -1,4 +1,4 @@
-﻿"""
+"""
 step4C_shap_analysis.py
 =======================
 【目的】
@@ -68,7 +68,7 @@ except ImportError:
 # 命令行参数
 # ============================================================
 parser = argparse.ArgumentParser(description='Step 4C — SHAP Analysis')
-parser.add_argument('--split',     type=str, default='B', choices=['A', 'B'])
+parser.add_argument('--split',     type=str, default='B', choices=['A', 'B', 'D'])
 parser.add_argument('--fp_radius', type=int, default=2)
 parser.add_argument('--fp_bits',   type=int, default=2048)
 parser.add_argument('--fgca_csv',  type=str, default=None,
