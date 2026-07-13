@@ -1,4 +1,4 @@
-﻿"""
+"""
 step3_ml_baselines.py
 =====================
 【目的】
@@ -70,7 +70,7 @@ except ImportError:
 # 命令行参数
 # ============================================================
 parser = argparse.ArgumentParser(description='ML Baselines — RF/XGB/LGBM/MLP')
-parser.add_argument('--split',    type=str, default='B', choices=['A', 'B'])
+parser.add_argument('--split',    type=str, default='B', choices=['A', 'B', 'D'])
 parser.add_argument('--fp_mode', type=str, default='all',
                     choices=['all', 'anion_refri'],
                     help='all=阳离子+阴离子+制冷剂三份指纹; anion_refri=仅阴离子+制冷剂')

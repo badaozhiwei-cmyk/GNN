@@ -1,9 +1,8 @@
-﻿"""
+"""
 step1_anion_family_splitter.py
 ==============================
 【目的】
-  正式生成 Split A（随机划分）和 Split B（阴离子家族 OOD 划分）的
-  训练/验证/测试索引，保存为 .npz 文件供 GAT 训练器直接加载。
+  正式生成四种数据划分的训练/验证/测试索引，保存为 .npz 文件供模型训练器直接加载。
 
 【输入】
   index_with_anion.csv（Step 0 产出）
@@ -12,7 +11,8 @@ step1_anion_family_splitter.py
   split_A_indices.npz   → 随机划分索引（Train 70% / Val 10% / Test 20%）
   split_B_indices.npz   → 阴离子家族 OOD 划分索引
   split_C_indices.npz   → 制冷剂类别划分索引（HFC↔HFO，供 Supplementary）
-  split_summary.txt     → 三种划分的详细统计报告
+  split_D_indices.npz   → 阳离子家族 OOD 划分索引（膦类 Phosphonium）
+  split_summary.txt     → 四种划分的详细统计报告
 
 【运行方法】
   python step1_anion_family_splitter.py
@@ -23,6 +23,8 @@ step1_anion_family_splitter.py
            训练集再从剩余数据中随机切出 10% 作为验证集。
            如果测试集比例不在 15~25% 范围，脚本会自动调整并打印建议。
   Split C：两个方向：HFC→HFO 和 HFO→HFC，分别保存为独立键名。
+  Split D：测试集 = 膦类阳离子（P⁺ 核心），训练集全是 N⁺ 核心阳离子，
+           测试骨架级别的阳离子泛化能力。
 """
 
 import os
@@ -241,7 +243,94 @@ report.append(f"  方向2 HFO→HFC: Train={len(train_C2_idx)}, Val={len(val_C2_
 report.append(f"  说明 : 用于 Supplementary 的制冷剂泛化实验")
 
 # ──────────────────────────────────────────────────────────
-# 6. 验证：三种划分的索引无重叠（Split A/B 内部）
+# 6. Split D：阳离子家族 OOD 划分（膦类 Phosphonium）
+# ──────────────────────────────────────────────────────────
+print("\n" + "─" * 50)
+print("【Split D：阳离子家族 OOD 划分（膦类 Phosphonium）】")
+
+# 阳离子家族映射
+CATION_FAMILY_MAP = {
+    # C1: 咪唑类 Imidazolium（N⁺ 五元杂环）→ Train
+    'MMIM':  'C1', 'EMIM':  'C1', 'PMIM':  'C1', 'BMIM':  'C1',
+    'C5MIM': 'C1', 'HMIM':  'C1', 'C7MIM': 'C1', 'OMIM':  'C1',
+    'NMIM':  'C1', 'DMIM':  'C1', 'C12MIM':'C1', 'AMIM':  'C1',
+    'HOC2MIM':'C1','HOC3MIM':'C1','C3OMIM':'C1', 'C5O2MIM':'C1',
+    'BMMIM': 'C1', 'HMMIM': 'C1', 'BBIM':  'C1', '(ETO)2IM':'C1',
+    'C6F9MIM':'C1','C8F13MIM':'C1','OLEYLMIM':'C1',
+    'DMPIM': 'C1', 'DOIM':  'C1',
+    # C2: 膦类 Phosphonium（P⁺ 开链）→ Test
+    'P1444': 'C2', 'P2444': 'C2', 'P4444': 'C2', 'P66614':'C2',
+    'P4441': 'C2', 'P4442': 'C2', 'P44414':'C2',
+    # C3: 吡啶类 Pyridinium（N⁺ 六元杂环）→ Train
+    'C4PY':  'C3', 'HOEPY': 'C3', 'PMPY':  'C3', 'C4MPY': 'C3',
+    'HMPY':  'C3', 'EMPY':  'C3', 'BMPY':  'C3',
+    # C4: 吡咯烷类 Pyrrolidinium → Train
+    'C3MPYR':'C4', 'BMPYR': 'C4', 'C5MPYR':'C4', 'HMPYR': 'C4',
+    'C7MPYR':'C4', 'OMPYR': 'C4', 'C9MPYR':'C4', 'COCMPYR':'C4',
+    # C5: 哌啶类 Piperidinium → Train
+    'PMPIP': 'C5',
+    # C6: 铵类 Ammonium → Train
+    'HE':    'C6', 'HEA':   'C6', 'THMA':  'C6', 'DEME':  'C6',
+    'MDEA':  'C6', 'M2HEA': 'C6',
+    'N1132': 'C6', 'N4111': 'C6', 'N1444': 'C6', 'N4444': 'C6',
+    'N6111': 'C6', 'N1120H':'C6', 'N1320H':'C6', 'N1888': 'C6',
+    # C7: 锍类 Sulfonium → Train
+    'S222':  'C7',
+}
+
+def assign_cation_family(cation_name):
+    key = (str(cation_name).strip().upper()
+           .replace('[','').replace(']','').replace('-','').replace(' ','')
+           .replace(',',''))
+    return CATION_FAMILY_MAP.get(key, 'Other')
+
+df['cation_family'] = df['cation'].apply(assign_cation_family)
+
+# 打印分布
+cat_fam_counts = df['cation_family'].value_counts()
+print("\n  阳离子家族分布：")
+for fam, cnt in cat_fam_counts.items():
+    print(f"    {fam:10s}: {cnt:5d} ({cnt/N*100:.1f}%)")
+
+# 膦类 (C2) → 测试集
+TEST_CATION_FAMILIES = {'C2'}
+test_D_mask  = df['cation_family'].isin(TEST_CATION_FAMILIES)
+train_D_pool = df.loc[~test_D_mask, 'npy_idx'].values
+test_D_idx   = df.loc[test_D_mask,  'npy_idx'].values
+
+test_D_pct = len(test_D_idx) / N * 100
+print(f"\n  测试集（膦类 C2）：{len(test_D_idx)} 条 ({test_D_pct:.1f}%)")
+
+# 打印测试集里的阳离子详情
+test_D_cations = df.loc[df['npy_idx'].isin(test_D_idx), 'cation'].value_counts()
+print("\n  测试集阳离子详情：")
+for cat, cnt in test_D_cations.items():
+    print(f"    {cat:25s} {cnt:4d}")
+
+# 从训练池切出 10% 验证集
+train_D_idx, val_D_idx = train_test_split(
+    train_D_pool, test_size=0.10, random_state=SPLIT_SEED
+)
+
+print(f"\n  Train: {len(train_D_idx)} ({len(train_D_idx)/N*100:.1f}%)")
+print(f"  Val  : {len(val_D_idx)}   ({len(val_D_idx)/N*100:.1f}%)")
+print(f"  Test : {len(test_D_idx)}  ({len(test_D_idx)/N*100:.1f}%)")
+
+np.savez('split_D_indices.npz',
+         train=train_D_idx,
+         val=val_D_idx,
+         test=test_D_idx)
+print("  ✅ 已保存：split_D_indices.npz")
+
+report.append("\n【Split D：阳离子家族 OOD 划分】")
+report.append(f"  测试集家族 : C2（膦类 Phosphonium，P⁺ 核心）")
+report.append(f"  Train: {len(train_D_idx)} ({len(train_D_idx)/N*100:.1f}%)")
+report.append(f"  Val  : {len(val_D_idx)}   ({len(val_D_idx)/N*100:.1f}%)")
+report.append(f"  Test : {len(test_D_idx)}  ({len(test_D_idx)/N*100:.1f}%)")
+report.append(f"  说明 : 训练集全是 N⁺ 阳离子，测试集全是 P⁺ 阳离子，真正的骨架 OOD")
+
+# ──────────────────────────────────────────────────────────
+# 7. 验证：所有划分的索引无重叠
 # ──────────────────────────────────────────────────────────
 print("\n" + "─" * 50)
 print("【完整性校验】")
@@ -259,6 +348,7 @@ def check_no_overlap(name, train, val, test, total):
 
 check_no_overlap("Split A", train_A_idx, val_A_idx, test_A_idx, N)
 check_no_overlap("Split B", train_B_idx, val_B_idx, test_B_idx, N)
+check_no_overlap("Split D", train_D_idx, val_D_idx, test_D_idx, N)
 
 # Split C 不要求全覆盖（Other 类别可能被丢弃），只检查方向内无重叠
 def check_no_overlap_C(name, train, val, test):
@@ -274,7 +364,7 @@ check_no_overlap_C("Split C 方向1", train_C1_idx, val_C1_idx, test_C1_idx)
 check_no_overlap_C("Split C 方向2", train_C2_idx, val_C2_idx, test_C2_idx)
 
 # ──────────────────────────────────────────────────────────
-# 7. 保存报告
+# 8. 保存报告
 # ──────────────────────────────────────────────────────────
 report.append("\n" + "=" * 60)
 report.append("所有划分校验通过 ✅")
@@ -288,6 +378,8 @@ print("✅ Step 1 完成！产出文件：")
 print("   split_A_indices.npz  （随机划分，与文献对比用）")
 print("   split_B_indices.npz  （阴离子 OOD，论文核心）")
 print("   split_C_indices.npz  （制冷剂 OOD，Supplementary）")
+print("   split_D_indices.npz  （阳离子 OOD，论文核心）")
 print("   split_summary.txt    （划分报告）")
-print("\n下一步：运行 GAT_Runner_v4.py 加载上述索引文件训练模型")
+print("\n下一步：运行 GAT/GIN/MPNN Runner 加载索引文件训练模型")
 print("=" * 60)
+

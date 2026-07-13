@@ -57,7 +57,7 @@ from Dataset import IL_set
 # 命令行参数
 # ============================================================
 parser = argparse.ArgumentParser(description='MPNN Runner — OOD 划分 + 多种子')
-parser.add_argument('--split',     type=str, default='B', choices=['A', 'B'])
+parser.add_argument('--split',     type=str, default='B', choices=['A', 'B', 'D'])
 parser.add_argument('--seeds',     type=str, default='42,123,2024,3407,6666')
 parser.add_argument('--epoch',     type=int, default=100)
 parser.add_argument('--data_path', type=str, default='processed_tri_data/')
