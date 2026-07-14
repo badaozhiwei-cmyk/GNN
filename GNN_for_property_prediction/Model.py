@@ -147,10 +147,10 @@ class IL_GAT(torch.nn.Module):
         nn.init.xavier_uniform_(self.x_embedding6.weight.data)
         nn.init.xavier_uniform_(self.x_embedding7.weight.data)
 
-        # 3-layer GAT
-        self.l1 = GATv2Conv(self.emb_dim, 512)
-        self.l2 = GATv2Conv(512, 1024)
-        self.l3 = GATv2Conv(1024, 512)
+        # 3-layer GAT with multi-head attention (4 heads, averaged)
+        self.l1 = GATv2Conv(self.emb_dim, 512, heads=4, concat=False)
+        self.l2 = GATv2Conv(512, 1024, heads=4, concat=False)
+        self.l3 = GATv2Conv(1024, 512, heads=4, concat=False)
 
         # MLP head: graph_repr(512) + cond(7) = 519
         self.l5 = nn.Sequential(

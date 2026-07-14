@@ -188,7 +188,7 @@ class Runner:
             self.model.parameters(), lr=Args['lr'], weight_decay=Args['weight_decay']
         )
         self.sched   = CosineAnnealingLR(self.optim, T_max=Args['epoch'], eta_min=1e-5)
-        self.crit    = nn.HuberLoss(delta=1.0)
+        self.crit    = nn.MSELoss()
         self.ckpt    = os.path.join(CKPT_DIR, f'best_gat_seed{seed}.pth')
 
     def _save(self):
