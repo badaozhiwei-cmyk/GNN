@@ -108,6 +108,18 @@ class Explainer_Engine:
         
         integrated_grads = torch.zeros_like(h_input)
         
+        # --- 解决 Sigmoid 梯度掩码的核心操作 ---
+        # 寻找并暂存模型中所有的 Sigmoid 层，替换为 Identity，让 IG 的求导发生在 logits 空间
+        sigmoid_modules = []
+        def swap_sigmoid_to_identity(m):
+            for child_name, child in m.named_children():
+                if isinstance(child, torch.nn.Sigmoid):
+                    setattr(m, child_name, torch.nn.Identity())
+                    sigmoid_modules.append((m, child_name, child))
+                else:
+                    swap_sigmoid_to_identity(child)
+        swap_sigmoid_to_identity(self.model)
+        
         # 2. 黎曼和积分
         for step in range(1, steps + 1):
             alpha = step / steps
@@ -122,7 +134,7 @@ class Explainer_Engine:
             # 注意：传 G_batch 作为外壳，以提供 edge_index、batch 等拓扑信息
             out = self.model(G_batch, cond_device)
             
-            # 梯度回传
+            # 梯度回传 (此时 out 是 Logits，梯度线性无掩码)
             self.model.zero_grad()
             out.backward()
             
@@ -130,6 +142,10 @@ class Explainer_Engine:
             integrated_grads += h_interp.grad
             
         handle.remove()
+        
+        # 恢复 Sigmoid
+        for parent, name, orig_module in sigmoid_modules:
+            setattr(parent, name, orig_module)
         
         # 3. 计算最终的 IG 归因 = (input - baseline) * avg_grad
         avg_grads = integrated_grads / steps
