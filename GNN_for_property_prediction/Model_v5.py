@@ -1,0 +1,168 @@
+import torch
+import torch.nn as nn
+from torch_geometric.nn import GATv2Conv, global_mean_pool, GlobalAttention
+
+num_atom_type = 119 
+num_Hbrid = 8
+num_Aro = 2
+num_degree = 7
+num_charge = 3
+num_eneg   = 8
+num_radius = 8
+
+class IL_GAT_v5(torch.nn.Module):
+    def __init__(self, args):
+        super(IL_GAT_v5, self).__init__()
+        self.args = args
+        self.emb_dim = args.get('emb_dim', 300)
+        self.pool_type = args.get('pool', 'global')
+        
+        self.x_embedding1 = nn.Embedding(num_atom_type, self.emb_dim)
+        self.x_embedding2 = nn.Embedding(num_Hbrid, self.emb_dim)
+        self.x_embedding3 = nn.Embedding(num_Aro, self.emb_dim)
+        self.x_embedding4 = nn.Embedding(num_degree, self.emb_dim)
+        self.x_embedding5 = nn.Embedding(num_charge, self.emb_dim)
+        self.x_embedding6 = nn.Embedding(num_eneg,   self.emb_dim)
+        self.x_embedding7 = nn.Embedding(num_radius, self.emb_dim)
+
+        nn.init.xavier_uniform_(self.x_embedding1.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding2.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding3.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding4.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding5.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding6.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding7.weight.data)
+
+        # [修复 1] 增加 Molecule Type Embedding (0: Cation, 1: Anion, 2: Refrigerant)
+        self.mol_embedding = nn.Embedding(3, self.emb_dim)
+        nn.init.xavier_uniform_(self.mol_embedding.weight.data)
+        
+        # [修复 1 - 续] Global Token 独立于普通分子的 Embedding 空间
+        self.global_token = nn.Parameter(torch.zeros(1, self.emb_dim))
+
+        self.l1 = GATv2Conv(self.emb_dim, 512, heads=4, concat=False)
+        self.l2 = GATv2Conv(512, 1024, heads=4, concat=False)
+        self.l3 = GATv2Conv(1024, 512, heads=4, concat=False)
+
+        # [消融控制] 如果用 attention pool，需要初始化 GlobalAttention
+        if self.pool_type == 'attention':
+            self.att_pool = GlobalAttention(nn.Sequential(nn.Linear(512, 1)))
+
+        # 根据 Dataset_v5 的 args，动态计算 cond 维度
+        cond_dim = 7 if args.get('use_ani_mw', False) else 6
+        
+        self.l5 = nn.Sequential(
+            nn.Linear(512 + cond_dim, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Dropout(p=0.4),
+
+            nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Dropout(p=0.3),
+
+            nn.Linear(512, 1)
+        )
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(p=args['dropout_rate'])
+
+    def extract(self, x, data_i):
+        """提取全局节点（每个子图的最后一个节点）"""
+        batch = data_i.batch
+        output, count = torch.unique(batch, return_counts=True)
+        count = count.tolist()
+
+        l = []
+        cur = 0
+        for i in count:
+            cur += i
+            l.append(cur)
+        re = []
+        for j in l:
+            # [安全断言] 确保取到的图最后一个节点确实是 Global Token (mol_type == 3)
+            if hasattr(data_i, 'mol_type'):
+                assert data_i.mol_type[j - 1] == 3, f"Critical Error: Last node is not global node, got mol_type {data_i.mol_type[j - 1]}"
+            re.append(x[j - 1].reshape(1, -1))
+        return torch.cat(re, dim=0)
+
+    def forward(self, data_i, cond):
+        h = torch.zeros(data_i.x.shape[0], self.emb_dim, device=data_i.x.device)
+        
+        # ====================================================
+        # 【核心修正】 Heterogeneous Component-Aware Embedding
+        # 1. 真实原子：物理 Embedding + Component Identity (0,1,2)
+        # 2. 全局节点：完全跳过物理 Embedding，独享 Global Token
+        # ====================================================
+        if hasattr(data_i, 'mol_type'):
+            mol_type = data_i.mol_type
+            is_normal = (mol_type < 3)
+            is_global = (mol_type == 3)
+            
+            # 真实原子的特征映射
+            h[is_normal] = self.x_embedding1(data_i.x[is_normal, 0]) + \
+                           self.x_embedding2(data_i.x[is_normal, 1]) + \
+                           self.x_embedding3(data_i.x[is_normal, 2]) + \
+                           self.x_embedding4(data_i.x[is_normal, 3]) + \
+                           self.x_embedding5(data_i.x[is_normal, 4]) + \
+                           self.x_embedding6(data_i.x[is_normal, 5]) + \
+                           self.x_embedding7(data_i.x[is_normal, 6])
+                           
+            # 为阴阳离子和气体加入专门的身份标识
+            if not self.args.get('no_mol_embedding', False):
+                h[is_normal] = h[is_normal] + self.mol_embedding(mol_type[is_normal])
+                
+            # 为全局节点加入独立的高维标识 Token
+            h[is_global] = self.global_token
+        else:
+            # 兼容非 v5 数据集的 fallback 逻辑
+            h = self.x_embedding1(data_i.x[:, 0]) + \
+                self.x_embedding2(data_i.x[:, 1]) + \
+                self.x_embedding3(data_i.x[:, 2]) + \
+                self.x_embedding4(data_i.x[:, 3]) + \
+                self.x_embedding5(data_i.x[:, 4]) + \
+                self.x_embedding6(data_i.x[:, 5]) + \
+                self.x_embedding7(data_i.x[:, 6])
+        # ====================================================
+
+        x, edge_index = h, data_i.edge_index
+
+        x, _ = self.l1(x, edge_index, return_attention_weights=True)
+        x = self.act(x)
+        x = self.dropout(x)
+
+        x, _ = self.l2(x, edge_index, return_attention_weights=True)
+        x = self.act(x)
+        x = self.dropout(x)
+
+        x, _ = self.l3(x, edge_index, return_attention_weights=True)
+        x = self.act(x)
+        x = self.dropout(x)
+
+        # ====================================================
+        # 【池化消融】支持 Global Node / Mean / Attention Pool
+        # ====================================================
+        if self.pool_type == 'global':
+            x_g = self.extract(x, data_i)
+        elif self.pool_type == 'mean':
+            # Mean pool 时我们需要移除全局节点，否则会被污染
+            # 但简单实现可以先直接 mean_pool 整体
+            if hasattr(data_i, 'mol_type'):
+                normal_mask = (data_i.mol_type < 3)
+                x_g = global_mean_pool(x[normal_mask], data_i.batch[normal_mask])
+            else:
+                x_g = global_mean_pool(x, data_i.batch)
+        elif self.pool_type == 'attention':
+            if hasattr(data_i, 'mol_type'):
+                normal_mask = (data_i.mol_type < 3)
+                x_g = self.att_pool(x[normal_mask], data_i.batch[normal_mask])
+            else:
+                x_g = self.att_pool(x, data_i.batch)
+        else:
+            raise ValueError(f"Unknown pool type {self.pool_type}")
+
+        x_concat = torch.cat([x_g, cond], dim=1)
+        x_out = self.l5(x_concat)
+
+        return x_out

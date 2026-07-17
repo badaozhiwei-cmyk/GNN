@@ -1,0 +1,49 @@
+============================================================
+数据对齐验证报告
+data.npy 条数：4444  |  重建 records 条数：4444
+============================================================
+
+[idx=0] anion=[Ac] | 全部通过✅
+  T (K): Excel=303.15000  npy=303.15000  OK
+  P (MPa): Excel=0.02940  npy=0.02940  OK
+  ani_mw: Excel=59.04400  npy=59.04400  OK
+  x1: Excel=0.01170  npy=0.01170  OK
+
+[idx=10] anion=[Ac] | 全部通过✅
+  T (K): Excel=303.15000  npy=303.15000  OK
+  P (MPa): Excel=0.05030  npy=0.05030  OK
+  ani_mw: Excel=59.04400  npy=59.04400  OK
+  x1: Excel=0.02660  npy=0.02660  OK
+
+[idx=100] anion=[BEI] | 全部通过✅
+  T (K): Excel=298.05000  npy=298.05000  OK
+  P (MPa): Excel=0.01050  npy=0.01050  OK
+  ani_mw: Excel=380.16100  npy=380.16100  OK
+  x1: Excel=0.01900  npy=0.01900  OK
+
+[idx=500] anion=[Tf2N] | 全部通过✅
+  T (K): Excel=303.15000  npy=303.15000  OK
+  P (MPa): Excel=0.50250  npy=0.50250  OK
+  ani_mw: Excel=280.14700  npy=280.14700  OK
+  x1: Excel=0.32250  npy=0.32250  OK
+
+[idx=1000] anion=[PF6] | 全部通过✅
+  T (K): Excel=298.20000  npy=298.20000  OK
+  P (MPa): Excel=0.85010  npy=0.85010  OK
+  ani_mw: Excel=144.96200  npy=144.96200  OK
+  x1: Excel=0.55200  npy=0.55200  OK
+
+[idx=2000] anion=[Tf2N] | 全部通过✅
+  T (K): Excel=323.15000  npy=323.15000  OK
+  P (MPa): Excel=0.31500  npy=0.31500  OK
+  ani_mw: Excel=280.14700  npy=280.14700  OK
+  x1: Excel=0.20800  npy=0.20800  OK
+
+[idx=4000] anion=[Tf2N] | 全部通过✅
+  T (K): Excel=323.10000  npy=323.10000  OK
+  P (MPa): Excel=0.10010  npy=0.10010  OK
+  ani_mw: Excel=280.14700  npy=280.14700  OK
+  x1: Excel=0.11500  npy=0.11500  OK
+
+
+结论：全部校验通过，data.npy 与 Excel 完全对齐。✅

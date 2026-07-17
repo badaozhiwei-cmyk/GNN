@@ -1,0 +1,22 @@
+======================================================================
+Chemical Generalization Ladder Splits Report
+======================================================================
+
+【Level 0: Random Interpolation】
+  Train: 3554 | Val: 445 | Test: 445
+
+【Level 1: Homologous Generalization】
+  Strict unseen assumption: 'BMIM' is completely absent from the training/val sets.
+  Train: 3165 | Val: 352 | Test: 927
+
+【Level 2: Component Recombination】
+  Filtering Strategy Applied: Strict (Triple-level CA/AR/CR exclusion)
+  Train: 3419 | Val: 380 | Test: 645
+
+【Level 3: Molecular Family OOD】
+  Target family strictly held out: Phosphonium
+  Train: 3566 | Val: 397 | Test: 481
+
+【Level 4: Scaffold Hard OOD】
+  Test strictly contains HFO refrigerants (containing C=C double bonds).
+  Train: 3004 | Val: 334 | Test: 1106
