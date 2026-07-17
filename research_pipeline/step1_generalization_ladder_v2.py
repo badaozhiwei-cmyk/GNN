@@ -14,6 +14,7 @@ import pandas as pd
 import numpy as np
 import random
 import os
+import pathlib as pl
 from rdkit import Chem
 
 # ==========================================
@@ -23,7 +24,11 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
-DATA_PATH = 'index_with_anion.csv'
+# 动态获取项目根目录，避免 Kaggle 路径错位 (File Not Found)
+current_script_dir = str(pl.Path(__file__).resolve().parent)
+ROOT_DIR = str(pl.Path(current_script_dir).parent)
+
+DATA_PATH = os.path.join(ROOT_DIR, 'index_with_anion.csv')
 df = pd.read_csv(DATA_PATH)
 df['x1'] = df['x1'].astype(float)
 total_samples = len(df)
@@ -37,7 +42,8 @@ df['triplet'] = df['cation'] + "_" + df['anion'] + "_" + df['refrigerant']
 
 def save_split_and_report(level, train_idx, val_idx, test_idx, report_file):
     # 保存 npz
-    np.savez(f'split_{level}_indices.npz', 
+    npz_path = os.path.join(ROOT_DIR, f'split_{level}_indices.npz')
+    np.savez(npz_path, 
              train=np.array(train_idx), 
              val=np.array(val_idx), 
              test=np.array(test_idx))
@@ -55,7 +61,7 @@ def save_split_and_report(level, train_idx, val_idx, test_idx, report_file):
         
     print(f"[{level}] 已生成 - Train:{len(train_idx)} Val:{len(val_idx)} Test:{len(test_idx)}")
 
-report_file = 'split_report_v2.txt'
+report_file = os.path.join(ROOT_DIR, 'split_report_v2.txt')
 if os.path.exists(report_file):
     os.remove(report_file)
 
