@@ -344,6 +344,61 @@ report.append(f"  Test : {len(test_D_idx)}  ({len(test_D_idx)/N*100:.1f}%)")
 report.append(f"  说明 : 训练集全是 N⁺ 阳离子，测试集全是 P⁺ 阳离子，真正的骨架 OOD")
 
 # ──────────────────────────────────────────────────────────
+# 6.5 Split E：新组合切分 (Novel Combination Split)
+# ──────────────────────────────────────────────────────────
+print("\n" + "─" * 50)
+print("【Split E：新组合切分 (Novel Combination Split)】")
+
+# 1. 唯一组合标识
+df['combo'] = df['cation'].astype(str) + '_' + df['anion'].astype(str) + '_' + df['refrigerant'].astype(str)
+unique_combos = df['combo'].unique().tolist()
+np.random.seed(SPLIT_SEED)
+np.random.shuffle(unique_combos)
+
+# 2. 统计 Train Pool 里的可用组件（初始全在 Train Pool）
+cat_counts = df.drop_duplicates('combo')['cation'].value_counts().to_dict()
+ani_counts = df.drop_duplicates('combo')['anion'].value_counts().to_dict()
+ref_counts = df.drop_duplicates('combo')['refrigerant'].value_counts().to_dict()
+
+test_E_combos = []
+for combo in unique_combos:
+    c, a, r = combo.split('_')
+    # 核心判断：如果把这个组合拿去 Test，剩下的 Train 里面是否还有该 C/A/R？
+    if cat_counts[c] > 1 and ani_counts[a] > 1 and ref_counts[r] > 1:
+        test_E_combos.append(combo)
+        cat_counts[c] -= 1
+        ani_counts[a] -= 1
+        ref_counts[r] -= 1
+    
+    # 当 Test 里的数据量达到总量的 20% 时停止
+    if df['combo'].isin(test_E_combos).sum() > 0.20 * N:
+        break
+
+test_E_idx = df.loc[df['combo'].isin(test_E_combos), 'npy_idx'].values
+train_E_pool = df.loc[~df['combo'].isin(test_E_combos), 'npy_idx'].values
+
+train_E_idx, val_E_idx = train_test_split(
+    train_E_pool, test_size=0.10, random_state=SPLIT_SEED
+)
+
+print(f"  Test  (全新组合, 组件已知): {len(test_E_idx)} 条 ({len(test_E_idx)/N*100:.1f}%)")
+print(f"  Train (用于模型学习组件): {len(train_E_idx)} 条 ({len(train_E_idx)/N*100:.1f}%)")
+print(f"  Val   (用于早停): {len(val_E_idx)} 条 ({len(val_E_idx)/N*100:.1f}%)")
+
+np.savez('split_E_indices.npz',
+         train=train_E_idx,
+         val=val_E_idx,
+         test=test_E_idx)
+print("  ✅ 已保存：split_E_indices.npz")
+
+report.append("\n【Split E：新组合切分 (Novel Combination Split)】")
+report.append(f"  测试集特征 : 新的(阳离子+阴离子+制冷剂)配对，但其拆开的各个单体均在训练集中出现过。")
+report.append(f"  Train: {len(train_E_idx)} ({len(train_E_idx)/N*100:.1f}%)")
+report.append(f"  Val  : {len(val_E_idx)}   ({len(val_E_idx)/N*100:.1f}%)")
+report.append(f"  Test : {len(test_E_idx)}  ({len(test_E_idx)/N*100:.1f}%)")
+report.append(f"  说明 : L1 冷启动级别外推，模拟工业界在新配对组合中的预测场景。")
+
+# ──────────────────────────────────────────────────────────
 # 7. 验证：所有划分的索引无重叠
 # ──────────────────────────────────────────────────────────
 print("\n" + "─" * 50)
@@ -363,6 +418,7 @@ def check_no_overlap(name, train, val, test, total):
 check_no_overlap("Split A", train_A_idx, val_A_idx, test_A_idx, N)
 check_no_overlap("Split B", train_B_idx, val_B_idx, test_B_idx, N)
 check_no_overlap("Split D", train_D_idx, val_D_idx, test_D_idx, N)
+check_no_overlap("Split E", train_E_idx, val_E_idx, test_E_idx, N)
 
 # Split C 不要求全覆盖（Other 类别可能被丢弃），只检查方向内无重叠
 def check_no_overlap_C(name, train, val, test):
@@ -393,6 +449,7 @@ print("   split_A_indices.npz  （随机划分，与文献对比用）")
 print("   split_B_indices.npz  （阴离子 OOD，论文核心）")
 print("   split_C_indices.npz  （制冷剂 OOD，Supplementary）")
 print("   split_D_indices.npz  （阳离子 OOD，论文核心）")
+print("   split_E_indices.npz  （新组合配对，论文黄金验证集 L1）")
 print("   split_summary.txt    （划分报告）")
 print("\n下一步：运行 GAT/GIN/MPNN Runner 加载索引文件训练模型")
 print("=" * 60)
