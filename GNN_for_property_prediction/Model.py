@@ -306,12 +306,12 @@ class GIN(nn.Module):
         self.feat_lin = nn.Linear(self.emb_dim, self.feat_dim)
 
         self.pred_head = nn.Sequential(
-            nn.Linear(self.feat_dim + 7, self.feat_dim),  # 1 graph (global node) + 7 cond
+            nn.Linear(self.feat_dim + 6, self.feat_dim),  # [Round 1] 1 graph (global node) + 6 cond (rm ani_mw)
             nn.Softplus(),
             nn.Linear(self.feat_dim, int(self.feat_dim/2)),
             nn.Softplus(),
-            nn.Linear(int(self.feat_dim/2), 1),
-            nn.Sigmoid(), # Constrain output to [0, 1] for mole fraction
+            nn.Linear(int(self.feat_dim/2), 1)
+            # [Round 1] 移除 nn.Sigmoid()
         )
     def extract(self,x,batch):
         output, count= torch.unique(batch, return_counts=True)

@@ -107,10 +107,15 @@ class IL_set_v2(IL_set):
     def __getitem__(self, idx):
         graph, cond, label = super().__getitem__(idx)
         if self.scalers is not None:
+            use_ani_mw = cond.shape[0] == 7
+            cond_idx = 0
             for feat_idx in range(7):
+                if not use_ani_mw and feat_idx == 4:
+                    continue
                 raw = float(self.data[idx][feat_idx + 3])
                 scaled = float(self.scalers[feat_idx].transform([[raw]])[0][0])
-                cond[feat_idx] = scaled
+                cond[cond_idx] = scaled
+                cond_idx += 1
         return graph, cond, label
 
 
@@ -247,6 +252,7 @@ class Runner:
             for graph, cond, label in tqdm(test_loader, desc='Testing', leave=False):
                 graph, cond = graph.to(self.device), cond.to(self.device)
                 out = self.model(graph, cond).flatten().cpu().numpy()
+                out = np.clip(out, 0.0, 1.0) # [Round 1] 防止去Sigmoid后预测越界
                 preds.extend(out.tolist())
                 trues.extend(label.numpy().tolist())
         return np.array(preds), np.array(trues)
