@@ -46,7 +46,7 @@ from Model import GIN
 # 命令行参数
 # ============================================================
 parser = argparse.ArgumentParser(description='GIN Runner v4 — OOD 划分 + 多种子')
-parser.add_argument('--split', type=str, default='E', choices=['A', 'B', 'C', 'D', 'E'])
+parser.add_argument('--split', type=str, default='C1', choices=['A', 'B', 'C1', 'C2', 'D', 'E'])
 parser.add_argument('--seeds', type=str, default='42,123,2024,3407,6666')
 parser.add_argument('--epoch', type=int, default=100)
 parser.add_argument('--data_path', type=str, default='processed_tri_data/')

@@ -240,16 +240,17 @@ test_C2_idx = hfc_idx
 print(f"\n  方向1（HFC→HFO）: Train={len(train_C1_idx)}, Val={len(val_C1_idx)}, Test={len(test_C1_idx)}")
 print(f"  方向2（HFO→HFC）: Train={len(train_C2_idx)}, Val={len(val_C2_idx)}, Test={len(test_C2_idx)}")
 
-np.savez('split_C_indices.npz',
-         # 方向1：HFC → HFO
-         train_c1=train_C1_idx,
-         val_c1=val_C1_idx,
-         test_c1=test_C1_idx,
-         # 方向2：HFO → HFC
-         train_c2=train_C2_idx,
-         val_c2=val_C2_idx,
-         test_c2=test_C2_idx)
-print("  ✅ 已保存：split_C_indices.npz")
+np.savez('split_C1_indices.npz',
+         train=train_C1_idx,
+         val=val_C1_idx,
+         test=test_C1_idx)
+print("  ✅ 已保存：split_C1_indices.npz")
+
+np.savez('split_C2_indices.npz',
+         train=train_C2_idx,
+         val=val_C2_idx,
+         test=test_C2_idx)
+print("  ✅ 已保存：split_C2_indices.npz")
 
 report.append("\n【Split C：制冷剂 OOD 划分】")
 report.append(f"  方向1 HFC→HFO: Train={len(train_C1_idx)}, Val={len(val_C1_idx)}, Test={len(test_C1_idx)}")

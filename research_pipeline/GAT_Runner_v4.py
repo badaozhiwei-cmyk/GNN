@@ -54,9 +54,9 @@ import joblib
 # 命令行参数
 # ============================================================
 parser = argparse.ArgumentParser(description='GAT Runner v4 — 支持 OOD 划分 + 多种子')
-parser.add_argument('--split', type=str, default='B',
-                    choices=['A', 'B', 'D'],
-                    help='A=随机划分, B=阴离子家族OOD, D=阳离子家族OOD')
+parser.add_argument('--split', type=str, default='C1',
+                    choices=['A', 'B', 'C1', 'C2', 'D', 'E'],
+                    help='A=随机划分, B=阴离子OOD, C1/C2=制冷剂OOD, D=阳离子OOD, E=冷启动组合')
 parser.add_argument('--seeds', type=str, default='42,123,2024,3407,6666',
                     help='逗号分隔的随机种子列表，默认跑5个')
 parser.add_argument('--epoch', type=int, default=100)
