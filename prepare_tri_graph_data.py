@@ -277,6 +277,7 @@ df_vle = df_vle.dropna(subset=['IL cation', 'IL anion', 'Refrigerant', 'T (K)', 
 
 final_data = []    # 这是以后交给模型上场的数据筐
 final_labels = []  # 对应的就是模型训练所期盼追求的那个准确结果标签框
+meta_data = []     # 记录每一行成功保留的数据的原始信息，防备后期错位
 
 # 开始流水线工作，处理这个超级大总表里的每一行的数据
 for idx, row in df_vle.iterrows():
@@ -340,12 +341,25 @@ for idx, row in df_vle.iterrows():
     
     # 同步把测试真正的答案也塞进对应的标签框，这就是将来它作为指导监督的任务目标 (x1=溶解度)
     final_labels.append(float(row['x1']))
+    
+    # 记录原始 meta 信息，确保索引和模型数据绝对对齐
+    meta_data.append({
+        'IL cation': row['IL cation'],
+        'IL anion': row['IL anion'],
+        'Refrigerant': row['Refrigerant'],
+        'T (K)': row['T (K)'],
+        'P (MPa)': row['P (MPa)'],
+        'x1': row['x1']
+    })
 
 # 一切成功完毕，创建最终归属地文件夹以便交工。
 os.makedirs('processed_tri_data', exist_ok=True)
 # numpy 直接出马，压缩他们入一个冷冰冰高效的二进制封装盒子里——我们常常读到的 data.npy
 np.save('processed_tri_data/data.npy', np.array(final_data, dtype=object))
 np.save('processed_tri_data/label.npy', np.array(final_labels, dtype=object))
+
+# 保存对齐的 meta_info
+pd.DataFrame(meta_data).to_csv('processed_tri_data/meta_info.csv', index=False)
 
 # 给用户的最终宣告
 print(f"帅呆了！一共从汪洋大海里提纯出了 {len(final_data)} 个没有任何瑕疵的数据结构存了下来。")

@@ -117,8 +117,17 @@ class IL_set(torch.utils.data.Dataset):
         cat_charge   = data[8]
         cat_tpsa     = data[9]
         
-        # 将这 7 个物理量打包成一个 condition 向量
-        condition = torch.tensor([T, P, ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa], dtype=torch.float)
+        # ==================== Round 1 控制变量 ====================
+        # [配置] 是否使用 ani_mw (默认为 False 跑 Model B)
+        USE_ANI_MW = False
+        
+        if USE_ANI_MW:
+            # Model A: 全特征 (7维)
+            condition = torch.tensor([T, P, ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa], dtype=torch.float)
+        else:
+            # Model B: 去掉 ani_mw (6维)
+            condition = torch.tensor([T, P, ref_charge, ref_logp, cat_charge, cat_tpsa], dtype=torch.float)
+        # ==========================================================
         label = torch.tensor(self.label[idx],dtype=torch.float)
 
         return Combine_Graph,condition,label

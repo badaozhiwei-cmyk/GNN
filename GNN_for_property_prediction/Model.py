@@ -51,9 +51,9 @@ class IL_Net_GCN(torch.nn.Module):
         self.l2 = GCNConv(512, 1024, normalize=True)
         self.l3 = GCNConv(1024, 512, normalize=True)
 
-        # MLP head: graph_repr(512) + cond(7) = 519
+        # MLP head: graph_repr(512) + cond(6) = 518 (Round 1: ani_mw removed)
         self.l4 = nn.Sequential(
-            nn.Linear(519, 1024),
+            nn.Linear(518, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
             nn.Dropout(p=0.4),
@@ -63,8 +63,8 @@ class IL_Net_GCN(torch.nn.Module):
             nn.ReLU(),
             nn.Dropout(p=0.3),
 
-            nn.Linear(512, 1),
-            nn.Sigmoid(), # Constrain output to [0, 1] for mole fraction
+            nn.Linear(512, 1)
+            # [Round 1] 移除 nn.Sigmoid()，防止高溶解度样本梯度消失
         )
 
         self.act = nn.ReLU()
@@ -152,9 +152,9 @@ class IL_GAT(torch.nn.Module):
         self.l2 = GATv2Conv(512, 1024, heads=4, concat=False)
         self.l3 = GATv2Conv(1024, 512, heads=4, concat=False)
 
-        # MLP head: graph_repr(512) + cond(7) = 519
+        # MLP head: graph_repr(512) + cond(6) = 518 (Round 1: ani_mw removed)
         self.l5 = nn.Sequential(
-            nn.Linear(519, 1024),
+            nn.Linear(518, 1024),
             nn.BatchNorm1d(1024),
             nn.ReLU(),
             nn.Dropout(p=0.4),
@@ -164,8 +164,8 @@ class IL_GAT(torch.nn.Module):
             nn.ReLU(),
             nn.Dropout(p=0.3),
 
-            nn.Linear(512, 1),
-            nn.Sigmoid(), # Constrain output to [0, 1] for mole fraction
+            nn.Linear(512, 1)
+            # [Round 1] 移除 nn.Sigmoid()，防止高溶解度样本梯度消失
         )
 
         self.act = nn.ReLU()

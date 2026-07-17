@@ -57,10 +57,20 @@ class IL_set_v2(IL_set):
     def __getitem__(self, idx):
         Combine_Graph, condition, label = super().__getitem__(idx)
         if self.scalers is not None:
-            for feature_idx in range(7):
-                raw_val = float(self.data[idx][feature_idx + 3])
-                scaled_val = float(self.scalers[feature_idx].transform([[raw_val]])[0][0])
-                condition[feature_idx] = scaled_val
+            # We scale all 7 original features from data, but only apply to condition based on USE_ANI_MW
+            # Original indices: 0:T, 1:P, 2:ref_charge, 3:ref_logp, 4:ani_mw, 5:cat_charge, 6:cat_tpsa
+            use_ani_mw = condition.shape[0] == 7
+            
+            cond_idx = 0
+            for data_feature_idx in range(7):
+                if not use_ani_mw and data_feature_idx == 4:
+                    continue # Skip ani_mw
+                
+                raw_val = float(self.data[idx][data_feature_idx + 3])
+                scaled_val = float(self.scalers[data_feature_idx].transform([[raw_val]])[0][0])
+                condition[cond_idx] = scaled_val
+                cond_idx += 1
+                
         return Combine_Graph, condition, label
 
 
@@ -228,7 +238,10 @@ class Runner:
                 graph = graph.to(self._device)
                 cond  = cond.to(self._device)
                 pred  = model(graph, cond)
-                pred_y.extend(pred.flatten().cpu().numpy().tolist())
+                # [Round 1] 防止去 Sigmoid 后越界，进行裁剪
+                pred_vals = pred.flatten().cpu().numpy()
+                pred_vals = np.clip(pred_vals, 0.0, 1.0)
+                pred_y.extend(pred_vals.tolist())
                 true_y.extend(label.numpy().tolist())
 
         mae = mean_absolute_error(true_y, pred_y)
@@ -270,17 +283,37 @@ if __name__ == '__main__':
     print("正在加载数据集 (v2 版本，T/P 已追加标准化)...")
     Whole_set = IL_set_v2(path=Args['data_path'])
 
-    train_size = int(len(Whole_set) * 0.7)
-    test_size  = int(len(Whole_set) * 0.2)
-    dev_size   = len(Whole_set) - train_size - test_size
+    # === [Round 1] 修改为基于阴离子家族的 OOD 划分 (Split B) ===
+    meta = pd.read_csv(os.path.join(Args['data_path'], 'meta_info.csv'))
+    family_mapping = {
+        'Tf2N': 'F1', 'BEI': 'F1', 'TMEM': 'F1',
+        'OTF': 'F2', 'TFES': 'F2', 'TPES': 'F2', 'TTES': 'F2', 
+        'HFPS': 'F2', 'PFBS': 'F2', 'FS': 'F2', 'FEP': 'F2',
+        'PF6': 'F3', 'BF4': 'F3',
+        'AC': 'O4', 'PFP': 'O4', 'MESO4': 'O4', 'ET2PO4': 'O4', 'PR': 'O4', 'PE': 'O4',
+        'TMPP': 'P5',
+        'CL': 'H6', 'I': 'H6', 'SCN': 'H6'
+    }
+    meta['IL anion'] = meta['IL anion'].str.strip().str.upper().str.replace('[', '').str.replace(']', '')
+    meta['anion_family'] = meta['IL anion'].map(family_mapping)
 
-    train_set, dev_set, test_set = random_split(
-        Whole_set, [train_size, dev_size, test_size],
-        generator=torch.Generator().manual_seed(SPLIT_SEED)
-    )
-    Whole_set.fit_scalers(train_set.indices)
+    test_indices = meta[meta['anion_family'] == 'F2'].index.tolist()
+    remain_indices = meta[meta['anion_family'] != 'F2'].index.tolist()
+
+    random.seed(SPLIT_SEED)
+    random.shuffle(remain_indices)
+    
+    dev_size = int(len(remain_indices) * 0.1)
+    dev_indices = remain_indices[:dev_size]
+    train_indices = remain_indices[dev_size:]
+
+    train_set = torch.utils.data.Subset(Whole_set, train_indices)
+    dev_set   = torch.utils.data.Subset(Whole_set, dev_indices)
+    test_set  = torch.utils.data.Subset(Whole_set, test_indices)
+
+    Whole_set.fit_scalers(train_indices)
     test_loader = DataLoader(test_set, batch_size=Args['batch_size'], shuffle=False)
-    print(f"  数据划分 → Train: {train_size}, Dev: {dev_size}, Test: {test_size}\n")
+    print(f"  OOD数据划分 (Split B) → Train: {len(train_indices)}, Dev: {len(dev_indices)}, Test (F2): {len(test_indices)}\n")
 
     all_preds      = []
     test_true      = None
