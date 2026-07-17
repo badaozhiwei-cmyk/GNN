@@ -147,7 +147,7 @@ class Runner:
                 pred = self._model(graph, cond)
                 pred_vals = np.clip(pred.flatten().cpu().numpy(), 0.0, 1.0)
                 pred_y.extend(pred_vals.tolist())
-                true_y.extend(label.numpy().tolist())
+                true_y.extend(label.cpu().numpy().tolist())
 
         mae = mean_absolute_error(true_y, pred_y)
         rmse = np.sqrt(mean_squared_error(true_y, pred_y))
