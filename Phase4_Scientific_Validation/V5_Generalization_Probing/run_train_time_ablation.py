@@ -48,7 +48,9 @@ ABLATION_MASKS = {
     "No_atomic_physics":     [1, 1, 1, 1, 1, 0, 0],  # 移除半径、电负性
     "No_electronic":         [1, 1, 1, 1, 0, 0, 1],  # 移除电荷、电负性
     "No_local_structure":    [1, 0, 0, 0, 1, 1, 1],  # 移除杂化、芳香性、连接度
-    "Element_identity_only": [1, 0, 0, 0, 0, 0, 0]   # 仅保留原子种类
+    "Element_identity_only": [1, 0, 0, 0, 0, 0, 0],  # 仅保留原子种类
+    "No_descriptors":        [1, 1, 1, 1, 1, 1, 1],  # 图特征全保留，仅掩码物理描述符
+    "Graph_only":            [1, 0, 0, 0, 0, 0, 0]   # (终极剥离) 仅原子种类 + 拓扑 + T/P，无描述符
 }
 
 # ============================================================
@@ -68,6 +70,7 @@ class MaskedDataset(torch.utils.data.Dataset):
         
         # 深拷贝，避免污染原数据集缓存
         graph = graph.clone()
+        cond = cond.clone()
         
         # Apply mask
         for i, keep in enumerate(self.mask_array):
@@ -82,6 +85,11 @@ class MaskedDataset(torch.utils.data.Dataset):
                 
                 # graph.x shape is [num_nodes, 7]
                 graph.x[:, i] = surrogate
+                
+        # 剥离 Cond 中的物理描述符 (保留索引 0 和 1 也就是 T 和 P)
+        if self.mode in ["No_descriptors", "Graph_only"]:
+            # StandardScaler 标准化后均值为 0，直接填 0 相当于 Mean Imputation
+            cond[2:] = 0.0
                 
         return graph, cond, label
 
