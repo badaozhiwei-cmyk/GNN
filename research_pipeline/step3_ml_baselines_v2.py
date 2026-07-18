@@ -60,10 +60,12 @@ except ImportError:
 # ============================================================
 def smiles_to_fp(smiles: str, radius: int = 2, n_bits: int = 2048) -> np.ndarray:
     """SMILES -> Morgan Fingerprint (numpy array)"""
+    from rdkit.Chem import rdFingerprintGenerator
     mol = Chem.MolFromSmiles(str(smiles))
     if mol is None:
         return np.zeros(n_bits, dtype=np.float32)
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits)
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=n_bits)
+    fp = gen.GetFingerprint(mol)
     return np.array(fp, dtype=np.float32)
 
 

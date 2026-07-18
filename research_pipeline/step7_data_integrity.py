@@ -45,10 +45,12 @@ except ImportError:
 
 
 def smiles_to_morgan(smiles, radius=2, n_bits=2048):
+    from rdkit.Chem import rdFingerprintGenerator
     mol = Chem.MolFromSmiles(str(smiles))
     if mol is None:
         return None
-    return AllChem.GetMorganFingerprintAsBitVect(mol, radius, nBits=n_bits)
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=n_bits)
+    return gen.GetFingerprint(mol)
 
 
 # ============================================================
