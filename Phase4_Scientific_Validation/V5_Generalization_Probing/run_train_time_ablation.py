@@ -142,7 +142,11 @@ if __name__ == '__main__':
     base_dataset.fit_scalers(train_indices, save_dir=SAVE_DIR)
     
     print(f"应用 Neutral Surrogate Masking 策略 -> Mode: {MODE}")
-    masked_dataset = MaskedDataset(base_dataset, mode=MODE)
+    if MODE == 'Full':
+        # 对于 Full 模式，完全绕过 MaskedDataset，避免 .clone() 改变张量内存布局导致 CUDA 算子出现浮点误差积累
+        masked_dataset = base_dataset
+    else:
+        masked_dataset = MaskedDataset(base_dataset, mode=MODE)
 
     train_set = torch.utils.data.Subset(masked_dataset, train_indices)
     dev_set   = torch.utils.data.Subset(masked_dataset, val_indices)
