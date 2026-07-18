@@ -72,15 +72,22 @@ if __name__ == "__main__":
     
     # 3. 加载模型权重
     model = IL_GAT_v5(Args).to(device)
-    model_path = os.path.join(root_dir, f"checkpoints_v5/{args.level}/seed_{args.seed}_best.pth")
-    if not os.path.exists(model_path):
-        # 兼容一下保存的文件名可能叫 best_model.pth 等
-        alt_path = os.path.join(root_dir, f"checkpoints_v5/{args.level}/best_model.pth")
-        if os.path.exists(alt_path):
-            model_path = alt_path
-        else:
-            print(f"找不到模型权重文件: {model_path}。请确保先运行了 GAT_Runner_v5 训练过该级别的模型！")
-            sys.exit(1)
+    possible_paths = [
+        os.path.join(root_dir, f"checkpoints_v5/{args.level}/best_seed_{args.seed}.pth"),
+        os.path.join(root_dir, f"checkpoints_v5/{args.level}/seed_{args.seed}_best.pth"),
+        os.path.join(root_dir, f"checkpoints_v5/{args.level}/best_model.pth")
+    ]
+    
+    model_path = None
+    for p in possible_paths:
+        if os.path.exists(p):
+            model_path = p
+            break
+            
+    if model_path is None:
+        print(f"找不到模型权重文件！搜索了以下路径：\n" + "\n".join(possible_paths))
+        print(f"请确保先运行了 GAT_Runner_v5 训练过该级别的模型！")
+        sys.exit(1)
             
     checkpoint = torch.load(model_path, map_location=device)
     # Runner 中可能是 self._model.state_dict() 保存的，字典键可能有一层嵌套
