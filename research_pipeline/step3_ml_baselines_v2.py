@@ -69,21 +69,54 @@ def smiles_to_fp(smiles: str, radius: int = 2, n_bits: int = 2048) -> np.ndarray
     return np.array(fp, dtype=np.float32)
 
 
-def build_features(df: pd.DataFrame) -> np.ndarray:
+def build_features(df: pd.DataFrame, use_descriptors: bool = True) -> np.ndarray:
     """
     为每行构建特征向量:
       Cation FP (2048) + Anion FP (2048) + Refrigerant FP (2048) + T + P
-      = 6146 维
+      如果 use_descriptors=True，再追加 5 个物理描述符: ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa
     """
     print(f"  正在生成 Morgan 指纹（共 {len(df)} 条）...")
+    if use_descriptors:
+        from rdkit.Chem import Descriptors
+        print(f"  [Fairness Patch] 注入 GNN 同款 5 个物理描述符！")
+        
     rows = []
     for i, row in df.iterrows():
-        cat_fp   = smiles_to_fp(row['cation_smiles'])
-        ani_fp   = smiles_to_fp(row['anion_smiles'])
-        refri_fp = smiles_to_fp(row['refri_smiles'])
+        c_smi = str(row['cation_smiles'])
+        a_smi = str(row['anion_smiles'])
+        r_smi = str(row['refri_smiles'])
+        
+        cat_fp   = smiles_to_fp(c_smi)
+        ani_fp   = smiles_to_fp(a_smi)
+        refri_fp = smiles_to_fp(r_smi)
+        
         T = float(row['T_K'])
         P = float(row['P_MPa'])
+        
         feat = np.concatenate([cat_fp, ani_fp, refri_fp, [T, P]])
+        
+        if use_descriptors:
+            cat_mol = Chem.MolFromSmiles(c_smi)
+            ani_mol = Chem.MolFromSmiles(a_smi)
+            ref_mol = Chem.MolFromSmiles(r_smi)
+            
+            try: ref_charge = float(Descriptors.MaxAbsPartialCharge(ref_mol)) if ref_mol else 0.0
+            except: ref_charge = 0.0
+            
+            try: ref_logp = float(Descriptors.MolLogP(ref_mol)) if ref_mol else 0.0
+            except: ref_logp = 0.0
+            
+            try: ani_mw = float(Descriptors.MolWt(ani_mol)) if ani_mol else 0.0
+            except: ani_mw = 0.0
+            
+            try: cat_charge = float(Descriptors.MaxAbsPartialCharge(cat_mol)) if cat_mol else 0.0
+            except: cat_charge = 0.0
+            
+            try: cat_tpsa = float(Descriptors.TPSA(cat_mol)) if cat_mol else 0.0
+            except: cat_tpsa = 0.0
+            
+            feat = np.concatenate([feat, [ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa]])
+            
         rows.append(feat)
         if (i + 1) % 1000 == 0:
             print(f"    已处理 {i+1}/{len(df)}")
@@ -117,9 +150,10 @@ def plot_parity(true_y, pred_y, title, save_path, color='royalblue'):
 # ============================================================
 # 主程序
 # ============================================================
-def run_level(level: str):
+def run_level(level: str, use_descriptors: bool = True):
     print(f"\n{'='*60}")
-    print(f"  ML Baselines v2 | Level: {level}")
+    desc_str = "WITH 5 Descriptors" if use_descriptors else "WITHOUT Descriptors"
+    print(f"  ML Baselines v2 | Level: {level} | {desc_str}")
     print(f"{'='*60}")
 
     # 1. 读取数据
@@ -138,7 +172,7 @@ def run_level(level: str):
     print(f"  Train: {len(train_idx)} | Val: {len(val_idx)} | Test: {len(test_idx)}")
 
     # 3. 构建特征
-    X_all = build_features(df)
+    X_all = build_features(df, use_descriptors=use_descriptors)
     y_all = df['x1'].values.astype(np.float32)
 
     X_train, y_train = X_all[train_idx], y_all[train_idx]
@@ -185,16 +219,17 @@ def run_level(level: str):
         pred = np.clip(pred, 0.0, 1.0)
         mae, r2, rmse = compute_metrics(y_test, pred)
         print(f"  ✅ {name} → MAE: {mae:.4f} | R²: {r2:.4f} | RMSE: {rmse:.4f}")
-        results.append({'level': level, 'model': name, 'mae': mae, 'r2': r2, 'rmse': rmse})
+        results.append({'level': level, 'model': name, 'mae': mae, 'r2': r2, 'rmse': rmse, 'descriptors': use_descriptors})
 
         plot_parity(y_test, pred,
                     f'{name} | {level} (R²={r2:.4f})',
                     f'figure_v5/ml_{level}_{name}.png', color)
 
     # 6. 保存
+    tag = "" if use_descriptors else "_no_desc"
     res_df = pd.DataFrame(results)
-    res_df.to_csv(f'results_v5/ml_baselines_{level}.csv', index=False)
-    print(f"\n  📊 结果已保存至 results_v5/ml_baselines_{level}.csv")
+    res_df.to_csv(f'results_v5/ml_baselines_{level}{tag}.csv', index=False)
+    print(f"\n  📊 结果已保存至 results_v5/ml_baselines_{level}{tag}.csv")
     print(res_df.to_string(index=False))
     return res_df
 
@@ -203,17 +238,21 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='ML Baselines v2 for L0-L4')
     parser.add_argument('--level', nargs='+', default=['L0'],
                         help='Split levels (e.g., L0 L1 L2 L3 L4)')
+    parser.add_argument('--no_descriptors', action='store_true',
+                        help='Run without the 5 RDKit physical descriptors (for ablation)')
     cmd = parser.parse_args()
 
+    use_descriptors = not cmd.no_descriptors
     all_results = []
     for lv in cmd.level:
-        r = run_level(lv)
+        r = run_level(lv, use_descriptors=use_descriptors)
         if r is not None:
             all_results.append(r)
 
     if len(all_results) > 1:
+        tag = "" if use_descriptors else "_no_desc"
         combined = pd.concat(all_results, ignore_index=True)
-        combined.to_csv('results_v5/ml_baselines_all_levels.csv', index=False)
+        combined.to_csv(f'results_v5/ml_baselines_all_levels{tag}.csv', index=False)
         print(f"\n{'='*60}")
         print("  全部 ML Baseline 汇总：")
         print(combined.to_string(index=False))
