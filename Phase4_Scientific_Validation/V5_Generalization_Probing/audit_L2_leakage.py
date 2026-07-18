@@ -75,11 +75,28 @@ def audit_leakage(csv_path, split_npz_path, output_dir):
 if __name__ == "__main__":
     # 使用示例，实际运行时可以传参
     import os
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    csv_file = os.path.join(base_dir, "index_with_anion.csv")
-    npz_file = os.path.join(base_dir, "split_L2_indices.npz")
     
-    if os.path.exists(csv_file) and os.path.exists(npz_file):
-        audit_leakage(csv_file, npz_file, base_dir)
+    # 尝试多种可能的根目录 (适应本地和Kaggle的不同路径结构)
+    possible_dirs = [
+        os.getcwd(), # 当前运行目录 (在Kaggle通常是 /kaggle/working/GNN 或者直接是 GNN 目录)
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), # 脚本相对的根目录
+        "../input" # Kaggle dataset 目录 (如果有)
+    ]
+    
+    csv_file = None
+    npz_file = None
+    
+    for d in possible_dirs:
+        test_csv = os.path.join(d, "index_with_anion.csv")
+        test_npz = os.path.join(d, "split_L2_indices.npz")
+        if os.path.exists(test_csv) and os.path.exists(test_npz):
+            csv_file = test_csv
+            npz_file = test_npz
+            print(f"找到数据文件，位于目录: {d}")
+            break
+            
+    if csv_file and npz_file:
+        audit_leakage(csv_file, npz_file, os.path.dirname(csv_file))
     else:
-        print("请确保 index_with_anion.csv 和 split_L2_indices.npz 在正确位置。")
+        print("【错误】找不到 index_with_anion.csv 和 split_L2_indices.npz。")
+        print("请确保您在项目的根目录下运行此脚本，或者文件已经正确上传到了当前目录。")
