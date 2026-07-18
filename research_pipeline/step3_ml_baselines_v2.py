@@ -19,6 +19,8 @@ step3_ml_baselines_v2.py
 import argparse
 import os
 import sys
+import warnings
+warnings.filterwarnings("ignore")
 import pathlib as pl
 import numpy as np
 import pandas as pd

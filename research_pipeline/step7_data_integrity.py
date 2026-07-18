@@ -22,6 +22,8 @@ step7_data_integrity.py
 """
 
 import os
+import warnings
+warnings.filterwarnings("ignore")
 import pathlib as pl
 import numpy as np
 import pandas as pd
