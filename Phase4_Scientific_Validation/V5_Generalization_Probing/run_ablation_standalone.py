@@ -66,7 +66,16 @@ if __name__ == "__main__":
     test_indices = loaded_idx['test'].tolist()
     
     Whole_set = IL_set_v5(path=Args['data_path'], args=Args)
-    # 不需重新 Fit Scaler，直接用已经训练好的模型即可 (确保测试集被正确切分)
+    
+    # 必须加载 Scaler，否则测试时的 T, P 等连续特征没有归一化，会导致预测完全崩溃 (负的R2)
+    import joblib
+    scaler_path = os.path.join(root_dir, f"checkpoints_v5/{args.level}/scalers.pkl")
+    if os.path.exists(scaler_path):
+        Whole_set.scalers = joblib.load(scaler_path)
+        print(f"成功加载特征归一化 Scaler: {scaler_path}")
+    else:
+        print(f"警告：未找到 {scaler_path}，物理特征将不被归一化！")
+        
     test_set = torch.utils.data.Subset(Whole_set, test_indices)
     test_loader = DataLoader(test_set, batch_size=Args['batch_size'], shuffle=False)
     
