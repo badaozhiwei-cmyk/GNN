@@ -148,9 +148,7 @@ if __name__ == '__main__':
     dev_set   = torch.utils.data.Subset(masked_dataset, val_indices)
     test_set  = torch.utils.data.Subset(masked_dataset, test_indices)
 
-    # 保持与 GAT_Runner_v5 完全一致的 DataLoader 配置
-    train_loader = DataLoader(train_set, batch_size=Args['batch_size'], shuffle=True, drop_last=False)
-    dev_loader   = DataLoader(dev_set,   batch_size=Args['batch_size'], shuffle=False)
+    # 保持与 GAT_Runner_v5 完全一致的 DataLoader 配置，test_loader 在外，train/dev 在循环内
     test_loader  = DataLoader(test_set,  batch_size=Args['batch_size'], shuffle=False)
     
     print(f"  数据集 {LEVEL} 划分 → Train: {len(train_indices)}, Val: {len(val_indices)}, Test: {len(test_indices)}\n")
@@ -164,6 +162,10 @@ if __name__ == '__main__':
         print(f"  🚀 重新训练模型 | {MODE} | Seed {seed}")
         print(f"{'─'*60}")
         set_seed(seed)
+        
+        # 必须在 set_seed 之后初始化 train_loader，保证每个 seed 下 batch 的 shuffle 顺序和原版完全一致！
+        train_loader = DataLoader(train_set, batch_size=Args['batch_size'], shuffle=True)
+        dev_loader   = DataLoader(dev_set,   batch_size=Args['batch_size'], shuffle=False)
         
         # 使用原版 Runner (完美保证模型架构、优化器、调度器、Loss 全不改变)
         runner = Runner(Args, seed=seed, save_dir=SAVE_DIR)
