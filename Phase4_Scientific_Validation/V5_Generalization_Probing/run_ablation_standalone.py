@@ -40,7 +40,7 @@ def evaluate_ablation(model, loader, device, mode):
     return r2, mae
 
 if __name__ == "__main__":
-    parser = argparse.add_argument_group("Ablation Config")
+    parser = argparse.ArgumentParser(description="Ablation Config")
     parser.add_argument("--level", type=str, default="L2")
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
