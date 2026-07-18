@@ -179,8 +179,15 @@ if __name__ == '__main__':
     parser.add_argument("--epoch", type=int, default=100, help="Max epochs")
     parser.add_argument("--pool", type=str, default="global", help="Pooling method (global, mean, attention)")
     parser.add_argument("--use_ani_mw", action="store_true", help="Use Anion Molecular Weight")
+    parser.add_argument("--no_mol_embedding", action="store_true", help="Ablation: Disable mol_type embedding")
+    parser.add_argument("--no_global", action="store_true", help="Ablation: Disable global token")
     
     cmd_args = parser.parse_args()
+    
+    # Ablation 逻辑互斥检查
+    if cmd_args.no_global and cmd_args.pool == 'global':
+        print("⚠️  Warning: --no_global is set, but pool is 'global'. Auto-switching pool to 'mean'.")
+        cmd_args.pool = 'mean'
     
     Args = {
         'data_path':     os.path.join(ROOT_DIR, 'processed_tri_data/'),
@@ -192,7 +199,9 @@ if __name__ == '__main__':
         'dropout_rate':  0.2,
         'patience':      20,
         'pool':          cmd_args.pool,
-        'use_ani_mw':    cmd_args.use_ani_mw
+        'use_ani_mw':    cmd_args.use_ani_mw,
+        'no_mol_embedding': cmd_args.no_mol_embedding,
+        'add_global':    not cmd_args.no_global
     }
 
     LEVEL = cmd_args.level
@@ -299,3 +308,44 @@ if __name__ == '__main__':
     plot_results(test_true, ensemble_pred,
                  f"GAT {LEVEL} Ensemble ({NUM_SEEDS} Seeds, R²={ens_r2:.4f})",
                  f"{LEVEL}_ensemble_final")
+
+    # ── Calibration Curve (Gap 5 Defense) ──
+    # 在多个置信度水平下计算实际覆盖率，证明 calibrated sharpness
+    if NUM_SEEDS >= 2:
+        from scipy import stats
+        confidence_levels = [0.50, 0.70, 0.80, 0.90, 0.95, 0.99]
+        empirical_coverages = []
+        interval_widths = []
+        
+        for cl in confidence_levels:
+            z = stats.norm.ppf((1 + cl) / 2)
+            lo = ensemble_pred - z * ensemble_std
+            hi = ensemble_pred + z * ensemble_std
+            cov = np.mean((test_true >= lo) & (test_true <= hi)) * 100
+            width = np.mean(hi - lo)
+            empirical_coverages.append(cov)
+            interval_widths.append(width)
+        
+        cal_df = pd.DataFrame({
+            'expected_coverage': [c * 100 for c in confidence_levels],
+            'empirical_coverage': empirical_coverages,
+            'mean_interval_width': interval_widths
+        })
+        cal_df.to_csv(f'results_v5/{LEVEL}_calibration.csv', index=False)
+        
+        # 绘制 Calibration Curve
+        plt.figure(figsize=(6, 6))
+        plt.plot([0, 100], [0, 100], 'k--', lw=1.5, label='Perfect Calibration')
+        plt.plot(cal_df['expected_coverage'], cal_df['empirical_coverage'],
+                 'o-', color='darkorange', lw=2, markersize=8, label=f'{LEVEL} GAT_v5')
+        plt.xlabel('Expected Coverage (%)', fontsize=12)
+        plt.ylabel('Empirical Coverage (%)', fontsize=12)
+        plt.title(f'Calibration Curve | {LEVEL}', fontsize=13)
+        plt.legend(fontsize=10)
+        plt.grid(True, linestyle='--', alpha=0.4)
+        plt.tight_layout()
+        plt.savefig(f'figure_v5/{LEVEL}_calibration_curve.png', dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        print(f"  📊 Calibration Curve 已保存至 figure_v5/{LEVEL}_calibration_curve.png")
+        print(cal_df.to_string(index=False))

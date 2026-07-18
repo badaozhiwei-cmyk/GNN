@@ -97,7 +97,7 @@ class IL_set_v5(torch.utils.data.Dataset):
         refri  = self.mol2graph(data[2])
         
         Combine_Graph = combine_Graph([cation, anion, refri])
-        if args_global['add_global'] == True:
+        if self.args.get('add_global', True):
             Combine_Graph = add_global(Combine_Graph)
 
         # 获取7个物理特征
