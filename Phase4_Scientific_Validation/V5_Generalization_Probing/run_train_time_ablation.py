@@ -20,10 +20,10 @@ import sys
 import pandas as pd
 import pathlib as pl
 
-# 保证能导到外层目录的 Model_v5 和 Dataset_v5
+# 保证能导到外层目录的 Model_v5 和 Dataset_v5 (它们在 GNN_for_property_prediction 文件夹下)
 current_script_dir = str(pl.Path(__file__).resolve().parent)
 root_dir = str(pl.Path(current_script_dir).parent.parent)
-sys.path.append(root_dir)
+sys.path.append(os.path.join(root_dir, 'GNN_for_property_prediction'))
 
 from Dataset_v5 import IL_set_v5
 from Model_v5 import IL_GAT_v5
