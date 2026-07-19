@@ -50,7 +50,11 @@ ABLATION_MASKS = {
     "No_local_structure":    [1, 0, 0, 0, 1, 1, 1],  # 移除杂化、芳香性、连接度
     "Element_identity_only": [1, 0, 0, 0, 0, 0, 0],  # 仅保留原子种类
     "No_descriptors":        [1, 1, 1, 1, 1, 1, 1],  # 图特征全保留，仅掩码物理描述符
-    "Graph_only":            [1, 0, 0, 0, 0, 0, 0]   # (终极剥离) 仅原子种类 + 拓扑 + T/P，无描述符
+    "Graph_only":            [1, 0, 0, 0, 0, 0, 0],  # (终极剥离) 仅原子种类 + 拓扑 + T/P，无描述符
+    "Drop_ref_charge":       [1, 1, 1, 1, 1, 1, 1],  # 物理描述符 LOO: 仅掩码制冷剂极性电荷
+    "Drop_ref_logp":         [1, 1, 1, 1, 1, 1, 1],  # 物理描述符 LOO: 仅掩码制冷剂LogP
+    "Drop_cat_charge":       [1, 1, 1, 1, 1, 1, 1],  # 物理描述符 LOO: 仅掩码阳离子极性电荷
+    "Drop_cat_tpsa":         [1, 1, 1, 1, 1, 1, 1],  # 物理描述符 LOO: 仅掩码阳离子极性表面积
 }
 
 # ============================================================
@@ -90,6 +94,14 @@ class MaskedDataset(torch.utils.data.Dataset):
         if self.mode in ["No_descriptors", "Graph_only"]:
             # StandardScaler 标准化后均值为 0，直接填 0 相当于 Mean Imputation
             cond[2:] = 0.0
+        elif self.mode == "Drop_ref_charge":
+            cond[2] = 0.0
+        elif self.mode == "Drop_ref_logp":
+            cond[3] = 0.0
+        elif self.mode == "Drop_cat_charge":
+            cond[4] = 0.0
+        elif self.mode == "Drop_cat_tpsa":
+            cond[5] = 0.0
                 
         return graph, cond, label
 
