@@ -108,7 +108,7 @@ save_split_and_report('L1', L1_train, L1_val, L1_test, report_file)
 all_pairs = set(df['ca_pair'].unique())
 random.seed(SEED)
 # 随机选取 15% 的离子对作为候选池，保证其他 85% 在训练集出现过
-candidate_pairs = set(random.sample(list(all_pairs), int(len(all_pairs) * 0.15)))
+candidate_pairs = set(random.sample(sorted(list(all_pairs)), int(len(all_pairs) * 0.15)))
 
 L2_test = []
 L2_train_val = []
