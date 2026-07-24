@@ -147,10 +147,21 @@ class IL_GAT(torch.nn.Module):
         nn.init.xavier_uniform_(self.x_embedding6.weight.data)
         nn.init.xavier_uniform_(self.x_embedding7.weight.data)
 
-        # 3-layer GAT with multi-head attention (4 heads, averaged)
-        self.l1 = GATv2Conv(self.emb_dim, 512, heads=4, concat=False)
-        self.l2 = GATv2Conv(512, 1024, heads=4, concat=False)
-        self.l3 = GATv2Conv(1024, 512, heads=4, concat=False)
+        # [Round 2] Edge embedding layers — 让 GAT 能看见化学键类型
+        # bond_type: 单键(1)/双键(2)/三键(3)/芳香键(4)
+        # isInRing:  是否在环上
+        # isAromatic: 是否芳香键
+        self.edge_embedding1 = nn.Embedding(num_bond_type, self.emb_dim)
+        self.edge_embedding2 = nn.Embedding(num_bond_isInRing, self.emb_dim)
+        self.edge_embedding3 = nn.Embedding(num_bond_isAromatic, self.emb_dim)
+        nn.init.xavier_uniform_(self.edge_embedding1.weight.data)
+        nn.init.xavier_uniform_(self.edge_embedding2.weight.data)
+        nn.init.xavier_uniform_(self.edge_embedding3.weight.data)
+
+        # [Round 2] 3-layer GAT with edge features enabled
+        self.l1 = GATv2Conv(self.emb_dim, 512, heads=4, concat=False, edge_dim=self.emb_dim)
+        self.l2 = GATv2Conv(512, 1024, heads=4, concat=False, edge_dim=self.emb_dim)
+        self.l3 = GATv2Conv(1024, 512, heads=4, concat=False, edge_dim=self.emb_dim)
 
         # MLP head: graph_repr(512) + cond(6) = 518 (Round 1: ani_mw removed)
         self.l5 = nn.Sequential(
@@ -199,15 +210,20 @@ class IL_GAT(torch.nn.Module):
             
         x, edge_index = h, data_i.edge_index
 
-        x,(edge1,attention1) = self.l1(x, edge_index, return_attention_weights = True )
+        # [Round 2] 将离散键特征嵌入为连续向量，与 GIN 的 GINEConv 完全对称
+        edge_emb = self.edge_embedding1(data_i.edge_attr[:, 0]) + \
+                   self.edge_embedding2(data_i.edge_attr[:, 1]) + \
+                   self.edge_embedding3(data_i.edge_attr[:, 2])
+
+        x,(edge1,attention1) = self.l1(x, edge_index, edge_attr=edge_emb, return_attention_weights=True)
         x = self.act(x)
         x = self.dropout(x)
 
-        x,(edge2,attention2) = self.l2(x, edge_index,return_attention_weights = True )
+        x,(edge2,attention2) = self.l2(x, edge_index, edge_attr=edge_emb, return_attention_weights=True)
         x = self.act(x)
         x = self.dropout(x)
 
-        x,(edge3,attention3) = self.l3(x, edge_index,return_attention_weights = True )
+        x,(edge3,attention3) = self.l3(x, edge_index, edge_attr=edge_emb, return_attention_weights=True)
         x = self.act(x)
         x = self.dropout(x)
 
