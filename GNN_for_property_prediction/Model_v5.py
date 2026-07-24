@@ -10,6 +10,11 @@ num_charge = 3
 num_eneg   = 8
 num_radius = 8
 
+# [Round 2 物理增强] 化学键特征 Embedding 维度定义
+num_bond_type = 5        # 0: global, 1: single, 2: double, 3: triple, 4: aromatic
+num_bond_isInRing = 2    # 0: no, 1: yes
+num_bond_isAromatic = 2  # 0: no, 1: yes
+
 class IL_GAT_v5(torch.nn.Module):
     def __init__(self, args):
         super(IL_GAT_v5, self).__init__()
@@ -33,6 +38,14 @@ class IL_GAT_v5(torch.nn.Module):
         nn.init.xavier_uniform_(self.x_embedding6.weight.data)
         nn.init.xavier_uniform_(self.x_embedding7.weight.data)
 
+        # [Round 2 物理增强] 化学键 Embedding 初始化
+        self.edge_embedding1 = nn.Embedding(num_bond_type, self.emb_dim)
+        self.edge_embedding2 = nn.Embedding(num_bond_isInRing, self.emb_dim)
+        self.edge_embedding3 = nn.Embedding(num_bond_isAromatic, self.emb_dim)
+        nn.init.xavier_uniform_(self.edge_embedding1.weight.data)
+        nn.init.xavier_uniform_(self.edge_embedding2.weight.data)
+        nn.init.xavier_uniform_(self.edge_embedding3.weight.data)
+
         # [修复 1] 增加 Molecule Type Embedding (0: Cation, 1: Anion, 2: Refrigerant)
         self.mol_embedding = nn.Embedding(3, self.emb_dim)
         nn.init.xavier_uniform_(self.mol_embedding.weight.data)
@@ -40,9 +53,10 @@ class IL_GAT_v5(torch.nn.Module):
         # [修复 1 - 续] Global Token 独立于普通分子的 Embedding 空间
         self.global_token = nn.Parameter(torch.zeros(1, self.emb_dim))
 
-        self.l1 = GATv2Conv(self.emb_dim, 512, heads=4, concat=False)
-        self.l2 = GATv2Conv(512, 1024, heads=4, concat=False)
-        self.l3 = GATv2Conv(1024, 512, heads=4, concat=False)
+        # [Round 2 物理增强] GATv2Conv 开启 edge_dim
+        self.l1 = GATv2Conv(self.emb_dim, 512, heads=4, concat=False, edge_dim=self.emb_dim)
+        self.l2 = GATv2Conv(512, 1024, heads=4, concat=False, edge_dim=self.emb_dim)
+        self.l3 = GATv2Conv(1024, 512, heads=4, concat=False, edge_dim=self.emb_dim)
 
         # [消融控制] 如果用 attention pool，需要初始化 GlobalAttention
         if self.pool_type == 'attention':
@@ -128,15 +142,20 @@ class IL_GAT_v5(torch.nn.Module):
 
         x, edge_index = h, data_i.edge_index
 
-        x, _ = self.l1(x, edge_index, return_attention_weights=True)
+        # [Round 2 物理增强] 嵌入化学键离散特征 (单键/双键/三键/芳香键 + 环 + 芳香)
+        edge_emb = self.edge_embedding1(data_i.edge_attr[:, 0]) + \
+                   self.edge_embedding2(data_i.edge_attr[:, 1]) + \
+                   self.edge_embedding3(data_i.edge_attr[:, 2])
+
+        x, _ = self.l1(x, edge_index, edge_attr=edge_emb, return_attention_weights=True)
         x = self.act(x)
         x = self.dropout(x)
 
-        x, _ = self.l2(x, edge_index, return_attention_weights=True)
+        x, _ = self.l2(x, edge_index, edge_attr=edge_emb, return_attention_weights=True)
         x = self.act(x)
         x = self.dropout(x)
 
-        x, _ = self.l3(x, edge_index, return_attention_weights=True)
+        x, _ = self.l3(x, edge_index, edge_attr=edge_emb, return_attention_weights=True)
         x = self.act(x)
         x = self.dropout(x)
 
