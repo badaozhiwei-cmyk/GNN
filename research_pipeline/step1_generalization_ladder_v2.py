@@ -105,24 +105,37 @@ save_split_and_report('L1', L1_train, L1_val, L1_test, report_file)
 # Level 2: Component Recombination (True Disjoint Audit)
 # ==========================================
 # 我们通过随机保留一部分配对构建 test candidate
-all_pairs = set(df['ca_pair'].unique())
-random.seed(SEED)
-# 随机选取 15% 的离子对作为候选池，保证其他 85% 在训练集出现过
-candidate_pairs = set(random.sample(sorted(list(all_pairs)), int(len(all_pairs) * 0.15)))
+# 必须满足【严格成分重组】：即测试集的阴离子和阳离子必须各自在训练集有其他搭配出现过（保证纯粹的重组，而不是成分没见过）
+all_pairs = sorted(list(df['ca_pair'].unique()))
 
-L2_test = []
-L2_train_val = []
+L2_train, L2_val, L2_test = [], [], []
 
-for idx, row in df.iterrows():
-    if row['ca_pair'] in candidate_pairs:
-        L2_test.append(idx)
-    else:
-        L2_train_val.append(idx)
-
-random.shuffle(L2_train_val)
-val_size_L2 = int(len(L2_train_val) * 0.1)
-L2_val = L2_train_val[:val_size_L2]
-L2_train = L2_train_val[val_size_L2:]
+for trial_seed in range(SEED, SEED + 2000):
+    random.seed(trial_seed)
+    candidate_pairs = set(random.sample(all_pairs, int(len(all_pairs) * 0.15)))
+    
+    test_cand_df = df[df['ca_pair'].isin(candidate_pairs)]
+    train_cand_df = df[~df['ca_pair'].isin(candidate_pairs)]
+    
+    test_cats = set(test_cand_df['cation'])
+    train_cats = set(train_cand_df['cation'])
+    test_anis = set(test_cand_df['anion'])
+    train_anis = set(train_cand_df['anion'])
+    
+    # 核心断言：测试集里的阳离子和阴离子，必须 100% 是训练集的子集
+    if test_cats.issubset(train_cats) and test_anis.issubset(train_anis):
+        test_ratio = len(test_cand_df) / total_samples
+        if 0.12 <= test_ratio <= 0.22:
+            print(f"  [L2] 成功找到纯净 Component Recombination Split (Seed {trial_seed}): Test Size = {len(test_cand_df)} ({test_ratio*100:.1f}%)")
+            
+            L2_test = test_cand_df.index.tolist()
+            L2_train_val = train_cand_df.index.tolist()
+            
+            random.shuffle(L2_train_val)
+            val_size_L2 = int(len(L2_train_val) * 0.1)
+            L2_val = L2_train_val[:val_size_L2]
+            L2_train = L2_train_val[val_size_L2:]
+            break
 
 # 关键防泄漏断言审计 (True Disjoint Audit)
 train_df = df.loc[L2_train]
@@ -134,9 +147,9 @@ assert set(test_df['ca_pair']).isdisjoint(set(train_df['ca_pair'])), "CA Pair Le
 # 2. 验证 Triplet 级别是互斥的
 assert set(test_df['triplet']).isdisjoint(set(train_df['triplet'])), "Triplet Leakage!"
 
-# 3. 验证 Component 级别【允许出现】 (保证是组合泛化，而不是成分没见过)
-assert set(test_df['cation']).issubset(set(train_df['cation'])) or len(set(test_df['cation']).intersection(set(train_df['cation']))) > 0, "Warning: Complete cation OOD, not recombination!"
-assert set(test_df['anion']).issubset(set(train_df['anion'])) or len(set(test_df['anion']).intersection(set(train_df['anion']))) > 0, "Warning: Complete anion OOD, not recombination!"
+# 3. 验证 Component 级别【严格包含于训练集】(保证是纯粹的成分重组，而不是成分没见过)
+assert set(test_df['cation']).issubset(set(train_df['cation'])), "Error: Cation OOD detected in L2!"
+assert set(test_df['anion']).issubset(set(train_df['anion'])), "Error: Anion OOD detected in L2!"
 
 save_split_and_report('L2', L2_train, L2_val, L2_test, report_file)
 
