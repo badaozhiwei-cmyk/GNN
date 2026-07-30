@@ -55,21 +55,28 @@ def run_baselines_loro(target_ref: str):
     test_mask = (df['refrigerant'] == target_ref)
     train_mask = ~test_mask
     
-    test_df = df[test_mask]
-    train_df = df[train_mask]
+    test_indices = df[test_mask].index.tolist()
+    train_indices = df[train_mask].index.tolist()
     
-    print(f"  LORO Split -> Train: {len(train_df)}, Test ({target_ref}): {len(test_df)}")
+    print(f"  LORO Split -> Train: {len(train_indices)}, Test ({target_ref}): {len(test_indices)}")
     
-    # Descriptor features
-    feature_cols = ['T', 'P', 'ref_charge', 'ref_logp', 'cat_charge', 'cat_tpsa']
-    if 'ani_mw' in df.columns:
-        feature_cols.append('ani_mw')
-        
-    X_train = train_df[feature_cols].values
-    y_train = train_df['x1'].values
+    # Load physical descriptors from numpy data file
+    # data[i] structure: [0-2] mol graphs, [3] T, [4] P, [5] ref_charge,
+    #                     [6] ref_logp, [7] ani_mw, [8] cat_charge, [9] cat_tpsa
+    raw_data = np.load(os.path.join(ROOT, 'processed_tri_data', 'data.npy'), allow_pickle=True)
+    labels = np.load(os.path.join(ROOT, 'processed_tri_data', 'label.npy'), allow_pickle=True).flatten()
     
-    X_test = test_df[feature_cols].values
-    y_test = test_df['x1'].values
+    # Extract 6 scalar features: T, P, ref_charge, ref_logp, cat_charge, cat_tpsa (exclude ani_mw)
+    feature_names = ['T', 'P', 'ref_charge', 'ref_logp', 'cat_charge', 'cat_tpsa']
+    feature_indices = [3, 4, 5, 6, 8, 9]  # skip index 7 (ani_mw) to match GAT_v5 default
+    
+    all_features = np.array([[float(raw_data[i][j]) for j in feature_indices] for i in range(len(raw_data))])
+    all_labels = labels.astype(np.float64)
+    
+    X_train = all_features[train_indices]
+    y_train = all_labels[train_indices]
+    X_test  = all_features[test_indices]
+    y_test  = all_labels[test_indices]
     
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
@@ -84,7 +91,7 @@ def run_baselines_loro(target_ref: str):
     rf_r2 = r2_score(y_test, rf_preds)
     rf_mae = mean_absolute_error(y_test, rf_preds)
     results['RF'] = (rf_r2, rf_mae)
-    print(f"  🌲 Random Forest R2: {rf_r2:.4f}, MAE: {rf_mae:.4f}")
+    print(f"  [RF] Random Forest  R2: {rf_r2:.4f}, MAE: {rf_mae:.4f}")
     
     # 2. XGBoost
     if HAS_XGB:
@@ -94,7 +101,8 @@ def run_baselines_loro(target_ref: str):
         xgb_r2 = r2_score(y_test, xgb_preds)
         xgb_mae = mean_absolute_error(y_test, xgb_preds)
         results['XGBoost'] = (xgb_r2, xgb_mae)
-        print(f"  🚀 XGBoost       R2: {xgb_r2:.4f}, MAE: {xgb_mae:.4f}")
+        print(f"  [XGB] XGBoost      R2: {xgb_r2:.4f}, MAE: {xgb_mae:.4f}")
+
         
     # 3. Descriptor MLP
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -120,7 +128,7 @@ def run_baselines_loro(target_ref: str):
     mlp_r2 = r2_score(y_test, mlp_preds)
     mlp_mae = mean_absolute_error(y_test, mlp_preds)
     results['MLP'] = (mlp_r2, mlp_mae)
-    print(f"  🧠 Descriptor MLP R2: {mlp_r2:.4f}, MAE: {mlp_mae:.4f}")
+    print(f"  [MLP] Descriptor MLP R2: {mlp_r2:.4f}, MAE: {mlp_mae:.4f}")
     
     # Save to CSV
     res_path = 'loro_baselines_results.csv'
@@ -131,7 +139,7 @@ def run_baselines_loro(target_ref: str):
             'model': model_name,
             'r2': r2_val,
             'mae': mae_val,
-            'n_test': len(test_df)
+            'n_test': len(test_indices)
         })
     res_df = pd.DataFrame(res_rows)
     
@@ -143,7 +151,7 @@ def run_baselines_loro(target_ref: str):
         combined = pd.concat([existing, res_df], ignore_index=True)
         combined.to_csv(res_path, index=False)
         
-    print(f"  📊 基线结果已成功写入 {res_path}")
+    print(f"  [Saved] Baseline results updated in {res_path}")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
