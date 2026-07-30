@@ -79,9 +79,14 @@ class IL_set_v5(torch.utils.data.Dataset):
     def fit_scalers(self, train_indices, save_dir):
         """Fit scalers ONLY on training data to prevent data leakage."""
         self.scalers = [StandardScaler() for _ in range(7)]
+        self.means = np.zeros(7, dtype=np.float32)
+        self.scales = np.ones(7, dtype=np.float32)
+        
         for feature_idx in range(7):
             raw_vals = np.array([self.data[i][feature_idx + 3] for i in train_indices], dtype=np.float32).reshape(-1, 1)
             self.scalers[feature_idx].fit(raw_vals)
+            self.means[feature_idx] = float(self.scalers[feature_idx].mean_[0])
+            self.scales[feature_idx] = float(self.scalers[feature_idx].scale_[0])
         
         os.makedirs(save_dir, exist_ok=True)
         joblib.dump(self.scalers, os.path.join(save_dir, 'scalers.pkl'))
@@ -110,12 +115,11 @@ class IL_set_v5(torch.utils.data.Dataset):
         
         raw_cond = [T, P, ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa]
         
-        # 标准化
-        if self.scalers is not None:
-            scaled_cond = []
-            for i in range(7):
-                scaled_val = float(self.scalers[i].transform([[raw_cond[i]]])[0][0])
-                scaled_cond.append(scaled_val)
+        # [极速向量化标准化] 使用预提取的 means/scales 替代繁重的 sklearn transform
+        if hasattr(self, 'means') and self.means is not None:
+            scaled_cond = [(raw_cond[i] - self.means[i]) / self.scales[i] for i in range(7)]
+        elif self.scalers is not None:
+            scaled_cond = [(raw_cond[i] - float(self.scalers[i].mean_[0])) / float(self.scalers[i].scale_[0]) for i in range(7)]
         else:
             scaled_cond = raw_cond
 
