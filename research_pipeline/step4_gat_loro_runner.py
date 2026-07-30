@@ -190,7 +190,7 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
                 out = model(graph, cond)
                 pred_vals = np.clip(out.flatten().cpu().numpy(), 0.0, 1.0)
                 preds.extend(pred_vals.tolist())
-                targets.extend(label.cpu().numpy().tolist())
+                targets.extend(label.flatten().cpu().numpy().tolist())
                 
         r2  = r2_score(targets, preds)
         mae = mean_absolute_error(targets, preds)
