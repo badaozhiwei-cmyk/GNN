@@ -32,7 +32,7 @@ os.chdir(ROOT)
 sys.path.append(os.path.join(ROOT, 'GNN_for_property_prediction'))
 
 from Dataset_v5 import IL_set_v5
-from Model_v5 import IL_GAT_v5
+from Model_v5 import IL_GAT_v5, IL_GCN_v5
 
 # ============================================================
 # EarlyStopping (aligned with GAT_Runner_v5.py)
@@ -69,9 +69,10 @@ def set_seed(seed):
 # ============================================================
 # LORO Runner
 # ============================================================
-def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size: int = 64, lr: float = 1e-3):
+def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size: int = 64, lr: float = 1e-3, model_type: str = 'gat'):
+    model_name = 'GAT_v5' if model_type == 'gat' else 'GCN_v5'
     print(f"\n============================================================")
-    print(f"  GAT_v5 LORO Benchmark | Held-out Refrigerant: {target_ref}")
+    print(f"  {model_name} LORO Benchmark | Held-out Refrigerant: {target_ref}")
     print(f"============================================================")
     
     df = pd.read_csv('index_with_anion.csv')
@@ -99,7 +100,8 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
     data_path = os.path.join(ROOT, 'processed_tri_data/')
     whole_set = IL_set_v5(path=data_path, args=dataset_args)
     
-    save_dir = f"checkpoints_v5/LORO_{target_ref}"
+    save_dir = f"checkpoints_v5/LORO_{target_ref}_{model_type}"
+    os.makedirs(save_dir, exist_ok=True)
     whole_set.fit_scalers(train_indices, save_dir=save_dir)
     
     train_set = torch.utils.data.Subset(whole_set, train_indices)
@@ -125,7 +127,8 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
     for seed in range(seeds):
         set_seed(seed + 42)
         
-        model = IL_GAT_v5(model_args).to(device)
+        ModelClass = IL_GAT_v5 if model_type == 'gat' else IL_GCN_v5
+        model = ModelClass(model_args).to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=1e-6)
         scheduler = CosineAnnealingLR(optimizer, T_max=epochs, eta_min=1e-5)
         criterion = nn.HuberLoss(delta=1.0)
@@ -134,7 +137,7 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
         best_val_loss = float('inf')
         best_model_state = None
         
-        print(f"\n  [Seed {seed}] Training GAT_v5 ({epochs} epochs, patience=20)...")
+        print(f"\n  [Seed {seed}] Training {model_name} ({epochs} epochs, patience=20)...")
         for epoch in range(1, epochs + 1):
             # --- Train ---
             model.train()
@@ -169,7 +172,6 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
             
             if avg_val < best_val_loss:
                 best_val_loss = avg_val
-                # [CRITICAL FIX] deepcopy prevents weight pollution from subsequent epochs
                 best_model_state = copy.deepcopy(model.state_dict())
             
             if epoch % 10 == 0:
@@ -199,27 +201,34 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
         mae_list.append(mae)
         print(f"  Seed {seed} -> LORO ({target_ref}) R2: {r2:.4f}, MAE: {mae:.4f}, RMSE: {rmse:.4f}")
         
+        # Save best checkpoint for later embedding analysis
+        ckpt_path = os.path.join(save_dir, f'best_model_seed{seed}.pt')
+        torch.save(best_model_state, ckpt_path)
+        
     mean_r2 = np.mean(r2_list)
+    std_r2 = np.std(r2_list)
     mean_mae = np.mean(mae_list)
-    print(f"\n  🎉 LORO ({target_ref}) Final: R2 = {mean_r2:.4f} +/- {np.std(r2_list):.4f}")
+    print(f"\n  [Result] LORO ({target_ref}) {model_name}: R2 = {mean_r2:.4f} +/- {std_r2:.4f}")
     
-    # [便利增强] 自动将结果追加写入 gat_loro_results.csv
-    res_path = 'gat_loro_results.csv'
+    # Auto-save results to CSV
+    res_path = 'loro_gnn_results.csv'
     res_row = pd.DataFrame([{
+        'model': model_name,
         'refrigerant': target_ref,
-        'r2': mean_r2,
-        'mae': mean_mae,
+        'r2_mean': mean_r2,
+        'r2_std': std_r2,
+        'mae_mean': mean_mae,
+        'n_seeds': seeds,
         'n_test': len(test_indices)
     }])
     if not os.path.exists(res_path):
         res_row.to_csv(res_path, index=False)
     else:
-        # 覆盖相同制冷剂的旧记录或追加新记录
         existing_df = pd.read_csv(res_path)
-        existing_df = existing_df[existing_df['refrigerant'] != target_ref]
+        existing_df = existing_df[~((existing_df['refrigerant'] == target_ref) & (existing_df['model'] == model_name))]
         combined_df = pd.concat([existing_df, res_row], ignore_index=True)
         combined_df.to_csv(res_path, index=False)
-    print(f"  📊 结果已自动更新至 gat_loro_results.csv")
+    print(f"  [Saved] Results updated in {res_path}")
     
     return mean_r2, mean_mae
 
@@ -228,6 +237,8 @@ if __name__ == '__main__':
     parser.add_argument('--ref', type=str, default='R32', help='Held-out refrigerant')
     parser.add_argument('--seeds', type=int, default=1, help='Number of seeds')
     parser.add_argument('--epochs', type=int, default=100, help='Epochs per seed')
+    parser.add_argument('--model', type=str, default='gat', choices=['gat', 'gcn'],
+                        help='Model type: gat (GAT_v5) or gcn (GCN_v5 ablation)')
     args = parser.parse_args()
     
-    run_gat_loro(args.ref, seeds=args.seeds, epochs=args.epochs)
+    run_gat_loro(args.ref, seeds=args.seeds, epochs=args.epochs, model_type=args.model)

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch_geometric.nn import GATv2Conv, global_mean_pool, GlobalAttention
+from torch_geometric.nn import GATv2Conv, GCNConv, global_mean_pool, GlobalAttention
 
 num_atom_type = 119 
 num_Hbrid = 8
@@ -178,6 +178,154 @@ class IL_GAT_v5(torch.nn.Module):
                 x_g = self.att_pool(x[normal_mask], data_i.batch[normal_mask])
             else:
                 x_g = self.att_pool(x, data_i.batch)
+        else:
+            raise ValueError(f"Unknown pool type {self.pool_type}")
+
+        x_concat = torch.cat([x_g, cond], dim=1)
+        x_out = self.l5(x_concat)
+
+        return x_out
+
+
+# ============================================================
+# [Ablation] GCN Baseline — Same architecture, no attention, no edge features
+# Purpose: Isolate the contribution of graph attention + edge features
+# ============================================================
+class IL_GCN_v5(torch.nn.Module):
+    """
+    Fair ablation baseline for IL_GAT_v5.
+    Identical: atom embeddings, mol_embedding, global token, pooling, MLP head.
+    Different: GCNConv (no attention mechanism, no edge features).
+    """
+    def __init__(self, args):
+        super(IL_GCN_v5, self).__init__()
+        self.args = args
+        self.emb_dim = args.get('emb_dim', 300)
+        self.pool_type = args.get('pool', 'global')
+
+        # Atom Embeddings (identical to GAT)
+        self.x_embedding1 = nn.Embedding(num_atom_type, self.emb_dim)
+        self.x_embedding2 = nn.Embedding(num_Hbrid, self.emb_dim)
+        self.x_embedding3 = nn.Embedding(num_Aro, self.emb_dim)
+        self.x_embedding4 = nn.Embedding(num_degree, self.emb_dim)
+        self.x_embedding5 = nn.Embedding(num_charge, self.emb_dim)
+        self.x_embedding6 = nn.Embedding(num_eneg,   self.emb_dim)
+        self.x_embedding7 = nn.Embedding(num_radius, self.emb_dim)
+
+        nn.init.xavier_uniform_(self.x_embedding1.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding2.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding3.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding4.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding5.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding6.weight.data)
+        nn.init.xavier_uniform_(self.x_embedding7.weight.data)
+
+        # Molecule Type Embedding (identical to GAT)
+        self.mol_embedding = nn.Embedding(3, self.emb_dim)
+        nn.init.xavier_uniform_(self.mol_embedding.weight.data)
+
+        # Global Token (identical to GAT)
+        self.global_token = nn.Parameter(torch.zeros(1, self.emb_dim))
+
+        # GCNConv layers (NO edge features, NO attention)
+        self.l1 = GCNConv(self.emb_dim, 512)
+        self.l2 = GCNConv(512, 1024)
+        self.l3 = GCNConv(1024, 512)
+
+        # Condition dimension (identical to GAT)
+        cond_dim = 7 if args.get('use_ani_mw', False) else 6
+
+        # MLP head (identical to GAT)
+        self.l5 = nn.Sequential(
+            nn.Linear(512 + cond_dim, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Dropout(p=0.4),
+
+            nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Dropout(p=0.3),
+
+            nn.Linear(512, 1)
+        )
+
+        self.act = nn.ReLU()
+        self.dropout = nn.Dropout(p=args['dropout_rate'])
+
+    def extract(self, x, data_i):
+        """Extract global node embeddings (identical to GAT)"""
+        batch = data_i.batch
+        output, count = torch.unique(batch, return_counts=True)
+        count = count.tolist()
+
+        l = []
+        cur = 0
+        for i in count:
+            cur += i
+            l.append(cur)
+        re = []
+        for j in l:
+            if hasattr(data_i, 'mol_type'):
+                assert data_i.mol_type[j - 1] == 3, \
+                    f"Critical Error: Last node is not global node, got mol_type {data_i.mol_type[j - 1]}"
+            re.append(x[j - 1].reshape(1, -1))
+        return torch.cat(re, dim=0)
+
+    def forward(self, data_i, cond):
+        h = torch.zeros(data_i.x.shape[0], self.emb_dim, device=data_i.x.device)
+
+        # Heterogeneous Embedding (identical to GAT)
+        if hasattr(data_i, 'mol_type'):
+            mol_type = data_i.mol_type
+            is_normal = (mol_type < 3)
+            is_global = (mol_type == 3)
+
+            h[is_normal] = self.x_embedding1(data_i.x[is_normal, 0]) + \
+                           self.x_embedding2(data_i.x[is_normal, 1]) + \
+                           self.x_embedding3(data_i.x[is_normal, 2]) + \
+                           self.x_embedding4(data_i.x[is_normal, 3]) + \
+                           self.x_embedding5(data_i.x[is_normal, 4]) + \
+                           self.x_embedding6(data_i.x[is_normal, 5]) + \
+                           self.x_embedding7(data_i.x[is_normal, 6])
+
+            if not self.args.get('no_mol_embedding', False):
+                h[is_normal] = h[is_normal] + self.mol_embedding(mol_type[is_normal])
+
+            h[is_global] = self.global_token
+        else:
+            h = self.x_embedding1(data_i.x[:, 0]) + \
+                self.x_embedding2(data_i.x[:, 1]) + \
+                self.x_embedding3(data_i.x[:, 2]) + \
+                self.x_embedding4(data_i.x[:, 3]) + \
+                self.x_embedding5(data_i.x[:, 4]) + \
+                self.x_embedding6(data_i.x[:, 5]) + \
+                self.x_embedding7(data_i.x[:, 6])
+
+        x, edge_index = h, data_i.edge_index
+
+        # GCNConv message passing (NO edge features, NO attention)
+        x = self.l1(x, edge_index)
+        x = self.act(x)
+        x = self.dropout(x)
+
+        x = self.l2(x, edge_index)
+        x = self.act(x)
+        x = self.dropout(x)
+
+        x = self.l3(x, edge_index)
+        x = self.act(x)
+        x = self.dropout(x)
+
+        # Pooling (identical to GAT)
+        if self.pool_type == 'global':
+            x_g = self.extract(x, data_i)
+        elif self.pool_type == 'mean':
+            if hasattr(data_i, 'mol_type'):
+                normal_mask = (data_i.mol_type < 3)
+                x_g = global_mean_pool(x[normal_mask], data_i.batch[normal_mask])
+            else:
+                x_g = global_mean_pool(x, data_i.batch)
         else:
             raise ValueError(f"Unknown pool type {self.pool_type}")
 
