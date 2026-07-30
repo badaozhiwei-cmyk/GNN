@@ -19,7 +19,7 @@ ROOT = str(pl.Path(__file__).resolve().parent.parent)
 os.chdir(ROOT)
 sys.path.append(os.path.join(ROOT, 'GNN_for_property_prediction'))
 
-from Dataset_v5 import IL_Dataset_v5
+from Dataset_v5 import IL_set_v5
 from Model_v5 import IL_GAT_v5
 
 def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size: int = 64, lr: float = 1e-3):
@@ -48,12 +48,24 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
     print(f"  Using device: {device}")
     
     # Initialize Dataset v5 with LORO split
-    dataset_args = {'use_ani_mw': False}
-    dataset = IL_Dataset_v5(level=f"LORO_{target_ref}", args=dataset_args)
+    dataset_args = {
+        'add_global': True,
+        'use_ani_mw': False,
+        'no_mol_embedding': False
+    }
+    data_path = os.path.join(ROOT, 'processed_tri_data/')
+    whole_set = IL_set_v5(path=data_path, args=dataset_args)
     
-    train_loader = DataLoader(dataset.train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader   = DataLoader(dataset.val_dataset,   batch_size=batch_size, shuffle=False)
-    test_loader  = DataLoader(dataset.test_dataset,  batch_size=batch_size, shuffle=False)
+    save_dir = f"checkpoints_v5/LORO_{target_ref}"
+    whole_set.fit_scalers(train_indices, save_dir=save_dir)
+    
+    train_set = torch.utils.data.Subset(whole_set, train_indices)
+    val_set   = torch.utils.data.Subset(whole_set, val_indices)
+    test_set  = torch.utils.data.Subset(whole_set, test_indices)
+    
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
+    val_loader   = DataLoader(val_set,   batch_size=batch_size, shuffle=False)
+    test_loader  = DataLoader(test_set,  batch_size=batch_size, shuffle=False)
     
     model_args = {
         'emb_dim': 300,
