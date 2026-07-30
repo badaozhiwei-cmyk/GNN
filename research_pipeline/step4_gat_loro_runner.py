@@ -85,8 +85,11 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
         best_val_loss = float('inf')
         best_model_state = None
         
-        for epoch in range(epochs):
+        from tqdm import tqdm
+        print(f"  [Seed {seed}] 开始训练 GAT_v5 ({epochs} epochs)...")
+        for epoch in range(1, epochs + 1):
             model.train()
+            train_loss = 0.0
             for graph, cond, label in train_loader:
                 graph, cond, label = graph.to(device), cond.to(device), label.to(device)
                 optimizer.zero_grad()
@@ -94,6 +97,8 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
                 loss = criterion(out, label.squeeze())
                 loss.backward()
                 optimizer.step()
+                train_loss += loss.item() * len(label)
+            train_loss /= len(train_indices)
                 
             model.eval()
             val_loss = 0.0
@@ -103,6 +108,9 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
                     out = model(graph, cond).squeeze()
                     val_loss += criterion(out, label.squeeze()).item() * len(label)
             val_loss /= len(val_indices)
+            
+            if epoch % 20 == 0 or epoch == epochs:
+                print(f"    Epoch {epoch:>2d}/{epochs} | Train Loss: {train_loss:.5f} | Val Loss: {val_loss:.5f}")
             
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
