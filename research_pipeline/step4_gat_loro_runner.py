@@ -199,8 +199,29 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
         mae_list.append(mae)
         print(f"  Seed {seed} -> LORO ({target_ref}) R2: {r2:.4f}, MAE: {mae:.4f}, RMSE: {rmse:.4f}")
         
-    print(f"\n  LORO ({target_ref}) Final: R2 = {np.mean(r2_list):.4f} +/- {np.std(r2_list):.4f}")
-    return np.mean(r2_list), np.mean(mae_list)
+    mean_r2 = np.mean(r2_list)
+    mean_mae = np.mean(mae_list)
+    print(f"\n  🎉 LORO ({target_ref}) Final: R2 = {mean_r2:.4f} +/- {np.std(r2_list):.4f}")
+    
+    # [便利增强] 自动将结果追加写入 gat_loro_results.csv
+    res_path = 'gat_loro_results.csv'
+    res_row = pd.DataFrame([{
+        'refrigerant': target_ref,
+        'r2': mean_r2,
+        'mae': mean_mae,
+        'n_test': len(test_indices)
+    }])
+    if not os.path.exists(res_path):
+        res_row.to_csv(res_path, index=False)
+    else:
+        # 覆盖相同制冷剂的旧记录或追加新记录
+        existing_df = pd.read_csv(res_path)
+        existing_df = existing_df[existing_df['refrigerant'] != target_ref]
+        combined_df = pd.concat([existing_df, res_row], ignore_index=True)
+        combined_df.to_csv(res_path, index=False)
+    print(f"  📊 结果已自动更新至 gat_loro_results.csv")
+    
+    return mean_r2, mean_mae
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
