@@ -69,10 +69,11 @@ def set_seed(seed):
 # ============================================================
 # LORO Runner
 # ============================================================
-def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size: int = 64, lr: float = 1e-3, model_type: str = 'gat'):
+def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size: int = 64, lr: float = 1e-3, model_type: str = 'gat', num_workers: int = 0):
     model_name = 'GAT_v5' if model_type == 'gat' else 'GCN_v5'
     print(f"\n============================================================")
     print(f"  {model_name} LORO Benchmark | Held-out Refrigerant: {target_ref}")
+    print(f"  Batch Size: {batch_size} | Num Workers: {num_workers}")
     print(f"============================================================")
     
     df = pd.read_csv('index_with_anion.csv')
@@ -108,9 +109,9 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
     val_set   = torch.utils.data.Subset(whole_set, val_indices)
     test_set  = torch.utils.data.Subset(whole_set, test_indices)
     
-    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
-    val_loader   = DataLoader(val_set,   batch_size=batch_size, shuffle=False)
-    test_loader  = DataLoader(test_set,  batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+    val_loader   = DataLoader(val_set,   batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
+    test_loader  = DataLoader(test_set,  batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
     
     # Model args (aligned with GAT_Runner_v5.py)
     model_args = {
@@ -146,7 +147,7 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
             bar = tqdm(total=len(train_loader), dynamic_ncols=True, leave=False,
                        desc=f"Epoch {epoch:>3d}")
             for graph, cond, label in train_loader:
-                graph, cond, label = graph.to(device), cond.to(device), label.to(device)
+                graph, cond, label = graph.to(device, non_blocking=True), cond.to(device, non_blocking=True), label.to(device, non_blocking=True)
                 optimizer.zero_grad()
                 out = model(graph, cond)
                 loss = criterion(out.flatten(), label.flatten())
@@ -163,7 +164,7 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
             val_loss = 0.0
             with torch.no_grad():
                 for graph, cond, label in val_loader:
-                    graph, cond, label = graph.to(device), cond.to(device), label.to(device)
+                    graph, cond, label = graph.to(device, non_blocking=True), cond.to(device, non_blocking=True), label.to(device, non_blocking=True)
                     out = model(graph, cond)
                     val_loss += criterion(out.flatten(), label.flatten()).item()
             
@@ -188,7 +189,7 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
         preds, targets = [], []
         with torch.no_grad():
             for graph, cond, label in test_loader:
-                graph, cond, label = graph.to(device), cond.to(device), label.to(device)
+                graph, cond, label = graph.to(device, non_blocking=True), cond.to(device, non_blocking=True), label.to(device, non_blocking=True)
                 out = model(graph, cond)
                 pred_vals = np.clip(out.flatten().cpu().numpy(), 0.0, 1.0)
                 preds.extend(pred_vals.tolist())
@@ -237,8 +238,11 @@ if __name__ == '__main__':
     parser.add_argument('--ref', type=str, default='R32', help='Held-out refrigerant')
     parser.add_argument('--seeds', type=int, default=1, help='Number of seeds')
     parser.add_argument('--epochs', type=int, default=100, help='Epochs per seed')
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size for training')
+    parser.add_argument('--num_workers', type=int, default=0, help='Number of DataLoader workers')
     parser.add_argument('--model', type=str, default='gat', choices=['gat', 'gcn'],
                         help='Model type: gat (GAT_v5) or gcn (GCN_v5 ablation)')
     args = parser.parse_args()
     
-    run_gat_loro(args.ref, seeds=args.seeds, epochs=args.epochs, model_type=args.model)
+    run_gat_loro(args.ref, seeds=args.seeds, epochs=args.epochs, batch_size=args.batch_size, model_type=args.model, num_workers=args.num_workers)
+
