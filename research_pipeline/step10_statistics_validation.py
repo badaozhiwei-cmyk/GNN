@@ -144,7 +144,88 @@ def validate_statistics():
     print(summary.to_string(index=False, float_format='%.4f'))
 
     # ================================================================
-    # 5. Export correlation results to CSV
+    # 5. LOO Sensitivity Analysis (ILCR vs R²_std)
+    # ================================================================
+    print("\n" + "=" * 70)
+    print("  PART 5: Leave-One-Out Sensitivity (ILCR vs R²_std)")
+    print("=" * 70)
+
+    ilcr_vals = valid_df['ilcr_count'].values
+    std_vals = valid_df['gat_r2_std'].values
+    ref_names = valid_df['refrigerant'].values
+
+    # Baseline (all 8)
+    rho_base, p_base = spearmanr(ilcr_vals, std_vals)
+    loo_rows = [{'removed': 'None (baseline)', 'n': len(valid_df),
+                 'spearman_rho': rho_base, 'spearman_p': p_base}]
+
+    print(f"\n  {'Removed':<16s} | {'n':>2s} | {'Spearman ρ':>12s} | {'p-value':>10s} | Direction")
+    print(f"  {'-'*16}-+-{'-'*3}-+-{'-'*12}-+-{'-'*10}-+-{'-'*9}")
+    print(f"  {'None (baseline)':<16s} | {len(valid_df):>2d} | {rho_base:>+12.4f} | {p_base:>10.4f} | {'negative ✓' if rho_base < 0 else 'POSITIVE ✗'}")
+
+    all_negative = True
+    for i, ref in enumerate(ref_names):
+        mask = np.ones(len(valid_df), dtype=bool)
+        mask[i] = False
+        rho_i, p_i = spearmanr(ilcr_vals[mask], std_vals[mask])
+        direction = 'negative ✓' if rho_i < 0 else 'POSITIVE ✗'
+        if rho_i >= 0:
+            all_negative = False
+        print(f"  {ref:<16s} | {mask.sum():>2d} | {rho_i:>+12.4f} | {p_i:>10.4f} | {direction}")
+        loo_rows.append({'removed': ref, 'n': int(mask.sum()),
+                         'spearman_rho': rho_i, 'spearman_p': p_i})
+
+    loo_df = pd.DataFrame(loo_rows)
+    loo_path = ROOT / 'loo_ILCR_R2std.csv'
+    loo_df.to_csv(loo_path, index=False)
+    print(f"\n  [Done] LOO table exported to: {loo_path}")
+
+    if all_negative:
+        print("  ✓ CONCLUSION: All leave-one-out perturbations maintain negative ρ.")
+        print("    The ILCR–uncertainty association is directionally robust.")
+    else:
+        print("  ✗ WARNING: Some perturbations show non-negative ρ. Interpret with caution.")
+
+    # ================================================================
+    # 6. Exact Permutation Test (ILCR vs R²_std, two-sided)
+    # ================================================================
+    print("\n" + "=" * 70)
+    print("  PART 6: Exact Permutation Test (8! = 40320, two-sided)")
+    print("=" * 70)
+
+    from itertools import permutations
+
+    observed_rho, _ = spearmanr(ilcr_vals, std_vals)
+    abs_observed = abs(observed_rho)
+
+    n_perms = 0
+    n_extreme = 0
+
+    for perm in permutations(range(len(ilcr_vals))):
+        ilcr_perm = ilcr_vals[list(perm)]
+        rho_perm, _ = spearmanr(ilcr_perm, std_vals)
+        n_perms += 1
+        if abs(rho_perm) >= abs_observed:
+            n_extreme += 1
+
+    perm_p = n_extreme / n_perms
+
+    print(f"\n  Observed Spearman ρ   = {observed_rho:+.4f}")
+    print(f"  Total permutations    = {n_perms:,d}")
+    print(f"  |ρ_perm| ≥ |ρ_obs|   = {n_extreme:,d} times")
+    print(f"  Exact permutation p   = {perm_p:.6f}")
+
+    if perm_p < 0.01:
+        print(f"  ✓ Highly significant (p < 0.01)")
+    elif perm_p < 0.05:
+        print(f"  ✓ Significant (p < 0.05)")
+    elif perm_p < 0.10:
+        print(f"  † Marginally significant (p < 0.10)")
+    else:
+        print(f"  ✗ Not significant (p ≥ 0.10)")
+
+    # ================================================================
+    # 7. Export all correlation results to CSV
     # ================================================================
     corr_df = pd.DataFrame(all_results)
     corr_path = ROOT / 'loro_correlation_matrix.csv'
@@ -152,7 +233,7 @@ def validate_statistics():
     print(f"\n[Done] Full correlation matrix exported to: {corr_path}")
 
     # ================================================================
-    # 6. Key findings summary
+    # 8. Key findings summary
     # ================================================================
     print("\n" + "=" * 70)
     print("  KEY FINDINGS SUMMARY")
@@ -188,8 +269,14 @@ def validate_statistics():
         for r in marginal_no134a:
             print(f"    † {r['predictor']} vs {r['response']}: ρ={r['spearman_rho']:+.4f} (p={r['spearman_p']:.4f})")
 
+    # LOO + Permutation summary
+    print(f"\n  Robustness verification:")
+    print(f"    LOO sensitivity:     {'All directions negative ✓' if all_negative else 'INCONSISTENT ✗'}")
+    print(f"    Exact permutation p: {perm_p:.6f} ({'significant ✓' if perm_p < 0.05 else 'not significant ✗'})")
+
     print("\n" + "=" * 70)
 
 
 if __name__ == '__main__':
     validate_statistics()
+
