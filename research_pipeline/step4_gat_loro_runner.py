@@ -230,6 +230,27 @@ def run_gat_loro(target_ref: str, seeds: int = 1, epochs: int = 100, batch_size:
         combined_df = pd.concat([existing_df, res_row], ignore_index=True)
         combined_df.to_csv(res_path, index=False)
     print(f"  [Saved] Results updated in {res_path}")
+
+    # Auto-save raw seed-level details to CSV (for boxplot / Supplementary)
+    seed_path = 'loro_gnn_seed_details.csv'
+    seed_rows = []
+    for s_idx, (r2_val, mae_val) in enumerate(zip(r2_list, mae_list)):
+        seed_rows.append({
+            'model': model_name,
+            'refrigerant': target_ref,
+            'seed': s_idx,
+            'r2': r2_val,
+            'mae': mae_val
+        })
+    seed_df = pd.DataFrame(seed_rows)
+    if not os.path.exists(seed_path):
+        seed_df.to_csv(seed_path, index=False)
+    else:
+        existing_seed_df = pd.read_csv(seed_path)
+        existing_seed_df = existing_seed_df[~((existing_seed_df['refrigerant'] == target_ref) & (existing_seed_df['model'] == model_name))]
+        combined_seed_df = pd.concat([existing_seed_df, seed_df], ignore_index=True)
+        combined_seed_df.to_csv(seed_path, index=False)
+    print(f"  [Saved] Seed-level details updated in {seed_path}")
     
     return mean_r2, mean_mae
 

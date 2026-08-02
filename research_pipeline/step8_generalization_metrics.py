@@ -31,16 +31,14 @@ from rdkit.Chem import AllChem, MACCSkeys, DataStructs
 ROOT = Path(__file__).resolve().parent.parent
 os.chdir(ROOT)
 
-TARGET_REFRIGERANTS = ['R32', 'R152a', 'R125', 'R161', 'R1234yf', 'R23', 'R134a', 'R22']
+TARGET_REFRIGERANTS = ['R32', 'R152a', 'R125', 'R1234yf', 'R134a', 'R22']
 
 FAMILY_MAP = {
     'R32': 'HFC',
     'R152a': 'HFC',
     'R125': 'HFC',
-    'R161': 'HFC',
-    'R23': 'HFC',
-    'R134a': 'HFC',
     'R1234yf': 'HFO',
+    'R134a': 'HFC',
     'R22': 'HCFC'
 }
 
