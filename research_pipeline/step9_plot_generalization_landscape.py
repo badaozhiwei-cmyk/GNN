@@ -91,14 +91,25 @@ def plot_landscape():
                 zorder=4
             )
 
-    # Annotate refrigerant names
+    # Annotate refrigerant names with per-label offsets to avoid overlap
+    label_offsets = {
+        'R32':     (0.008,  0.02),
+        'R152a':   (0.008,  0.04),
+        'R22':     (0.008, -0.06),
+        'R161':    (0.008,  0.02),
+        'R125':    (0.008,  0.02),
+        'R1234yf': (0.008,  0.02),
+        'R134a':   (0.008,  0.04),
+        'R23':     (0.008,  0.02),
+    }
     for _, row in df.iterrows():
         if not np.isnan(row['gat_r2_mean']):
             r_name = row['refrigerant']
+            dx, dy = label_offsets.get(r_name, (0.008, 0.02))
             ax.annotate(
                 r_name,
                 (row['cci_ref_morgan_r2'], row['gat_r2_mean']),
-                xytext=(row['cci_ref_morgan_r2'] + 0.008, row['gat_r2_mean'] + 0.02),
+                xytext=(row['cci_ref_morgan_r2'] + dx, row['gat_r2_mean'] + dy),
                 fontsize=11,
                 fontweight='bold',
                 color='#222222',
@@ -111,12 +122,12 @@ def plot_landscape():
 
     ax.set_xlabel('Chemical Coverage Index (CCI)', fontsize=13, fontweight='bold', labelpad=10)
     ax.set_ylabel('Zero-Shot R² (Mean ± Std)', fontsize=13, fontweight='bold', labelpad=10)
-    ax.set_title('Chemical Coverage Controls Zero-Shot Transferability', fontsize=13, fontweight='bold', pad=15)
+    ax.set_title('Zero-Shot R² across Chemical Coverage Spectrum', fontsize=13, fontweight='bold', pad=15)
 
     ax.grid(True, linestyle=':', alpha=0.6, zorder=1)
     handles, labels = ax.get_legend_handles_labels()
     if handles:
-        ax.legend(frameon=True, facecolor='white', edgecolor='#cccccc', fontsize=10, loc='lower right')
+        ax.legend(frameon=True, facecolor='white', edgecolor='#cccccc', fontsize=10, loc='upper left')
     
     plt.tight_layout()
     fig3a_path = fig_dir / 'Figure3a_CCI_vs_R2.png'
