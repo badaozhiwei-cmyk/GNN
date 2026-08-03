@@ -31,7 +31,7 @@ for idx, row in il_df.iterrows():
     smiles_dict[abbr] = smi          # [BMIM] -> 对应的SMILES
     smiles_dict[abbr_no_bracket] = smi # BMIM -> 对应的SMILES，这样两边无论写哪个都能查到
 
-# 手动打补丁：因为原论文做的是二氧化碳，没涉及到制冷剂
+# 手动打补丁：因为原论文做的是制冷剂，没涉及到制冷剂
 # 我们在这里手动补齐本项目中用到的各种常见制冷剂的结构式
 extra_smiles = {
     'R32':        'C(F)F',                           # 二氟甲烷
