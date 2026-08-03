@@ -1,6 +1,6 @@
-# Predicting-CO2-Absorption-in-Ionic-Liquid-with-Molecular-Descriptors-and-Explainable-GNN
+# Refrigerant-Solubility-GNN
 Data and code for Predicting $CO_2$ Absorption in Ionic Liquid with Molecular Descriptors and Explainable GNN
-![paper pipeline](https://github.com/ftyuejian/Predicting-CO2-Absorption-in-Ionic-Liquid-with-Molecular-Descriptors-and-Explainable-GNN/blob/main/figure/overall.png)
+![paper pipeline](https://github.com/ftyuejian/Refrigerant-Solubility-GNN/blob/main/figure/overall.png)
 
 ## How to run the code
 ### reproducing the result for predicting properties with shallow machine learning
@@ -26,8 +26,8 @@ Data and code for Predicting $CO_2$ Absorption in Ionic Liquid with Molecular De
 If you find the code useful for your research, please consider citing
 ```bib
 @inproceedings{
-  Yue2022predictCO2,
-  title={Predicting CO2 Absorption in Ionic Liquid with Molecular Descriptors and Explainable Graph Neural Networks},
+  Yue2022predictRefrigerant,
+  title={Predicting Refrigerant Absorption in Ionic Liquid with Molecular Descriptors and Explainable Graph Neural Networks},
   author={Yue Jian and Yuyang Wang and Amir Barati Farimani},
   booktitle={},
   year={2022},

@@ -3,7 +3,7 @@ Dataset_explain_v2.py
 ===================================================
 制冷剂三图体系专用可解释性数据集加载?(V2)
 
-?CO2 旧版 Dataset_explain.py 的核心差异：
+?Refrigerant 旧版 Dataset_explain.py 的核心差异：
   - 旧版: 双图（阳离子 + 阴离子）+ 2D 条件向量 [T, P]
   - V2:   三图（阳离子 + 阴离?+ 制冷剂）+ 7D 条件向量
             [T, P, Ref_Charge, Ref_LogP, Ani_MW, Cat_RotBonds, Cat_LogP]

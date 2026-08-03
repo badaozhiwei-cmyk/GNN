@@ -6,7 +6,7 @@
 
 ## 一、项目总体目标
 
-**将原论文（CO2 吸收预测）的 GNN 架构，迁移并扩展为：**
+**将原论文（Refrigerant 吸收预测）的 GNN 架构，迁移并扩展为：**
 > 使用 Tri-Graph GNN 预测**多种制冷剂（HFCs/HFOs）在离子液体中的溶解度（x1，摩尔分数）**
 
 原论文来源：`arXiv:2210.01120v2`（也是你的代码祖源）
@@ -47,7 +47,7 @@
 ## 三、现有代码文件一览
 
 ```
-Predicting-CO2.../
+Predicting-Refrigerant.../
 ├── prepare_tri_graph_data.py    # 数据预处理（已完成、已修复）
 ├── processed_tri_data/
 │   ├── data.npy                 # 4444 条三图数据

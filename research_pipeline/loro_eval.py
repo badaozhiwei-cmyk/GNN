@@ -2,7 +2,7 @@
 loro_eval.py
 ============
 Leave-One-Refrigerant-Out (LORO) Generalization Benchmark.
-Evaluates model's ability to predict CO2/refrigerant solubility in ionic liquids
+Evaluates model's ability to predict Refrigerant/refrigerant solubility in ionic liquids
 when a specific refrigerant is COMPLETELY unseen during training.
 """
 import pandas as pd

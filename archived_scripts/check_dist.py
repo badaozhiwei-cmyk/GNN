@@ -27,12 +27,12 @@ df['family'] = df['anion'].apply(assign_family)
 other = df[df['family'] == 'Other']
 print("=== 'Other' anions ===")
 for anion, cnt in other['anion'].value_counts().items():
-    subset = other[other['anion'] == anion]['x_CO2']
+    subset = other[other['anion'] == anion]['x_Refrigerant']
     print(f"  {anion:20s}: {cnt:4d}  x1 mean={subset.mean():.4f}")
 
 # Check F1 subtypes
 f1 = df[df['family'] == 'F1']
 print("\n=== F1 subtypes ===")
 for anion, cnt in f1['anion'].value_counts().items():
-    subset = f1[f1['anion'] == anion]['x_CO2']
+    subset = f1[f1['anion'] == anion]['x_Refrigerant']
     print(f"  {anion:20s}: {cnt:4d}  x1 mean={subset.mean():.4f}")

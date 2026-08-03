@@ -142,14 +142,14 @@ def compute_cci_and_plot():
     # Annotate refrigerant names
     # Custom text offset offsets to prevent text collision
     offsets = {
-        'R32': (0.01, 0.02),
-        'R152a': (0.01, -0.04),
+        'R32': (0.01, 0.025),
+        'R152a': (0.012, 0.005),
         'R125': (0.01, 0.02),
-        'R161': (-0.05, 0.02),
+        'R161': (-0.048, -0.01),
         'R1234yf': (0.01, 0.02),
         'R23': (0.01, 0.02),
-        'R134a': (0.01, -0.04),
-        'R22': (0.01, 0.02)
+        'R134a': (0.012, 0.015),
+        'R22': (0.012, -0.03)
     }
     
     for _, row in res_df.iterrows():

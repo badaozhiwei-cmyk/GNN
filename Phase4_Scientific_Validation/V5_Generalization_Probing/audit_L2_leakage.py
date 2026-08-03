@@ -8,8 +8,8 @@ def audit_leakage(csv_path, split_npz_path, output_dir):
     df = pd.read_csv(csv_path)
     splits = np.load(split_npz_path)
     
-    train_idx = splits['train_indices']
-    test_idx = splits['test_indices']
+    train_idx = splits['train']
+    test_idx = splits['test']
     
     train_df = df.iloc[train_idx]
     test_df = df.iloc[test_idx]
