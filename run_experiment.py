@@ -44,7 +44,7 @@ def generate_dataset_stats(df, ref_col='refrigerant'):
 def main():
     parser = argparse.ArgumentParser(description="Unified ChemEng GNN Experiment Runner")
     parser.add_argument("--family", type=str, required=True, choices=['HFC', 'HFO', 'ALL'], help="Chemical family to filter")
-    parser.add_argument("--mode", type=str, required=True, choices=['random', 'loro'], help="Split mode")
+    parser.add_argument("--mode", type=str, required=True, choices=['random', 'loro', 'family_loro'], help="Split mode")
     parser.add_argument("--seeds", type=int, default=3, help="Number of random seeds")
     parser.add_argument("--epoch", type=int, default=150, help="Max epochs")
     
@@ -86,25 +86,21 @@ def main():
     print("Loading Graph Dataset...")
     Whole_set = IL_set_v5(path=model_args['data_path'], args=model_args)
     
+    # CRITICAL: Verify perfect alignment between CSV and PyG dataset
+    assert len(pd.read_csv('index_with_anion.csv')) == len(Whole_set), f"Dataset length mismatch! CSV: {len(df)} vs PyG: {len(Whole_set)}"
+    
     out_dir = f"results/{args.family}_{args.mode}"
     os.makedirs(out_dir, exist_ok=True)
     
     # 2. Determine splits
     splits_to_run = [] # List of tuples: (split_name, train_idx, val_idx, test_idx)
     
-    # We must match the original npy_idx for indexing the Whole_set correctly
-    # df.index is just the pandas row index. But wait, `Whole_set` is indexed by npy_idx or positional?
-    # Actually, Dataset_v5 usually uses positional indexing from 0 to len-1. 
-    # Let's map df.index to positional if needed. In `Dataset_v5.py`, it loads preprocessed `.pt` files.
-    # The user's `index_with_anion.csv` matches the `Whole_set` exactly row for row. 
-    # So `df.index.values` gives the correct positional index in `Whole_set`!
-    
     if args.mode == 'random':
         train_val_idx, test_idx = train_test_split(df.index.values, test_size=0.2, random_state=42)
         train_idx, val_idx = train_test_split(train_val_idx, test_size=0.1, random_state=42)
         splits_to_run.append(('random_split', train_idx.tolist(), val_idx.tolist(), test_idx.tolist()))
         
-    elif args.mode == 'loro':
+    elif args.mode in ['loro', 'family_loro']:
         unique_refs = df[ref_col].unique()
         for ref in unique_refs:
             test_idx = df[df[ref_col] == ref].index.values
@@ -156,6 +152,10 @@ def main():
             
         summary_results.append({
             'Target': split_name,
+            'Family': args.family,
+            'Mode': args.mode,
+            'n_train': len(train_idx),
+            'n_test': len(test_idx),
             'R2_mean': np.mean(split_r2_list),
             'R2_std': np.std(split_r2_list),
             'MAE_mean': np.mean(split_mae_list),
