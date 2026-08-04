@@ -44,7 +44,7 @@ def generate_dataset_stats(df, ref_col='refrigerant'):
 def main():
     parser = argparse.ArgumentParser(description="Unified ChemEng GNN Experiment Runner")
     parser.add_argument("--family", type=str, required=True, choices=['HFC', 'HFO', 'ALL'], help="Chemical family to filter")
-    parser.add_argument("--mode", type=str, required=True, choices=['random', 'loro', 'family_loro'], help="Split mode")
+    parser.add_argument("--mode", type=str, required=True, choices=['random', 'loro'], help="Split mode")
     parser.add_argument("--seeds", type=int, default=5, help="Number of random seeds")
     parser.add_argument("--epoch", type=int, default=150, help="Max epochs")
     
@@ -104,7 +104,7 @@ def main():
         train_idx, val_idx = train_test_split(train_val_idx, test_size=1/9, random_state=42)
         splits_to_run.append(('random_split', train_idx.tolist(), val_idx.tolist(), test_idx.tolist()))
         
-    elif args.mode in ['loro', 'family_loro']:
+    elif args.mode == 'loro':
         unique_refs = df[ref_col].unique()
         for ref in unique_refs:
             test_idx = df[df[ref_col] == ref].index.values
@@ -133,7 +133,7 @@ def main():
         print(f"[DEBUG] First 5 Train Refs: {train_refs_sample}")
         print(f"[DEBUG] First 5 Test Refs:  {test_refs_sample}")
         
-        if args.mode in ['loro', 'family_loro']:
+        if args.mode == 'loro':
             target_ref = split_name.replace('loro_', '')
             assert target_ref not in unique_train_refs, f"🚨 LEAKAGE DETECTED! {target_ref} found in training set!"
             assert list(unique_test_refs) == [target_ref], f"🚨 TEST PURITY FAILED! Expected only {target_ref}, found {unique_test_refs}"
@@ -178,6 +178,10 @@ def main():
             runner.train(train_loader, val_loader)
             
             test_pred, test_true = runner.test(test_loader)
+            
+            # CRITICAL: Verify prediction array lengths align with test indices
+            assert len(test_idx) == len(test_true) == len(test_pred), \
+                f"Length mismatch: idx({len(test_idx)}) true({len(test_true)}) pred({len(test_pred)})"
             
             # Export individual seed predictions WITH metadata
             seed_df = pd.DataFrame({
