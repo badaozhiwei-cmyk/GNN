@@ -44,27 +44,30 @@ def generate_dataset_stats(df, ref_col='refrigerant'):
 def main():
     parser = argparse.ArgumentParser(description="Unified ChemEng GNN Experiment Runner")
     parser.add_argument("--family", type=str, required=True, choices=['HFC', 'HFO', 'ALL'], help="Chemical family to filter")
-    parser.add_argument("--mode", type=str, required=True, choices=['random', 'loro', 'family_loro'], help="Split mode")
-    parser.add_argument("--seeds", type=int, default=3, help="Number of random seeds")
+    parser.add_argument("--mode", type=str, required=True, choices=['random', 'loro'], help="Split mode")
+    parser.add_argument("--seeds", type=int, default=5, help="Number of random seeds")
     parser.add_argument("--epoch", type=int, default=150, help="Max epochs")
     
     args = parser.parse_args()
     
     # 1. Load and prepare data
-    df = pd.read_csv('index_with_anion.csv')
-    ref_col = 'refrigerant' if 'refrigerant' in df.columns else 'Refrigerant'
+    df_raw = pd.read_csv('index_with_anion.csv')
+    ref_col = 'refrigerant' if 'refrigerant' in df_raw.columns else 'Refrigerant'
     
-    if 'family' not in df.columns:
-        df['family'] = df[ref_col].map(FAMILY_MAP)
+    if 'family' not in df_raw.columns:
+        df_raw['family'] = df_raw[ref_col].map(FAMILY_MAP)
         
-    generate_dataset_stats(df, ref_col)
+    generate_dataset_stats(df_raw, ref_col)
     
-    # Filter by family
+    # Create mask for family
+    df = df_raw.copy()
     if args.family != 'ALL':
         df = df[df['family'] == args.family]
         if len(df) == 0:
             raise ValueError(f"No samples found for family {args.family}")
     
+    # Notice: df is filtered, but its pandas index still points to the EXACT raw rows.
+    # We deliberately DO NOT reset_index() so df.index maps 1:1 with Whole_set positional index.
     print(f"\n[{args.family}] Total samples after filtering: {len(df)}")
     
     # Model Arguments
@@ -87,7 +90,7 @@ def main():
     Whole_set = IL_set_v5(path=model_args['data_path'], args=model_args)
     
     # CRITICAL: Verify perfect alignment between CSV and PyG dataset
-    assert len(pd.read_csv('index_with_anion.csv')) == len(Whole_set), f"Dataset length mismatch! CSV: {len(df)} vs PyG: {len(Whole_set)}"
+    assert len(df_raw) == len(Whole_set), f"Dataset length mismatch! CSV: {len(df_raw)} vs PyG: {len(Whole_set)}"
     
     out_dir = f"results/{args.family}_{args.mode}"
     os.makedirs(out_dir, exist_ok=True)
@@ -96,11 +99,12 @@ def main():
     splits_to_run = [] # List of tuples: (split_name, train_idx, val_idx, test_idx)
     
     if args.mode == 'random':
+        # df.index.values holds original global indices (e.g., [1, 3, 7, 8, ...])
         train_val_idx, test_idx = train_test_split(df.index.values, test_size=0.2, random_state=42)
         train_idx, val_idx = train_test_split(train_val_idx, test_size=0.1, random_state=42)
         splits_to_run.append(('random_split', train_idx.tolist(), val_idx.tolist(), test_idx.tolist()))
         
-    elif args.mode in ['loro', 'family_loro']:
+    elif args.mode == 'loro':
         unique_refs = df[ref_col].unique()
         for ref in unique_refs:
             test_idx = df[df[ref_col] == ref].index.values
@@ -116,7 +120,25 @@ def main():
     for split_name, train_idx, val_idx, test_idx in splits_to_run:
         print(f"\n{'='*60}")
         print(f"Running Split: {split_name} | Train: {len(train_idx)}, Val: {len(val_idx)}, Test: {len(test_idx)}")
+        
+        # =============== DATA LEAKAGE PREVENTION DEBUG ===============
+        # Double check what exactly is going into train and test sets
+        train_refs_sample = df_raw.iloc[train_idx[:5]][ref_col].tolist()
+        test_refs_sample = df_raw.iloc[test_idx[:5]][ref_col].tolist()
+        
+        print(f"[DEBUG] First 5 Train Refs: {train_refs_sample}")
+        print(f"[DEBUG] First 5 Test Refs:  {test_refs_sample}")
+        
+        if args.mode == 'loro':
+            target_ref = split_name.replace('loro_', '')
+            unique_train_refs = df_raw.iloc[train_idx][ref_col].unique()
+            unique_test_refs = df_raw.iloc[test_idx][ref_col].unique()
+            
+            assert target_ref not in unique_train_refs, f"🚨 LEAKAGE DETECTED! {target_ref} found in training set!"
+            assert list(unique_test_refs) == [target_ref], f"🚨 TEST PURITY FAILED! Expected only {target_ref}, found {unique_test_refs}"
+            print(f"[DEBUG] LORO Purity Check: PASSED ✅ (Train unique refs: {len(unique_train_refs)})")
         print(f"{'='*60}")
+        # =============================================================
         
         train_set = torch.utils.data.Subset(Whole_set, train_idx)
         val_set   = torch.utils.data.Subset(Whole_set, val_idx)
