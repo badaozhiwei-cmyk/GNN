@@ -44,7 +44,7 @@ def generate_dataset_stats(df, ref_col='refrigerant'):
 def main():
     parser = argparse.ArgumentParser(description="Unified ChemEng GNN Experiment Runner")
     parser.add_argument("--family", type=str, required=True, choices=['HFC', 'HFO', 'ALL'], help="Chemical family to filter")
-    parser.add_argument("--mode", type=str, required=True, choices=['random', 'loro'], help="Split mode")
+    parser.add_argument("--mode", type=str, required=True, choices=['random', 'loro', 'family_loro'], help="Split mode")
     parser.add_argument("--seeds", type=int, default=5, help="Number of random seeds")
     parser.add_argument("--epoch", type=int, default=150, help="Max epochs")
     
@@ -99,18 +99,19 @@ def main():
     splits_to_run = [] # List of tuples: (split_name, train_idx, val_idx, test_idx)
     
     if args.mode == 'random':
-        # df.index.values holds original global indices
-        train_val_idx, test_idx = train_test_split(df.index.values, test_size=0.2, random_state=42)
-        train_idx, val_idx = train_test_split(train_val_idx, test_size=0.1, random_state=42)
+        # 80/10/10 split
+        train_val_idx, test_idx = train_test_split(df.index.values, test_size=0.1, random_state=42)
+        train_idx, val_idx = train_test_split(train_val_idx, test_size=1/9, random_state=42)
         splits_to_run.append(('random_split', train_idx.tolist(), val_idx.tolist(), test_idx.tolist()))
         
-    elif args.mode == 'loro':
+    elif args.mode in ['loro', 'family_loro']:
         unique_refs = df[ref_col].unique()
         for ref in unique_refs:
             test_idx = df[df[ref_col] == ref].index.values
             train_val_idx = df[df[ref_col] != ref].index.values
             if len(train_val_idx) == 0 or len(test_idx) == 0:
                 continue
+            # LORO train/val split is 90/10 of the remaining pool
             train_idx, val_idx = train_test_split(train_val_idx, test_size=0.1, random_state=42)
             splits_to_run.append((f'loro_{ref}', train_idx.tolist(), val_idx.tolist(), test_idx.tolist()))
 
@@ -132,7 +133,7 @@ def main():
         print(f"[DEBUG] First 5 Train Refs: {train_refs_sample}")
         print(f"[DEBUG] First 5 Test Refs:  {test_refs_sample}")
         
-        if args.mode == 'loro':
+        if args.mode in ['loro', 'family_loro']:
             target_ref = split_name.replace('loro_', '')
             assert target_ref not in unique_train_refs, f"🚨 LEAKAGE DETECTED! {target_ref} found in training set!"
             assert list(unique_test_refs) == [target_ref], f"🚨 TEST PURITY FAILED! Expected only {target_ref}, found {unique_test_refs}"
@@ -157,8 +158,11 @@ def main():
         val_set   = torch.utils.data.Subset(Whole_set, val_idx)
         test_set  = torch.utils.data.Subset(Whole_set, test_idx)
         
-        # Fit Scalers ONCE per split using training data
-        Whole_set.fit_scalers(train_idx, save_dir=out_dir)
+        split_dir = f"{out_dir}/{split_name}"
+        os.makedirs(split_dir, exist_ok=True)
+        
+        # Fit Scalers ONCE per split using training data, save in split_dir
+        Whole_set.fit_scalers(train_idx, save_dir=split_dir)
         
         test_loader = DataLoader(test_set, batch_size=model_args['batch_size'], shuffle=False)
         
@@ -170,19 +174,20 @@ def main():
             train_loader = DataLoader(train_set, batch_size=model_args['batch_size'], shuffle=True)
             val_loader   = DataLoader(val_set, batch_size=model_args['batch_size'], shuffle=False)
             
-            runner = Runner(model_args, seed=seed, save_dir=f"{out_dir}/{split_name}")
+            runner = Runner(model_args, seed=seed, save_dir=split_dir)
             runner.train(train_loader, val_loader)
             
             test_pred, test_true = runner.test(test_loader)
             
             # Export individual seed predictions WITH metadata
             seed_df = pd.DataFrame({
+                'seed': seed,
                 'refrigerant': df_raw.iloc[test_idx][ref_col].values,
                 'true_x1': test_true,
                 'pred_x1': test_pred
             })
-            os.makedirs(f"{out_dir}/{split_name}_preds", exist_ok=True)
-            seed_df.to_csv(f"{out_dir}/{split_name}_preds/seed{seed}.csv", index=False)
+            os.makedirs(f"{split_dir}_preds", exist_ok=True)
+            seed_df.to_csv(f"{split_dir}_preds/seed{seed}.csv", index=False)
             
             r2 = r2_score(test_true, test_pred)
             mae = mean_absolute_error(test_true, test_pred)
