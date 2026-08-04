@@ -99,7 +99,7 @@ def main():
     splits_to_run = [] # List of tuples: (split_name, train_idx, val_idx, test_idx)
     
     if args.mode == 'random':
-        # df.index.values holds original global indices (e.g., [1, 3, 7, 8, ...])
+        # df.index.values holds original global indices
         train_val_idx, test_idx = train_test_split(df.index.values, test_size=0.2, random_state=42)
         train_idx, val_idx = train_test_split(train_val_idx, test_size=0.1, random_state=42)
         splits_to_run.append(('random_split', train_idx.tolist(), val_idx.tolist(), test_idx.tolist()))
@@ -116,27 +116,40 @@ def main():
 
     # 3. Execution Loop
     summary_results = []
+    split_info_results = []
     
     for split_name, train_idx, val_idx, test_idx in splits_to_run:
         print(f"\n{'='*60}")
         print(f"Running Split: {split_name} | Train: {len(train_idx)}, Val: {len(val_idx)}, Test: {len(test_idx)}")
         
         # =============== DATA LEAKAGE PREVENTION DEBUG ===============
-        # Double check what exactly is going into train and test sets
         train_refs_sample = df_raw.iloc[train_idx[:5]][ref_col].tolist()
         test_refs_sample = df_raw.iloc[test_idx[:5]][ref_col].tolist()
+        
+        unique_train_refs = df_raw.iloc[train_idx][ref_col].unique()
+        unique_test_refs = df_raw.iloc[test_idx][ref_col].unique()
         
         print(f"[DEBUG] First 5 Train Refs: {train_refs_sample}")
         print(f"[DEBUG] First 5 Test Refs:  {test_refs_sample}")
         
         if args.mode == 'loro':
             target_ref = split_name.replace('loro_', '')
-            unique_train_refs = df_raw.iloc[train_idx][ref_col].unique()
-            unique_test_refs = df_raw.iloc[test_idx][ref_col].unique()
-            
             assert target_ref not in unique_train_refs, f"🚨 LEAKAGE DETECTED! {target_ref} found in training set!"
             assert list(unique_test_refs) == [target_ref], f"🚨 TEST PURITY FAILED! Expected only {target_ref}, found {unique_test_refs}"
             print(f"[DEBUG] LORO Purity Check: PASSED ✅ (Train unique refs: {len(unique_train_refs)})")
+            split_info_results.append({
+                'split': split_name,
+                'train_refs': len(unique_train_refs),
+                'test_ref': target_ref,
+                'n_train': len(train_idx)
+            })
+        else:
+            split_info_results.append({
+                'split': split_name,
+                'train_refs': len(unique_train_refs),
+                'test_ref': 'mixed (interpolation)',
+                'n_train': len(train_idx)
+            })
         print(f"{'='*60}")
         # =============================================================
         
@@ -162,8 +175,12 @@ def main():
             
             test_pred, test_true = runner.test(test_loader)
             
-            # Export individual seed predictions
-            seed_df = pd.DataFrame({'true_x1': test_true, 'pred_x1': test_pred})
+            # Export individual seed predictions WITH metadata
+            seed_df = pd.DataFrame({
+                'refrigerant': df_raw.iloc[test_idx][ref_col].values,
+                'true_x1': test_true,
+                'pred_x1': test_pred
+            })
             os.makedirs(f"{out_dir}/{split_name}_preds", exist_ok=True)
             seed_df.to_csv(f"{out_dir}/{split_name}_preds/seed{seed}.csv", index=False)
             
@@ -186,7 +203,11 @@ def main():
         
     summary_df = pd.DataFrame(summary_results)
     summary_df.to_csv(f"{out_dir}/summary.csv", index=False)
-    print(f"\n✅ All completed! Results saved to {out_dir}/summary.csv")
+    
+    split_info_df = pd.DataFrame(split_info_results)
+    split_info_df.to_csv(f"{out_dir}/split_information.csv", index=False)
+    
+    print(f"\n✅ All completed! Results saved to {out_dir}/summary.csv and split_information.csv")
 
 if __name__ == '__main__':
     main()
