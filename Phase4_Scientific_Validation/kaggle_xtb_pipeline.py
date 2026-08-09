@@ -103,7 +103,7 @@ def run_xtb(name, smiles, charge, category, work_dir, log_dir):
         return None
 
     print(f"  Step 2: Running geometry optimization...")
-    opt_cmd = ['xtb', xyz_file, '--opt', 'tight', '--chrg', str(charge), '--gfn', '2', '--namespace', safe_name]
+    opt_cmd = ['xtb', f"{safe_name}.xyz", '--opt', 'tight', '--chrg', str(charge), '--gfn', '2', '--namespace', safe_name]
     opt_result = subprocess.run(opt_cmd, capture_output=True, text=True, cwd=mol_work, timeout=600)
 
     opt_xyz = os.path.join(mol_work, 'xtbopt.xyz')
@@ -115,7 +115,7 @@ def run_xtb(name, smiles, charge, category, work_dir, log_dir):
             opt_xyz = xyz_file
 
     print(f"  Step 3: Computing polarizability on optimized geometry...")
-    sp_cmd = ['xtb', opt_xyz, '--sp', '--alpha', '--chrg', str(charge), '--gfn', '2']
+    sp_cmd = ['xtb', os.path.basename(opt_xyz), '--sp', '--alpha', '--chrg', str(charge), '--gfn', '2']
     sp_result = subprocess.run(sp_cmd, capture_output=True, text=True, cwd=mol_work, timeout=600)
 
     full_output = opt_result.stdout + "\n" + sp_result.stdout
