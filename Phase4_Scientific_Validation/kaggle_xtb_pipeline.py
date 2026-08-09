@@ -81,11 +81,24 @@ def parse_xtb_output(output_text):
     if vol_match:
         results['Volume_Bohr3'] = float(vol_match.group(1))
 
+    # 4. Total energy (for sanity checking)
     energy_match = re.search(r'TOTAL ENERGY\s+([\-\d.]+)\s+Eh', output_text)
     if energy_match:
         results['Total_Energy_Eh'] = float(energy_match.group(1))
 
     return results
+
+def get_rdkit_volume(xyz_file):
+    """Fallback: Calculate molecular volume (Angstrom^3) using RDKit from the optimized xyz."""
+    try:
+        mol = Chem.rdmolfiles.MolFromXYZFile(xyz_file)
+        if mol:
+            # Compute vdW volume using RDKit's Monte Carlo method
+            return AllChem.ComputeMolVolume(mol)
+    except:
+        pass
+    return None
+
 
 def run_xtb(name, smiles, charge, category, work_dir, log_dir):
     safe_name = safe_filename(name)
@@ -126,6 +139,14 @@ def run_xtb(name, smiles, charge, category, work_dir, log_dir):
         f.write("\n=== SP+ALPHA STDOUT ===\n" + sp_result.stdout + "\n=== SP+ALPHA STDERR ===\n" + sp_result.stderr)
 
     parsed = parse_xtb_output(full_output)
+    
+    # If xTB didn't output Volume, compute it using RDKit on the optimized geometry (Angstrom^3)
+    if parsed['Volume_Bohr3'] is None:
+        rdkit_vol = get_rdkit_volume(opt_xyz)
+        if rdkit_vol is not None:
+            # Convert Angstrom^3 to Bohr^3 to match xTB expectation (1 Angstrom = 1.88973 Bohr)
+            parsed['Volume_Bohr3'] = rdkit_vol * (1.8897259886 ** 3)
+
     print(f"  Results: μ={parsed['Dipole_Debye']}, α={parsed['Polarizability_au']}, V={parsed['Volume_Bohr3']}")
     return parsed
 
