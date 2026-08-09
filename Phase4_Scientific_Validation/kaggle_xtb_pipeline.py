@@ -21,10 +21,12 @@ if os.path.exists(xtb_root):
     os.environ['XTBPATH'] = f"{xtb_root}/share/xtb"
 
 # --- CONFIGURATION (Relative paths for Kaggle git clone workflow) ---
-INPUT_CSV = '../index_with_anion.csv'
-OUTPUT_CSV = 'xTB_Physics_Descriptors.csv'
-LOG_DIR = 'xtb_logs'
-WORK_DIR = 'xtb_work'
+# When you run `!python Phase4_Scientific_Validation/kaggle_xtb_pipeline.py`
+# from the /kaggle/working/GNN directory, Python's working directory is /kaggle/working/GNN
+INPUT_CSV = 'index_with_anion.csv'
+OUTPUT_CSV = 'Phase4_Scientific_Validation/xTB_Physics_Descriptors.csv'
+LOG_DIR = 'Phase4_Scientific_Validation/xtb_logs'
+WORK_DIR = 'Phase4_Scientific_Validation/xtb_work'
 
 VEGA_REFRIGERANTS = {
     'R41', 'R32', 'R23', 'R161', 'R152a', 'R134a', 'R125',
