@@ -73,11 +73,11 @@ def parse_xtb_output(output_text):
     if dipole_matches:
         results['Dipole_Debye'] = float(dipole_matches[-1][3])
 
-    alpha_match = re.search(r'Mol\.\s+alpha\(0\)\s+/au\s*:?\s+([\d.]+)', output_text)
+    alpha_match = re.search(r'(?:Mol\.\s+)?(?:alpha|α|a)\s*(?:\(0\))?\s*/au\s*:?\s*([\d.]+)', output_text, re.IGNORECASE)
     if alpha_match:
         results['Polarizability_au'] = float(alpha_match.group(1))
 
-    vol_match = re.search(r'molecular volume.*?:\s+([\d.]+)\s+', output_text)
+    vol_match = re.search(r'volume.*?:\s*([\d.]+)', output_text, re.IGNORECASE)
     if vol_match:
         results['Volume_Bohr3'] = float(vol_match.group(1))
 
