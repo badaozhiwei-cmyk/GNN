@@ -44,7 +44,7 @@ def generate_dataset_stats(df, ref_col='refrigerant'):
 def main():
     parser = argparse.ArgumentParser(description="Unified ChemEng GNN Experiment Runner")
     parser.add_argument("--family", type=str, required=True, choices=['HFC', 'HFO', 'ALL'], help="Chemical family to filter")
-    parser.add_argument("--mode", type=str, required=True, choices=['random', 'loro'], help="Split mode")
+    parser.add_argument("--mode", type=str, required=True, choices=['random', 'loro', 'l1_tp', 'l2_il', 'l3_family'], help="Split mode")
     parser.add_argument("--seeds", type=int, default=5, help="Number of random seeds")
     parser.add_argument("--epoch", type=int, default=150, help="Max epochs")
     
@@ -114,6 +114,45 @@ def main():
             # LORO train/val split is 90/10 of the remaining pool
             train_idx, val_idx = train_test_split(train_val_idx, test_size=0.1, random_state=42)
             splits_to_run.append((f'loro_{ref}', train_idx.tolist(), val_idx.tolist(), test_idx.tolist()))
+            
+    elif args.mode == 'l1_tp':
+        # L1: Hidden T, P conditions. 
+        # Group by T_K and P_MPa. Select 15% of unique (T, P) combinations for test.
+        unique_tp = df[['T_K', 'P_MPa']].drop_duplicates()
+        train_tp, test_tp = train_test_split(unique_tp, test_size=0.15, random_state=42)
+        
+        # Merge to get exact indices from the ORIGINAL df (which keeps raw index)
+        # We must align with df.index
+        df_reset = df.reset_index() # Keep original index as a column 'index'
+        test_idx = df_reset.merge(test_tp, on=['T_K', 'P_MPa'], how='inner')['index'].values
+        train_val_idx = df_reset.merge(train_tp, on=['T_K', 'P_MPa'], how='inner')['index'].values
+        
+        train_idx, val_idx = train_test_split(train_val_idx, test_size=0.1, random_state=42)
+        splits_to_run.append(('l1_tp_split', train_idx.tolist(), val_idx.tolist(), test_idx.tolist()))
+
+    elif args.mode == 'l2_il':
+        # L2: Hidden IL (Cation + Anion) combinations.
+        df_temp = df.copy()
+        df_temp['IL_pair'] = df_temp['cation'] + "_" + df_temp['anion']
+        unique_ils = df_temp['IL_pair'].unique()
+        train_ils, test_ils = train_test_split(unique_ils, test_size=0.15, random_state=42)
+        
+        test_idx = df_temp[df_temp['IL_pair'].isin(test_ils)].index.values
+        train_val_idx = df_temp[df_temp['IL_pair'].isin(train_ils)].index.values
+        
+        train_idx, val_idx = train_test_split(train_val_idx, test_size=0.1, random_state=42)
+        splits_to_run.append(('l2_il_split', train_idx.tolist(), val_idx.tolist(), test_idx.tolist()))
+
+    elif args.mode == 'l3_family':
+        # L3: Cross-family. Train on HFC, test on HFO.
+        if args.family != 'ALL':
+            raise ValueError("For l3_family mode, you must set --family ALL")
+        
+        test_idx = df[df['family'] == 'HFO'].index.values
+        train_val_idx = df[df['family'] == 'HFC'].index.values
+        
+        train_idx, val_idx = train_test_split(train_val_idx, test_size=0.1, random_state=42)
+        splits_to_run.append(('l3_hfc_to_hfo', train_idx.tolist(), val_idx.tolist(), test_idx.tolist()))
 
     # 3. Execution Loop
     summary_results = []
@@ -144,11 +183,19 @@ def main():
                 'test_ref': target_ref,
                 'n_train': len(train_idx)
             })
+        elif args.mode == 'l3_family':
+            print(f"[DEBUG] L3 Cross-Family Check: Train Refs: {len(unique_train_refs)} (HFC), Test Refs: {len(unique_test_refs)} (HFO)")
+            split_info_results.append({
+                'split': split_name,
+                'train_refs': len(unique_train_refs),
+                'test_ref': 'HFO Family',
+                'n_train': len(train_idx)
+            })
         else:
             split_info_results.append({
                 'split': split_name,
                 'train_refs': len(unique_train_refs),
-                'test_ref': 'mixed (interpolation)',
+                'test_ref': 'mixed',
                 'n_train': len(train_idx)
             })
         print(f"{'='*60}")
