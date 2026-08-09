@@ -14,11 +14,13 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 
 # --- KAGGLE ENVIRONMENT FIX ---
-# If xtb was downloaded manually via wget, inject it into PATH
-xtb_root = '/kaggle/working/xtb-6.7.1'
+# Grimme's xTB tarball extracts to a folder named "xtb-dist"
+xtb_root = '/kaggle/working/xtb-dist'
 if os.path.exists(xtb_root):
     os.environ['PATH'] = f"{xtb_root}/bin:" + os.environ.get('PATH', '')
     os.environ['XTBPATH'] = f"{xtb_root}/share/xtb"
+else:
+    print(f"[WARNING] Could not find xTB installation at {xtb_root}. Subprocess may fail if xtb is not in PATH.")
 
 # --- CONFIGURATION (Relative paths for Kaggle git clone workflow) ---
 # When you run `!python Phase4_Scientific_Validation/kaggle_xtb_pipeline.py`
