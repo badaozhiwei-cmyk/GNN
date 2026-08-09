@@ -100,9 +100,8 @@ def parse_alpha(text):
     """
     # Try multiple patterns from most specific to least specific
     patterns = [
-        r'Mol\.\s+alpha\(0\)\s*/au\s*:?\s*([\d.]+)',
-        r'alpha\(0\)\s*/au\s*:?\s*([\d.]+)',
-        r'Mol\.\s+C6AA\s+/au.*?Mol\.\s+alpha\(0\)\s*/au\s*:?\s*([\d.]+)',
+        r'(?:Mol\.\s+)?(?:alpha|α|a)\s*(?:\(0\))?\s*/au\s*:?\s*([\d.]+)',
+        r'Mol\.\s+C6AA\s+/au.*?(?:alpha|α|a)\s*(?:\(0\))?\s*/au\s*:?\s*([\d.]+)',
     ]
     for pat in patterns:
         m = re.search(pat, text, re.DOTALL | re.IGNORECASE)
