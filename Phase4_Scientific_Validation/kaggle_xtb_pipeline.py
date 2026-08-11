@@ -51,62 +51,64 @@ def generate_xyz(smiles, molecule_name, output_xyz):
             print(f"  [ERROR] Cannot embed 3D coords for {molecule_name}")
             return False
     try:
-        AllChem.MMFFOptimizeMolecule(mol, maxIters=500)
+        mmff_res = AllChem.MMFFOptimizeMolecule(mol, maxIters=500)
     except Exception:
+        mmff_res = -1  # MMFF params unavailable on some RDKit versions
+    if mmff_res != 0:
+        if mmff_res == 1:
+            # MMFF ran but didn't converge — re-embed to avoid half-optimized coords
+            AllChem.EmbedMolecule(mol, params)
         try:
-            AllChem.UFFOptimizeMolecule(mol, maxIters=500)
+            uff_res = AllChem.UFFOptimizeMolecule(mol, maxIters=500)
         except Exception:
-            pass
+            uff_res = -1
+        if uff_res != 0:
+            print(f"  [WARNING] Force field optimization did not converge for {molecule_name}")
     Chem.MolToXYZFile(mol, output_xyz)
     return True
 
+
+def to_float(token):
+    if token is None: return None
+    return float(token.replace("D", "E").replace("d", "e"))
+
+FLOAT_RE = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][+-]?\d+)?"
 
 def parse_dipole(text):
     """
     Extract dipole from the 'molecular dipole:' section ONLY.
     Anchors to the section header to avoid matching quadrupole 'full:' lines.
-    
-    Target format:
-        molecular dipole:
-                         x           y           z       tot (Debye)
-         q only:       ...
-           full:       -1.227      -0.029       0.033       3.121
     """
-    # Find ALL 'molecular dipole:' sections, take the LAST one
-    pattern = r'molecular dipole:.*?full:\s+([\-\d.]+)\s+([\-\d.]+)\s+([\-\d.]+)\s+([\d.]+)'
+    pattern = r'molecular dipole:.*?full:\s+(' + FLOAT_RE + r')\s+(' + FLOAT_RE + r')\s+(' + FLOAT_RE + r')\s+(' + FLOAT_RE + ')'
     matches = re.findall(pattern, text, re.DOTALL)
     if matches:
-        return float(matches[-1][3])
+        return to_float(matches[-1][3])
     return None
 
 
 def parse_energy(text):
     """
-    Extract total energy. The boxed format:
-        | TOTAL ENERGY              -16.653214257718 Eh   |
-    Take the LAST occurrence (from SP step).
+    Extract total energy.
     """
-    matches = re.findall(r'TOTAL ENERGY\s+([\-\d.]+)\s+Eh', text)
+    pattern = r'TOTAL ENERGY\s+(' + FLOAT_RE + r')\s+Eh'
+    matches = re.findall(pattern, text)
     if matches:
-        return float(matches[-1])
+        return to_float(matches[-1])
     return None
 
 
 def parse_alpha(text):
     """
     Extract molecular polarizability alpha(0).
-    Target format (may use ASCII or Unicode):
-        Mol. alpha(0) /au        :         12.345
     """
-    # Try multiple patterns from most specific to least specific
     patterns = [
-        r'(?:Mol\.\s+)?(?:alpha|α|a)\s*(?:\(0\))?\s*/au\s*:?\s*([\d.]+)',
-        r'Mol\.\s+C6AA\s+/au.*?(?:alpha|α|a)\s*(?:\(0\))?\s*/au\s*:?\s*([\d.]+)',
+        r'(?:Mol\.\s+)?(?:alpha|α)\s*(?:\(0\))?\s*/au\s*:?\s*(' + FLOAT_RE + ')',
+        r'Mol\.\s+C6AA\s+/au.*?(?:alpha|α)\s*(?:\(0\))?\s*/au\s*:?\s*(' + FLOAT_RE + ')',
     ]
     for pat in patterns:
         m = re.search(pat, text, re.DOTALL | re.IGNORECASE)
         if m:
-            return float(m.group(1))
+            return to_float(m.group(1))
     return None
 
 
@@ -141,13 +143,20 @@ def run_xtb(name, smiles, charge, category, work_dir, log_dir):
     opt_cmd = ['xtb', f"{safe_name}.xyz", '--opt', 'tight', '--chrg', str(charge), '--gfn', '2', '--namespace', safe_name]
     opt_result = subprocess.run(opt_cmd, capture_output=True, text=True, cwd=mol_work, timeout=600)
 
+    if opt_result.returncode != 0 or 'normal termination of xtb' not in opt_result.stdout.lower():
+        print(f"  [ERROR] xTB geometry optimization failed for {name}. See log.")
+        with open(log_file, 'w', encoding='utf-8') as f:
+            f.write(f"=== OPT STDOUT ===\n{opt_result.stdout}\n=== OPT STDERR ===\n{opt_result.stderr}")
+        return None
+
     opt_xyz = os.path.join(mol_work, 'xtbopt.xyz')
     if not os.path.exists(opt_xyz):
         alt_opt = os.path.join(mol_work, f'{safe_name}.xtbopt.xyz')
         if os.path.exists(alt_opt):
             opt_xyz = alt_opt
         else:
-            opt_xyz = xyz_file
+            print(f"  [ERROR] Optimized xyz file not found for {name}.")
+            return None
 
     # Step 3: Single-point + polarizability on optimized geometry
     print(f"  Step 3: Computing polarizability on optimized geometry...")
@@ -159,6 +168,10 @@ def run_xtb(name, smiles, charge, category, work_dir, log_dir):
         f.write(f"=== MOLECULE: {name} ===\nSMILES: {smiles}\nCharge: {charge}\nCategory: {category}\n\n")
         f.write("=== OPT STDOUT ===\n" + opt_result.stdout + "\n=== OPT STDERR ===\n" + opt_result.stderr)
         f.write("\n=== SP+ALPHA STDOUT ===\n" + sp_result.stdout + "\n=== SP+ALPHA STDERR ===\n" + sp_result.stderr)
+        
+    if sp_result.returncode != 0 or 'normal termination of xtb' not in sp_result.stdout.lower():
+        print(f"  [ERROR] xTB single point / alpha failed for {name}. See log.")
+        return None
 
     # ---- PARSE: Use SP output ONLY for dipole and energy ----
     # This avoids contamination from intermediate OPT step outputs
@@ -168,10 +181,12 @@ def run_xtb(name, smiles, charge, category, work_dir, log_dir):
     energy = parse_energy(sp_text)
     alpha  = parse_alpha(sp_text)
 
-    # Fallback: if SP didn't yield dipole/energy, try OPT output
+    # If SP output parsing failed, warn (both steps already confirmed successful)
     if dipole is None:
+        print(f"  [WARNING] Could not parse dipole from SP output for {name}, trying OPT output")
         dipole = parse_dipole(opt_result.stdout)
     if energy is None:
+        print(f"  [WARNING] Could not parse energy from SP output for {name}, trying OPT output")
         energy = parse_energy(opt_result.stdout)
 
     # Volume: RDKit on xTB-optimized geometry (xTB does not output vdW volume)
