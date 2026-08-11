@@ -18,6 +18,14 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+# --- KAGGLE ENVIRONMENT FIX ---
+xtb_root = '/kaggle/working/xtb-dist'
+if os.path.exists(xtb_root):
+    os.environ['PATH'] = f"{xtb_root}/bin:" + os.environ.get('PATH', '')
+    os.environ['XTBPATH'] = f"{xtb_root}/share/xtb"
+else:
+    print(f"[WARNING] Could not find xTB installation at {xtb_root}.")
+
 TARGETS = {
     "R134": "FC(F)C(F)F",
     "R134a": "FC(F)(F)CF",

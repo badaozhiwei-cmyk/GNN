@@ -140,20 +140,27 @@ class Runner:
     def test(self, test_loader):
         self._load_best()
         self._model.eval()
-        pred_y, true_y = [], []
+        raw_pred_y, true_y = [], []
         with torch.no_grad():
             for graph, cond, label in test_loader:
                 graph, cond, label = graph.to(self._device), cond.to(self._device), label.to(self._device)
                 pred = self._model(graph, cond)
-                pred_vals = np.clip(pred.flatten().cpu().numpy(), 0.0, 1.0)
-                pred_y.extend(pred_vals.tolist())
+                pred_vals = pred.flatten().cpu().numpy()
+                raw_pred_y.extend(pred_vals.tolist())
                 true_y.extend(label.cpu().numpy().tolist())
 
+        pred_y = np.clip(np.asarray(raw_pred_y), 0.0, 1.0)
         mae = mean_absolute_error(true_y, pred_y)
         rmse = np.sqrt(mean_squared_error(true_y, pred_y))
         r2  = r2_score(true_y, pred_y)
-        print(f"  ✅ Seed {self.seed} → MAE: {mae:.4f}, RMSE: {rmse:.4f}, R²: {r2:.4f}")
-        return pred_y, true_y
+        raw_mae = mean_absolute_error(true_y, raw_pred_y)
+        raw_rmse = np.sqrt(mean_squared_error(true_y, raw_pred_y))
+        raw_r2 = r2_score(true_y, raw_pred_y)
+        print(
+            f"  Seed {self.seed} -> raw R²: {raw_r2:.4f}, clipped R²: {r2:.4f}, "
+            f"raw MAE: {raw_mae:.4f}, clipped MAE: {mae:.4f}"
+        )
+        return np.asarray(raw_pred_y), pred_y, np.asarray(true_y)
 
 def plot_results(true_y, pred_y, title, filename):
     plt.figure(figsize=(7, 7))
@@ -205,6 +212,11 @@ if __name__ == '__main__':
     }
 
     LEVEL = cmd_args.level
+    if LEVEL == 'L4':
+        raise ValueError(
+            "L4 is a collection of per-refrigerant LORO splits, not one pooled split. "
+            "Use research_pipeline/step4_gat_loro_runner.py --ref <REF>."
+        )
     NUM_SEEDS = cmd_args.seeds
     SEEDS = list(range(NUM_SEEDS))
     SAVE_DIR = f"checkpoints_v5/{LEVEL}"
@@ -239,6 +251,7 @@ if __name__ == '__main__':
     print(f"  数据集 {LEVEL} 划分 → Train: {len(train_indices)}, Val: {len(val_indices)}, Test: {len(test_indices)}\n")
 
     all_preds = []
+    all_raw_preds = []
     test_true = None
     ensemble_results = []
 
@@ -254,19 +267,31 @@ if __name__ == '__main__':
         runner = Runner(Args, seed=seed, save_dir=SAVE_DIR)
         runner.train(train_loader, dev_loader)
 
-        test_pred, test_true = runner.test(test_loader)
+        test_raw_pred, test_pred, test_true = runner.test(test_loader)
         all_preds.append(test_pred)
+        all_raw_preds.append(test_raw_pred)
 
         mae = mean_absolute_error(test_true, test_pred)
         rmse = np.sqrt(mean_squared_error(test_true, test_pred))
         r2  = r2_score(test_true, test_pred)
-        ensemble_results.append({'level': LEVEL, 'seed': seed, 'mae': mae, 'rmse': rmse, 'r2': r2})
+        ensemble_results.append({
+            'level': LEVEL,
+            'seed': seed,
+            'mae': mae,
+            'rmse': rmse,
+            'r2': r2,
+            'raw_mae': mean_absolute_error(test_true, test_raw_pred),
+            'raw_rmse': np.sqrt(mean_squared_error(test_true, test_raw_pred)),
+            'raw_r2': r2_score(test_true, test_raw_pred),
+        })
 
     # ── 集成计算 (Mean, PICP, MPIW) ──
     all_preds = np.array(all_preds)      # Shape: (NUM_SEEDS, num_test_samples)
+    all_raw_preds = np.array(all_raw_preds)
     test_true = np.array(test_true)
     
     ensemble_pred = np.mean(all_preds, axis=0)
+    ensemble_raw_pred = np.mean(all_raw_preds, axis=0)
     ensemble_std  = np.std(all_preds, axis=0)
 
     # 95% 预测区间 (Assuming Gaussian distribution of predictions)
@@ -280,6 +305,9 @@ if __name__ == '__main__':
     ens_mae = mean_absolute_error(test_true, ensemble_pred)
     ens_rmse = np.sqrt(mean_squared_error(test_true, ensemble_pred))
     ens_r2  = r2_score(test_true, ensemble_pred)
+    ens_raw_mae = mean_absolute_error(test_true, ensemble_raw_pred)
+    ens_raw_rmse = np.sqrt(mean_squared_error(test_true, ensemble_raw_pred))
+    ens_raw_r2 = r2_score(test_true, ensemble_raw_pred)
 
     print(f"\n{'='*60}")
     print(f"  {LEVEL} 单体模型结果汇总:")
@@ -291,6 +319,7 @@ if __name__ == '__main__':
     print(f"  MAE:  {ens_mae:.4f}")
     print(f"  RMSE: {ens_rmse:.4f}")
     print(f"  R²:   {ens_r2:.4f}")
+    print(f"  Raw (unclipped) → MAE: {ens_raw_mae:.4f}, RMSE: {ens_raw_rmse:.4f}, R²: {ens_raw_r2:.4f}")
     print(f"  -----------------------")
     print(f"  [Uncertainty Calibration]")
     print(f"  PICP: {picp:.2f}% (Target: ~95%)")
@@ -301,6 +330,9 @@ if __name__ == '__main__':
     df['ensemble_mae'] = ens_mae
     df['ensemble_rmse'] = ens_rmse
     df['ensemble_r2']  = ens_r2
+    df['ensemble_raw_mae'] = ens_raw_mae
+    df['ensemble_raw_rmse'] = ens_raw_rmse
+    df['ensemble_raw_r2'] = ens_raw_r2
     df['ensemble_picp'] = picp
     df['ensemble_mpiw'] = mpiw
     df.to_csv(f'results_v5/{LEVEL}_ensemble_results.csv', index=False)

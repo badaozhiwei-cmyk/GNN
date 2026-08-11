@@ -1,5 +1,42 @@
 # Research Pipeline — 运行说明
 
+## 当前严格划分协议（v3）
+
+任何基准实验前先运行 `python research_pipeline/step1_generalization_ladder_v2.py`。
+虽然保留历史文件名，该脚本现在生成经过审计的 v3 协议，并写出
+`split_report_v3.json`：
+
+- L0：条件点随机内插；完全重复实验点不会跨分区，但同一化学体系可出现在训练和测试中。
+- L1：同一已知体系内的高温/高压条件外推。
+- L2：新阳离子-阴离子组合，但两种离子必须分别在训练中出现。
+- L3：饱和制冷剂到含 C=C 含氟制冷剂的 family shift。
+- L4：`splits_loro/` 中每个制冷剂一个真正的 leave-one-refrigerant-out split。
+
+L4 不再使用混合的 `split_L4_indices.npz`。运行方式为
+`python research_pipeline/step4_gat_loro_runner.py --ref R32`。科研主指标采用
+未裁剪的 raw prediction；`[0, 1]` 裁剪指标只作为明确标注的物理边界诊断。
+
+### 两种独立的 LORO 实验
+
+全制冷剂 L4 使用其余所有家族训练，运行示例：
+
+```powershell
+python research_pipeline/step4_gat_loro_runner.py --ref R32 --split-mode full --seeds 5
+```
+
+HFC-only LORO 只使用预定义的 12 种饱和 HFC，并采用 refrigerant-disjoint
+的 nested validation。三个 validation split 必须分别运行：
+
+```powershell
+python research_pipeline/step4_gat_loro_runner.py --ref R32 --split-mode hfc-only --val-id 1 --seeds 5
+python research_pipeline/step4_gat_loro_runner.py --ref R32 --split-mode hfc-only --val-id 2 --seeds 5
+python research_pipeline/step4_gat_loro_runner.py --ref R32 --split-mode hfc-only --val-id 3 --seeds 5
+```
+
+输出目录严格分离为 `results_v5/loro/full/` 和
+`results_v5/loro/hfc_only_val{1,2,3}/`；checkpoint 使用相同目录身份，避免
+full、HFC-only 以及三个 validation split 相互覆盖。
+
 本文件夹包含论文全部实验脚本，**按编号顺序运行**即可复现所有结果。
 
 ---

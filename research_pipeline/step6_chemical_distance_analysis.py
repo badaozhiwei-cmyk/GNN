@@ -14,7 +14,7 @@ from rdkit.Chem import Descriptors, AllChem, DataStructs
 from sklearn.preprocessing import StandardScaler
 import pathlib as pl
 
-ROOT = str(pl.Path(__file__).resolve().parent.parent)
+ROOT = pl.Path(__file__).resolve().parent.parent
 os.chdir(ROOT)
 
 def analyze_chemical_distance():
@@ -49,20 +49,22 @@ def analyze_chemical_distance():
             
     X_desc = StandardScaler().fit_transform(np.array(desc_list))
     
-    r2_dict = {
-        'R32': 0.9286,
-        'R152a': 0.8222,
-        'R125': 0.7731,
-        'R161': 0.7489,
-        'R1234yf': 0.5824,
-        'R23': 0.1894,
-        'R134a': 0.0737,
-        'R22': -0.1207
-    }
+    result_path = ROOT / 'results_v5' / 'loro' / 'full' / 'loro_gnn_results.csv'
+    if not result_path.exists():
+        raise FileNotFoundError(
+            f"Missing {result_path}. Run step4_gat_loro_runner.py; "
+            "hard-coded GAT metrics are intentionally not accepted."
+        )
+    gnn_results = pd.read_csv(result_path)
+    gnn_results = gnn_results[gnn_results['model'] == 'GAT_v5'].copy()
+    metric_col = 'raw_r2_mean' if 'raw_r2_mean' in gnn_results.columns else 'r2_mean'
+    if gnn_results['refrigerant'].duplicated().any():
+        raise ValueError("Duplicate GAT_v5 refrigerant rows in loro_gnn_results.csv")
+    r2_dict = gnn_results.set_index('refrigerant')[metric_col].dropna().to_dict()
     
     analysis_rows = []
     
-    for target in ['R32', 'R152a', 'R125', 'R161', 'R1234yf', 'R23', 'R134a', 'R22']:
+    for target in sorted(r2_dict):
         if target not in fps:
             continue
             
@@ -87,7 +89,9 @@ def analyze_chemical_distance():
         
         analysis_rows.append({
             'refrigerant': target,
-            'gat_r2': r2_dict[target],
+            'gat_r2': float(r2_dict[target]),
+            'metric_source': str(result_path.name),
+            'metric_column': metric_col,
             'max_tanimoto_sim': max_sim,
             'nearest_fp_neighbor': nn_sim_name,
             'min_desc_distance': min_dist,

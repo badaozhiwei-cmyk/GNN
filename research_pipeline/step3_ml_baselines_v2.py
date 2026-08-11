@@ -151,6 +151,11 @@ def plot_parity(true_y, pred_y, title, save_path, color='royalblue'):
 # 主程序
 # ============================================================
 def run_level(level: str, use_descriptors: bool = True):
+    if level == 'L4':
+        raise ValueError(
+            "L4 is per-refrigerant LORO. Use step5_loro_baselines.py with an "
+            "audited split, rather than a pooled split_L4_indices.npz."
+        )
     print(f"\n{'='*60}")
     desc_str = "WITH 5 Descriptors" if use_descriptors else "WITHOUT Descriptors"
     print(f"  ML Baselines v2 | Level: {level} | {desc_str}")
@@ -215,11 +220,20 @@ def run_level(level: str, use_descriptors: bool = True):
         print(f"\n  训练 {name}...")
         # RF / XGB 不需要标准化，但统一用标准化后的也无害
         model.fit(X_trainval_sc, y_trainval)
-        pred = model.predict(X_test_sc)
-        pred = np.clip(pred, 0.0, 1.0)
+        raw_pred = model.predict(X_test_sc)
+        pred = np.clip(raw_pred, 0.0, 1.0)
         mae, r2, rmse = compute_metrics(y_test, pred)
-        print(f"  ✅ {name} → MAE: {mae:.4f} | R²: {r2:.4f} | RMSE: {rmse:.4f}")
-        results.append({'level': level, 'model': name, 'mae': mae, 'r2': r2, 'rmse': rmse, 'descriptors': use_descriptors})
+        raw_mae, raw_r2, raw_rmse = compute_metrics(y_test, raw_pred)
+        print(
+            f"  {name} -> raw R²: {raw_r2:.4f} | clipped R²: {r2:.4f} | "
+            f"raw MAE: {raw_mae:.4f} | clipped MAE: {mae:.4f}"
+        )
+        results.append({
+            'level': level, 'model': name,
+            'mae': mae, 'r2': r2, 'rmse': rmse,
+            'raw_mae': raw_mae, 'raw_r2': raw_r2, 'raw_rmse': raw_rmse,
+            'descriptors': use_descriptors,
+        })
 
         plot_parity(y_test, pred,
                     f'{name} | {level} (R²={r2:.4f})',

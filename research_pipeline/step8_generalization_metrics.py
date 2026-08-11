@@ -61,7 +61,9 @@ def compute_metrics():
     df = pd.read_csv(csv_path)
     
     # Check GNN results file
-    gnn_csv = ROOT / 'loro_gnn_results.csv'
+    # This landscape is defined for the all-refrigerant L4 experiment only.
+    # HFC-only runs have a different training domain and must not be mixed here.
+    gnn_csv = ROOT / 'results_v5' / 'loro' / 'full' / 'loro_gnn_results.csv'
     if gnn_csv.exists():
         gnn_df = pd.read_csv(gnn_csv)
     else:

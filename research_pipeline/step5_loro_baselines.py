@@ -51,14 +51,20 @@ def run_baselines_loro(target_ref: str):
     print(f"  Baseline LORO Benchmark | Held-out Refrigerant: {target_ref}")
     print(f"============================================================")
     
-    df = pd.read_csv('index_with_anion.csv')
-    test_mask = (df['refrigerant'] == target_ref)
-    train_mask = ~test_mask
+    df = pd.read_csv('index_with_anion.csv').reset_index(drop=True)
+    split_path = os.path.join(ROOT, 'splits_loro', f'split_L4_{target_ref}.npz')
+    if not os.path.exists(split_path):
+        raise FileNotFoundError(
+            f"Missing audited split {split_path}. Run step1_generalization_ladder_v2.py first."
+        )
+    split = np.load(split_path)
+    train_indices = split['train'].astype(int).tolist()
+    val_indices = split['val'].astype(int).tolist()
+    test_indices = split['test'].astype(int).tolist()
+    assert target_ref not in set(df.loc[train_indices, 'refrigerant'])
+    assert set(df.loc[test_indices, 'refrigerant']) == {target_ref}
     
-    test_indices = df[test_mask].index.tolist()
-    train_indices = df[train_mask].index.tolist()
-    
-    print(f"  LORO Split -> Train: {len(train_indices)}, Test ({target_ref}): {len(test_indices)}")
+    print(f"  LORO Split -> Train: {len(train_indices)}, Val: {len(val_indices)}, Test ({target_ref}): {len(test_indices)}")
     
     # Load physical descriptors from numpy data file
     # data[i] structure: [0-2] mol graphs, [3] T, [4] P, [5] ref_charge,
@@ -87,20 +93,22 @@ def run_baselines_loro(target_ref: str):
     # 1. Random Forest
     rf = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
     rf.fit(X_train_scaled, y_train)
-    rf_preds = np.clip(rf.predict(X_test_scaled), 0.0, 1.0)
+    rf_raw_preds = rf.predict(X_test_scaled)
+    rf_preds = np.clip(rf_raw_preds, 0.0, 1.0)
     rf_r2 = r2_score(y_test, rf_preds)
     rf_mae = mean_absolute_error(y_test, rf_preds)
-    results['RF'] = (rf_r2, rf_mae)
+    results['RF'] = (rf_r2, rf_mae, r2_score(y_test, rf_raw_preds), mean_absolute_error(y_test, rf_raw_preds))
     print(f"  [RF] Random Forest  R2: {rf_r2:.4f}, MAE: {rf_mae:.4f}")
     
     # 2. XGBoost
     if HAS_XGB:
         xgb_model = xgb.XGBRegressor(n_estimators=100, learning_rate=0.1, max_depth=6, random_state=42, n_jobs=-1)
         xgb_model.fit(X_train_scaled, y_train)
-        xgb_preds = np.clip(xgb_model.predict(X_test_scaled), 0.0, 1.0)
+        xgb_raw_preds = xgb_model.predict(X_test_scaled)
+        xgb_preds = np.clip(xgb_raw_preds, 0.0, 1.0)
         xgb_r2 = r2_score(y_test, xgb_preds)
         xgb_mae = mean_absolute_error(y_test, xgb_preds)
-        results['XGBoost'] = (xgb_r2, xgb_mae)
+        results['XGBoost'] = (xgb_r2, xgb_mae, r2_score(y_test, xgb_raw_preds), mean_absolute_error(y_test, xgb_raw_preds))
         print(f"  [XGB] XGBoost      R2: {xgb_r2:.4f}, MAE: {xgb_mae:.4f}")
 
         
@@ -124,22 +132,26 @@ def run_baselines_loro(target_ref: str):
         
     mlp.eval()
     with torch.no_grad():
-        mlp_preds = np.clip(mlp(X_te_t).cpu().numpy().flatten(), 0.0, 1.0)
+        mlp_raw_preds = mlp(X_te_t).cpu().numpy().flatten()
+        mlp_preds = np.clip(mlp_raw_preds, 0.0, 1.0)
     mlp_r2 = r2_score(y_test, mlp_preds)
     mlp_mae = mean_absolute_error(y_test, mlp_preds)
-    results['MLP'] = (mlp_r2, mlp_mae)
+    results['MLP'] = (mlp_r2, mlp_mae, r2_score(y_test, mlp_raw_preds), mean_absolute_error(y_test, mlp_raw_preds))
     print(f"  [MLP] Descriptor MLP R2: {mlp_r2:.4f}, MAE: {mlp_mae:.4f}")
     
     # Save to CSV
     res_path = 'loro_baselines_results.csv'
     res_rows = []
-    for model_name, (r2_val, mae_val) in results.items():
+    for model_name, (r2_val, mae_val, raw_r2_val, raw_mae_val) in results.items():
         res_rows.append({
             'refrigerant': target_ref,
             'model': model_name,
             'r2': r2_val,
             'mae': mae_val,
-            'n_test': len(test_indices)
+            'raw_r2': raw_r2_val,
+            'raw_mae': raw_mae_val,
+            'n_test': len(test_indices),
+            'split_file': os.path.relpath(split_path, ROOT),
         })
     res_df = pd.DataFrame(res_rows)
     
