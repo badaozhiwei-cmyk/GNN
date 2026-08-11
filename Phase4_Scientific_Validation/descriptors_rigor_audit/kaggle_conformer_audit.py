@@ -83,12 +83,18 @@ def run_xtb_for_conformer(mol, conf_id, work_dir):
     opt_cmd = ["xtb", f"{base_name}.xyz", "--opt", "tight"]
     opt_res = subprocess.run(opt_cmd, cwd=work_dir, capture_output=True, text=True, timeout=600)
     if opt_res.returncode != 0 or "normal termination of xtb" not in (opt_res.stdout + opt_res.stderr).lower():
+        print(f"    [OPT FAILED] {opt_cmd}")
+        print(f"    STDOUT: {opt_res.stdout.strip()[-200:]}")
+        print(f"    STDERR: {opt_res.stderr.strip()}")
         return None
         
     # 2. ALPHA (SP)
     sp_cmd = ["xtb", "xtbopt.xyz", "--alpha"]
     sp_res = subprocess.run(sp_cmd, cwd=work_dir, capture_output=True, text=True, timeout=600)
     if sp_res.returncode != 0 or "normal termination of xtb" not in (sp_res.stdout + sp_res.stderr).lower():
+        print(f"    [SP FAILED] {sp_cmd}")
+        print(f"    STDOUT: {sp_res.stdout.strip()[-200:]}")
+        print(f"    STDERR: {sp_res.stderr.strip()}")
         return None
         
     return parse_xtb_output(opt_res.stdout + "\n" + sp_res.stdout)
