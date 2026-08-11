@@ -93,6 +93,10 @@ def main():
     sym_df = df[df['Molecule'].isin(["R14", "R116", "R218"])]
     for _, row in sym_df.iterrows():
         print(f"{row['Molecule']}: Dipole = {row['Dipole_Debye']:.4f} D (Tolerance < 0.01 D: {row['Dipole_Debye'] < 0.01})")
+    # Do not describe R218 as passing the symmetric-zero criterion when it does not.
+    if not sym_df.empty:
+        sym_df.assign(near_zero=sym_df['Dipole_Debye'].abs() < 0.01).to_csv(
+            AUDIT_OUT / 'symmetric_dipole_tolerance.csv', index=False)
         
     plt.tight_layout()
     plt.savefig(AUDIT_OUT / "chemical_contrast_groups.png", dpi=300, bbox_inches='tight')

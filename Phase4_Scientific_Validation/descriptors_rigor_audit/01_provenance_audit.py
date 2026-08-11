@@ -130,10 +130,21 @@ def main() -> None:
     out = merged.merge(audit_df, on=["Category", "Molecule", "SMILES", "Charge"], how="left")
     numeric = ["Dipole_Debye", "Polarizability_au", "Volume_A3"]
     out["parser_complete"] = out[[c for c in numeric if c in out]].notna().all(axis=1) if numeric[0] in out else False
-    out["calculation_status"] = out.apply(lambda x: "success" if x.parser_complete and x.log_present and x.opt_converged and x.sp_terminated_normally else ("failed" if x.failure_reason != "log_missing" else "unverified"), axis=1)
+    def classify(x):
+        if not x.log_present:
+            return "unverified"
+        if x.opt_returncode_source == "unavailable_in_log" or x.sp_returncode_source == "unavailable_in_log":
+            if x.opt_normal_termination and x.sp_normal_termination and x.opt_geometry_present:
+                return "unverified_returncode"
+        if x.parser_complete and x.opt_converged and x.sp_terminated_normally:
+            return "success"
+        return "failed"
+    out["calculation_status"] = out.apply(classify, axis=1)
+    out["descriptor_status"] = out.apply(lambda x: "complete" if x.parser_complete else "partial_or_missing", axis=1)
     out.to_csv(args.output_dir / "computation_provenance.csv", index=False)
     summary = {"n_inventory": int(len(master)), "n_success": int((out.calculation_status == "success").sum()),
-               "n_failed": int((out.calculation_status == "failed").sum()), "n_unverified": int((out.calculation_status == "unverified").sum()),
+               "n_failed": int((out.calculation_status == "failed").sum()), "n_unverified": int(out.calculation_status.str.startswith("unverified").sum()),
+               "n_descriptor_complete": int((out.descriptor_status == "complete").sum()),
                "failed_molecules": out.loc[out.calculation_status == "failed", "Molecule"].tolist()}
     (args.output_dir / "provenance_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))

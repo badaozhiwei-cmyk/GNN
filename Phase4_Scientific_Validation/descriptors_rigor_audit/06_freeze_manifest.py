@@ -15,6 +15,7 @@ AUDIT_OUT.mkdir(parents=True, exist_ok=True)
 INPUT_CSV = ROOT_DIR / "index_with_anion.csv"
 DESC_CSV = WORK_DIR / "xTB_Physics_Descriptors.csv"
 PROV_CSV = AUDIT_OUT / "computation_provenance.csv"
+RESCUE_FILES = list(WORK_DIR.glob("**/*rescue*.csv")) + list(WORK_DIR.glob("**/*rescued*.csv"))
 
 def sha256(path):
     if not path.is_file():
@@ -29,7 +30,7 @@ def tree_sha256(directory):
     if not directory.is_dir():
         return None
     h = hashlib.sha256()
-    for path in sorted(p for p in directory.rglob('*') if p.is_file()):
+    for path in sorted(p for p in directory.rglob('*') if p.is_file() and p.name != 'descriptor_manifest.json'):
         h.update(str(path.relative_to(directory)).encode('utf-8'))
         h.update(path.read_bytes())
     return h.hexdigest()
@@ -54,10 +55,12 @@ def main():
     failed = []
     n_success = 0
     n_failed = 0
+    n_unverified = 0
     if PROV_CSV.is_file():
         prov = pd.read_csv(PROV_CSV)
         n_success = int((prov['calculation_status'] == 'success').sum())
         n_failed = int((prov['calculation_status'] == 'failed').sum())
+        n_unverified = int(prov['calculation_status'].astype(str).str.startswith('unverified').sum())
         
         failed_df = prov[prov['calculation_status'] == 'failed']
         for _, r in failed_df.iterrows():
@@ -91,10 +94,13 @@ def main():
             "file": "computation_provenance.csv",
             "sha256": prov_hash
         },
-        "forensic_inputs": {"xtb_logs_tree_sha256": logs_hash, "audit_scripts_sha256": script_hashes},
+        "forensic_inputs": {"xtb_logs_tree_sha256": logs_hash, "audit_scripts_sha256": script_hashes,
+                            "rescue_files_sha256": {str(p.relative_to(WORK_DIR)): sha256(p) for p in RESCUE_FILES},
+                            "audit_outputs_tree_sha256": tree_sha256(AUDIT_OUT)},
         "statistics": {
             "n_success": n_success,
             "n_failed": n_failed,
+            "n_unverified": n_unverified,
             "failed_molecules": failed
         },
         "methodology": {
@@ -104,7 +110,10 @@ def main():
             "conformer": "ETKDGv3 seeds=0..19; MMFF94 pre-opt; Boltzmann weighting at 298.15 K",
             "volume_method": "RDKit ComputeMolVolume (gridSpacing=0.2, boxMargin=2.0) on xTB geometry mapped onto SMILES topology",
             "loocv": "train-fold-only PCA/scaling; RidgeCV alphas=1e-3..1e3; RF n_estimators=100, seed=42",
-            "bootstrap": "1000 resamples, seed=42"
+            "bootstrap": "1000 resamples, seed=42",
+            "conformer_audit": {"seeds": list(range(20)), "temperature_K": 298.15, "kT_Eh": 0.00094448},
+            "rdkit_volume": {"gridSpacing_A": 0.2, "boxMargin_A": 2.0},
+            "morgan": {"radius": 2, "nBits": 2048}
         },
         "environment": env
     }

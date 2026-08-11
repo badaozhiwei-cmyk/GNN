@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-11T03:20:36.066648Z",
+  "timestamp": "2026-08-11T07:49:48.441251Z",
   "description": "Final rigid geometry xTB descriptor freeze for Mphys evaluation.",
   "input_inventory": {
     "file": "index_with_anion.csv",
@@ -11,11 +11,27 @@
   },
   "provenance_audit": {
     "file": "computation_provenance.csv",
-    "sha256": "c184e7c65fe6ac0e353744a081efa0e8af7d308118a8d8a9b7003009674eb2ee"
+    "sha256": "832525af7bc596541fdb5f5e41cee8df038034ea4f0f12e126bf1317e33269d1"
+  },
+  "forensic_inputs": {
+    "xtb_logs_tree_sha256": "7ceed8632d66fb035df3799347246a3018527711821caa70273129c20c77b30c",
+    "audit_scripts_sha256": {
+      "01_provenance_audit.py": "14e0edda610562c0a0a39b8561f38e2ac1d890e95a4d55285fb39cd15c838a3a",
+      "02_vega_revalidation.py": "9c6a5bed4409663f93e7c1962aecd644cb08b4cdd646bf5444d8c09227b39179",
+      "03_volume_redundancy.py": "31ff6518754fa556f4c6bc5dd299670b70ff50c3f5b748bb8f4758e2b51723a9",
+      "04_leakfree_2d_loocv.py": "ef0f2bf0342c30113aeeeca9d95b390cbd00e8c6bbad574959fe91c54c566c5d",
+      "05_chemical_contrast.py": "278f814500079bc28418db42b6e6218c803a391ee1544c58ecbdb8f603b3ef7f",
+      "06_freeze_manifest.py": "0f0c20f27cc5e501557d353f9771825ed9d896f246400188255de02df99006ce",
+      "kaggle_conformer_audit.py": "92706b56b37cd454bbcf269bd2071a4daa48173bb194a24a13e9571768f8bf89",
+      "kaggle_rescue_pf6.py": "140dcf515fcd250c6a5eb0d643b4bfed34679660158dbf0a2c0117cc370a3d62"
+    },
+    "rescue_files_sha256": {},
+    "audit_outputs_tree_sha256": "6d5678a6d79cf41410767e3ba5a22d38109dcda11cd4d9479be137f5005bb2aa"
   },
   "statistics": {
-    "n_success": 65,
+    "n_success": 0,
     "n_failed": 1,
+    "n_unverified": 65,
     "failed_molecules": [
       {
         "Molecule": "[PF6]",
@@ -27,8 +43,44 @@
     "xtb_version": "6.6.1",
     "optimization": "GFN2-xTB --opt tight",
     "single_point": "GFN2-xTB --alpha",
-    "conformer": "ETKDGv3, seed=42, MMFF94 pre-opt, single lowest energy",
-    "volume_method": "RDKit ComputeMolVolume (gridSpacing=0.2) on xTB rigid geometry"
+    "conformer": "ETKDGv3 seeds=0..19; MMFF94 pre-opt; Boltzmann weighting at 298.15 K",
+    "volume_method": "RDKit ComputeMolVolume (gridSpacing=0.2, boxMargin=2.0) on xTB geometry mapped onto SMILES topology",
+    "loocv": "train-fold-only PCA/scaling; RidgeCV alphas=1e-3..1e3; RF n_estimators=100, seed=42",
+    "bootstrap": "1000 resamples, seed=42",
+    "conformer_audit": {
+      "seeds": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "temperature_K": 298.15,
+      "kT_Eh": 0.00094448
+    },
+    "rdkit_volume": {
+      "gridSpacing_A": 0.2,
+      "boxMargin_A": 2.0
+    },
+    "morgan": {
+      "radius": 2,
+      "nBits": 2048
+    }
   },
   "environment": {
     "Python": "3.11.9",

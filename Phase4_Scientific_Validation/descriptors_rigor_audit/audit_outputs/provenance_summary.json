@@ -1,8 +1,9 @@
 {
   "n_inventory": 66,
-  "n_success": 65,
+  "n_success": 0,
   "n_failed": 1,
-  "n_unverified": 0,
+  "n_unverified": 65,
+  "n_descriptor_complete": 65,
   "failed_molecules": [
     "[PF6]"
   ]

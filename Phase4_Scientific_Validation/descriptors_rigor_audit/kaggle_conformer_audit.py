@@ -127,7 +127,7 @@ def run_xtb_for_conformer(mol, conf_id, work_dir):
     return energy, mu, alpha, vol
 
 def main():
-    base_dir = "/kaggle/working/conformer_audit"
+    base_dir = os.environ.get("AUDIT_OUTPUT_DIR", "/kaggle/working/descriptors_rigor_audit/audit_outputs")
     os.makedirs(base_dir, exist_ok=True)
     
     results = []
@@ -139,10 +139,12 @@ def main():
         
         # Embed 20 conformers
         cids = []
+        seed_by_cid = {}
         for seed in range(N_CONFORMERS):
             ps = AllChem.ETKDGv3(); ps.randomSeed = seed; ps.pruneRmsThresh = -1
             cid = AllChem.EmbedMolecule(mol, ps)
-            if cid >= 0: cids.append(cid)
+            if cid >= 0:
+                cids.append(cid); seed_by_cid[cid] = seed
         
         if len(cids) == 0:
             print(f"Failed to embed {name}")
@@ -166,6 +168,7 @@ def main():
                 e, mu, alpha, vol = xtb_res
                 conf_data.append({
                     "Conformer": cid,
+                    "Seed": seed_by_cid.get(cid),
                     "Energy_Eh": e,
                     "Dipole_D": mu,
                     "Alpha_au": alpha,
