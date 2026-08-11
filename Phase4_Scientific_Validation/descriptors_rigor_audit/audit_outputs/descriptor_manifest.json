@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-08-11T03:20:36.066648Z",
+  "description": "Final rigid geometry xTB descriptor freeze for Mphys evaluation.",
+  "input_inventory": {
+    "file": "index_with_anion.csv",
+    "sha256": "7fb2390ac7e87bfc45d5cd9124dd8aaa8691da1a23e5a99b579c006c0bbe4698"
+  },
+  "descriptor_csv": {
+    "file": "xTB_Physics_Descriptors.csv",
+    "sha256": "5e8fa6bbf14faab1d2750447dde2b26411074d9cff1bcfa5524b1681a9c7414b"
+  },
+  "provenance_audit": {
+    "file": "computation_provenance.csv",
+    "sha256": "c184e7c65fe6ac0e353744a081efa0e8af7d308118a8d8a9b7003009674eb2ee"
+  },
+  "statistics": {
+    "n_success": 65,
+    "n_failed": 1,
+    "failed_molecules": [
+      {
+        "Molecule": "[PF6]",
+        "Reason": "nan"
+      }
+    ]
+  },
+  "methodology": {
+    "xtb_version": "6.6.1",
+    "optimization": "GFN2-xTB --opt tight",
+    "single_point": "GFN2-xTB --alpha",
+    "conformer": "ETKDGv3, seed=42, MMFF94 pre-opt, single lowest energy",
+    "volume_method": "RDKit ComputeMolVolume (gridSpacing=0.2) on xTB rigid geometry"
+  },
+  "environment": {
+    "Python": "3.11.9",
+    "RDKit": "2026.03.4",
+    "Scikit-Learn": "1.9.0",
+    "Pandas": "3.0.1"
+  }
+}
