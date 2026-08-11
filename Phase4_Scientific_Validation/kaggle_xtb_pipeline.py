@@ -143,7 +143,7 @@ def run_xtb(name, smiles, charge, category, work_dir, log_dir):
     opt_cmd = ['xtb', f"{safe_name}.xyz", '--opt', 'tight', '--chrg', str(charge), '--gfn', '2', '--namespace', safe_name]
     opt_result = subprocess.run(opt_cmd, capture_output=True, text=True, cwd=mol_work, timeout=600)
 
-    if opt_result.returncode != 0 or 'normal termination of xtb' not in opt_result.stdout.lower():
+    if opt_result.returncode != 0 or ('normal termination of xtb' not in opt_result.stdout.lower() and 'normal termination of xtb' not in opt_result.stderr.lower()):
         print(f"  [ERROR] xTB geometry optimization failed for {name}. See log.")
         with open(log_file, 'w', encoding='utf-8') as f:
             f.write(f"=== OPT STDOUT ===\n{opt_result.stdout}\n=== OPT STDERR ===\n{opt_result.stderr}")
@@ -169,7 +169,7 @@ def run_xtb(name, smiles, charge, category, work_dir, log_dir):
         f.write("=== OPT STDOUT ===\n" + opt_result.stdout + "\n=== OPT STDERR ===\n" + opt_result.stderr)
         f.write("\n=== SP+ALPHA STDOUT ===\n" + sp_result.stdout + "\n=== SP+ALPHA STDERR ===\n" + sp_result.stderr)
         
-    if sp_result.returncode != 0 or 'normal termination of xtb' not in sp_result.stdout.lower():
+    if sp_result.returncode != 0 or ('normal termination of xtb' not in sp_result.stdout.lower() and 'normal termination of xtb' not in sp_result.stderr.lower()):
         print(f"  [ERROR] xTB single point / alpha failed for {name}. See log.")
         return None
 
