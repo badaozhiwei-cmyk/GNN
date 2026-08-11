@@ -13,6 +13,7 @@ Process:
 import os
 import subprocess
 import shutil
+import re
 import pandas as pd
 import numpy as np
 from rdkit import Chem
@@ -52,26 +53,41 @@ def softmax_boltzmann(energies, kT):
         raise ValueError("Invalid Boltzmann normalization")
     return weights / total
 
-def parse_xtb_output(log_text):
-    mu, alpha, vol, energy = None, None, None, None
-    for line in log_text.split('\n'):
-        if "TOTAL ENERGY" in line:
-            try:
-                energy = float(line.split()[3])
-            except: pass
-        elif "molecular dipole:" in line:
-            try:
-                mu = float(line.split()[-1])
-            except: pass
-        elif "Mol. α(0) /au" in line:
-            try:
-                alpha = float(line.split()[-1])
-            except: pass
-        elif "vdW volume" in line:
-            try:
-                vol = float(line.split()[3])
-            except: pass
-    return energy, mu, alpha, vol
+FLOAT_RE = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][+-]?\d+)?"
+
+def parse_dipole(text):
+    pattern = r'molecular dipole:.*?full:\s+(' + FLOAT_RE + r')\s+(' + FLOAT_RE + r')\s+(' + FLOAT_RE + r')\s+(' + FLOAT_RE + ')'
+    matches = re.findall(pattern, text, re.DOTALL)
+    if matches:
+        return float(matches[-1][3].replace("D", "E").replace("d", "e"))
+    return None
+
+def parse_energy(text):
+    pattern = r'TOTAL ENERGY\s+(' + FLOAT_RE + r')\s+Eh'
+    matches = re.findall(pattern, text)
+    if matches:
+        return float(matches[-1].replace("D", "E").replace("d", "e"))
+    return None
+
+def parse_alpha(text):
+    patterns = [
+        r'(?:Mol\.\s+)?(?:alpha|α)\s*(?:\(0\))?\s*/au\s*:?\s*(' + FLOAT_RE + ')',
+        r'Mol\.\s+C6AA\s+/au.*?(?:alpha|α)\s*(?:\(0\))?\s*/au\s*:?\s*(' + FLOAT_RE + ')',
+    ]
+    for pat in patterns:
+        m = re.search(pat, text, re.DOTALL | re.IGNORECASE)
+        if m:
+            return float(m.group(1).replace("D", "E").replace("d", "e"))
+    return None
+
+def get_rdkit_volume(xyz_file):
+    try:
+        mol = Chem.rdmolfiles.MolFromXYZFile(xyz_file)
+        if mol:
+            return AllChem.ComputeMolVolume(mol, gridSpacing=0.2, boxMargin=2.0)
+    except Exception:
+        pass
+    return None
 
 def run_xtb_for_conformer(mol, conf_id, work_dir):
     """Runs xTB opt and alpha for a specific conformer."""
@@ -84,20 +100,31 @@ def run_xtb_for_conformer(mol, conf_id, work_dir):
     opt_res = subprocess.run(opt_cmd, cwd=work_dir, capture_output=True, text=True, timeout=600)
     if opt_res.returncode != 0 or "normal termination of xtb" not in (opt_res.stdout + opt_res.stderr).lower():
         print(f"    [OPT FAILED] {opt_cmd}")
-        print(f"    STDOUT: {opt_res.stdout.strip()[-200:]}")
-        print(f"    STDERR: {opt_res.stderr.strip()}")
         return None
         
     # 2. ALPHA (SP)
+    opt_xyz = os.path.join(work_dir, "xtbopt.xyz")
+    if not os.path.exists(opt_xyz):
+        print(f"    [OPT XYZ MISSING] {opt_xyz}")
+        return None
+
     sp_cmd = ["xtb", "xtbopt.xyz", "--alpha"]
     sp_res = subprocess.run(sp_cmd, cwd=work_dir, capture_output=True, text=True, timeout=600)
     if sp_res.returncode != 0 or "normal termination of xtb" not in (sp_res.stdout + sp_res.stderr).lower():
         print(f"    [SP FAILED] {sp_cmd}")
-        print(f"    STDOUT: {sp_res.stdout.strip()[-200:]}")
-        print(f"    STDERR: {sp_res.stderr.strip()}")
         return None
         
-    return parse_xtb_output(opt_res.stdout + "\n" + sp_res.stdout)
+    combined_log = opt_res.stdout + "\n" + sp_res.stdout
+    energy = parse_energy(combined_log)
+    mu = parse_dipole(combined_log)
+    alpha = parse_alpha(combined_log)
+    vol = get_rdkit_volume(opt_xyz)
+    
+    if None in (energy, mu, alpha, vol):
+        print(f"    [PARSING FAILED] E={energy}, μ={mu}, α={alpha}, V={vol}")
+        return None
+        
+    return energy, mu, alpha, vol
 
 def main():
     base_dir = "/kaggle/working/conformer_audit"
