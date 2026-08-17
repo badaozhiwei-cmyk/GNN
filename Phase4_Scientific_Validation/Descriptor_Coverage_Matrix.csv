@@ -1,0 +1,67 @@
+﻿Category,Molecule,Dipole_μ,Polarizability_α,Volume_V,Primary_Source,Fallback_Protocol
+Refrigerant,R32,✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R134a,✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R125,✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R134,❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Refrigerant,R152a,✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R23,✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R41,✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R161,✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R143a,❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Refrigerant,R245fa,✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R236fa,✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R227ea,✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R1234yf,✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R1234ze(E),✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R1336mzz(E),❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Refrigerant,R1336mzz(Z),✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R1233zd(E),✅,❌,✅,Vega 2022 SI (Literature),-
+Refrigerant,R22,❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Refrigerant,R14,❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Refrigerant,R22B1,❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Refrigerant,R114,❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Refrigerant,R114a,❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Refrigerant,R124,❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Refrigerant,R124a,❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Refrigerant,R116,❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Refrigerant,R218,❌,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[emim],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[bmim],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[hmim],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[C7mim],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[omim],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[doim],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[C8H4F13C1im],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[dmim],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[dmpim],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[empy],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[pmpy],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[bmpy],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[P4441],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[P4442],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[P44414],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[P66614],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Cation,[m-2-HEA],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[Ac],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[BEI],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[BF4],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[OTf],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[PF6],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[PFBS],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[PFP],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[SCN],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[Tf2N],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[TFES],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[FS],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[HFPS],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[MeSO4],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[TPES],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[TTES],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[Cl],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[FEP],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[I],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[TMeM],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[Et2PO4],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[TMPP],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[Pr],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation
+Anion,[Pe],N/A,❌,❌,Pending Unified Computation,Unified xTB Computation

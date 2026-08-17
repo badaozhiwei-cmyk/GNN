@@ -1,0 +1,4 @@
+Category,Molecule,SMILES,Charge,Dipole_Debye,Polarizability_au,Volume_A3,Total_Energy_Eh,Source,Has_Vega_Literature,near_zero
+Refrigerant,R14,FC(F)(F)F,0,0.0,22.233375,48.624,-21.078563977908,GFN2-xTB,False,True
+Refrigerant,R116,FC(F)(F)C(F)(F)F,0,0.0,36.604134,76.08,-32.663465543752,GFN2-xTB,False,True
+Refrigerant,R218,FC(F)(F)C(F)(F)C(F)(F)F,0,0.015,50.449678,103.56,-44.260060713376,GFN2-xTB,False,False
