@@ -66,25 +66,26 @@ class IL_GAT_v6(torch.nn.Module):
         # 支持 M0(7维), Msize(9维), Mmu(8维), Mphys(10维) 四种消融模式
         cond_dim = args['cond_dim']  # Dynamically set by Dataset_v6 based on descriptor_mode
         
-        # [FIX] 物理特征提权：先把 cond_dim 放大，防止被 512 维的图特征淹没
+        # [FIX v2] 物理特征提权：先把 cond_dim 映射到 64 维，防止被 512 维图特征淹没
+        # 同时不过度放大（128→64），避免物理噪声主导
         self.cond_mlp = nn.Sequential(
             nn.Linear(cond_dim, 64),
             nn.ReLU(),
-            nn.Linear(64, 128)
         )
 
+        # [FIX v2] 恢复 MLP 容量（1024→512→1），不缩减网络宽度
         self.l5 = nn.Sequential(
-            nn.Linear(512 + 128, 512),
+            nn.Linear(512 + 64, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Dropout(p=0.2),
+
+            nn.Linear(1024, 512),
             nn.BatchNorm1d(512),
             nn.ReLU(),
-            nn.Dropout(p=0.15),  # 降低 Dropout 防止方差过大
+            nn.Dropout(p=0.15),
 
-            nn.Linear(512, 256),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.Dropout(p=0.1),   # 降低 Dropout
-
-            nn.Linear(256, 1)
+            nn.Linear(512, 1)
         )
 
         self.act = nn.ReLU()
@@ -247,25 +248,25 @@ class IL_GCN_v6(torch.nn.Module):
         cond_dim = args['cond_dim']  # Dynamically set by Dataset_v6 based on descriptor_mode
 
         # MLP head (identical to GAT)
-        # [FIX] 物理特征提权：先把 cond_dim 放大，防止被 512 维的图特征淹没
+        # [FIX v2] 物理特征提权：先把 cond_dim 映射到 64 维
         self.cond_mlp = nn.Sequential(
             nn.Linear(cond_dim, 64),
             nn.ReLU(),
-            nn.Linear(64, 128)
         )
 
+        # [FIX v2] 恢复 MLP 容量（1024→512→1）
         self.l5 = nn.Sequential(
-            nn.Linear(512 + 128, 512),
+            nn.Linear(512 + 64, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Dropout(p=0.2),
+
+            nn.Linear(1024, 512),
             nn.BatchNorm1d(512),
             nn.ReLU(),
-            nn.Dropout(p=0.15),  # 降低 Dropout 防止方差过大
+            nn.Dropout(p=0.15),
 
-            nn.Linear(512, 256),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.Dropout(p=0.1),   # 降低 Dropout
-
-            nn.Linear(256, 1)
+            nn.Linear(512, 1)
         )
 
         self.act = nn.ReLU()
