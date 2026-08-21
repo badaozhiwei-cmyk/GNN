@@ -64,7 +64,7 @@ class AblationRunner:
             weight_decay=args['weight_decay']
         )
         self._scheduler = CosineAnnealingLR(self._optimizer, T_max=args['epoch'], eta_min=1e-5)
-        self._criterion = nn.HuberLoss(delta=1.0)
+        self._criterion = nn.HuberLoss(delta=0.1)
 
     def _save(self, title):
         os.makedirs(self.save_dir, exist_ok=True)

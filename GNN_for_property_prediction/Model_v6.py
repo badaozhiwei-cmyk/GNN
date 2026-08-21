@@ -66,18 +66,25 @@ class IL_GAT_v6(torch.nn.Module):
         # 支持 M0(7维), Msize(9维), Mmu(8维), Mphys(10维) 四种消融模式
         cond_dim = args['cond_dim']  # Dynamically set by Dataset_v6 based on descriptor_mode
         
-        self.l5 = nn.Sequential(
-            nn.Linear(512 + cond_dim, 1024),
-            nn.BatchNorm1d(1024),
+        # [FIX] 物理特征提权：先把 cond_dim 放大，防止被 512 维的图特征淹没
+        self.cond_mlp = nn.Sequential(
+            nn.Linear(cond_dim, 64),
             nn.ReLU(),
-            nn.Dropout(p=0.4),
+            nn.Linear(64, 128)
+        )
 
-            nn.Linear(1024, 512),
+        self.l5 = nn.Sequential(
+            nn.Linear(512 + 128, 512),
             nn.BatchNorm1d(512),
             nn.ReLU(),
-            nn.Dropout(p=0.3),
+            nn.Dropout(p=0.15),  # 降低 Dropout 防止方差过大
 
-            nn.Linear(512, 1)
+            nn.Linear(512, 256),
+            nn.BatchNorm1d(256),
+            nn.ReLU(),
+            nn.Dropout(p=0.1),   # 降低 Dropout
+
+            nn.Linear(256, 1)
         )
 
         self.act = nn.ReLU()
@@ -182,7 +189,8 @@ class IL_GAT_v6(torch.nn.Module):
         else:
             raise ValueError(f"Unknown pool type {self.pool_type}")
 
-        x_concat = torch.cat([x_g, cond], dim=1)
+        cond_emb = self.cond_mlp(cond)
+        x_concat = torch.cat([x_g, cond_emb], dim=1)
         x_out = self.l5(x_concat)
 
         return x_out
@@ -239,18 +247,25 @@ class IL_GCN_v6(torch.nn.Module):
         cond_dim = args['cond_dim']  # Dynamically set by Dataset_v6 based on descriptor_mode
 
         # MLP head (identical to GAT)
-        self.l5 = nn.Sequential(
-            nn.Linear(512 + cond_dim, 1024),
-            nn.BatchNorm1d(1024),
+        # [FIX] 物理特征提权：先把 cond_dim 放大，防止被 512 维的图特征淹没
+        self.cond_mlp = nn.Sequential(
+            nn.Linear(cond_dim, 64),
             nn.ReLU(),
-            nn.Dropout(p=0.4),
+            nn.Linear(64, 128)
+        )
 
-            nn.Linear(1024, 512),
+        self.l5 = nn.Sequential(
+            nn.Linear(512 + 128, 512),
             nn.BatchNorm1d(512),
             nn.ReLU(),
-            nn.Dropout(p=0.3),
+            nn.Dropout(p=0.15),  # 降低 Dropout 防止方差过大
 
-            nn.Linear(512, 1)
+            nn.Linear(512, 256),
+            nn.BatchNorm1d(256),
+            nn.ReLU(),
+            nn.Dropout(p=0.1),   # 降低 Dropout
+
+            nn.Linear(256, 1)
         )
 
         self.act = nn.ReLU()
@@ -332,7 +347,8 @@ class IL_GCN_v6(torch.nn.Module):
         else:
             raise ValueError(f"Unknown pool type {self.pool_type}")
 
-        x_concat = torch.cat([x_g, cond], dim=1)
+        cond_emb = self.cond_mlp(cond)
+        x_concat = torch.cat([x_g, cond_emb], dim=1)
         x_out = self.l5(x_concat)
 
         return x_out
