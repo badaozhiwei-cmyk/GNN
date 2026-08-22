@@ -182,6 +182,8 @@ def main():
                         help="Max epochs")
     parser.add_argument("--patience", type=int, default=25,
                         help="Early stopping patience")
+    parser.add_argument("--target_ref", type=str, default=None,
+                        help="Optional: Run only a single specific refrigerant (e.g. R134a)")
 
     args = parser.parse_args()
 
@@ -268,6 +270,12 @@ def main():
 
     elif args.mode == 'loro':
         unique_refs = df[ref_col].unique()
+        if args.target_ref:
+            matching = [r for r in unique_refs if r.upper() == args.target_ref.upper()]
+            if not matching:
+                raise ValueError(f"Target refrigerant '{args.target_ref}' not found in {args.family} family! Available: {list(unique_refs)}")
+            unique_refs = matching
+            print(f"🎯 Targeted single refrigerant mode: {unique_refs[0]}")
         for ref in unique_refs:
             test_idx = df[df[ref_col] == ref].index.values
             train_val_df = df[df[ref_col] != ref]
