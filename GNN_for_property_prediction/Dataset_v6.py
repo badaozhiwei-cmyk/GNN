@@ -210,6 +210,8 @@ class IL_set_v6(torch.utils.data.Dataset):
             scaled_cond = raw_cond
 
         condition = torch.tensor(scaled_cond, dtype=torch.float)
+        # [OOD Protection] 限制标准化特征在 [-3.0, 3.0] 范围内，防止极端偶极矩/温度导致数值爆炸
+        condition = torch.clamp(condition, -3.0, 3.0)
         label = torch.tensor(self.label[idx], dtype=torch.float)
 
         return Combine_Graph, condition, label
