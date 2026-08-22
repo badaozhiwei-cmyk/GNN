@@ -185,6 +185,20 @@ def main():
     parser.add_argument("--target_ref", type=str, default=None,
                         help="Optional: Run only a single specific refrigerant (e.g. R134a)")
 
+    # ── 第一招：组件级交互池化 ──
+    parser.add_argument("--use_interaction", action="store_true",
+                        help="启用 IL×Ref 组件级交互池化（h_il*h_ref + h_il-h_ref）")
+
+    # ── 第二招：低成本修复三件套 ──
+    parser.add_argument("--use_sigmoid", action="store_true",
+                        help="输出层加 sigmoid，物理约束预测值在 [0,1]")
+    parser.add_argument("--use_cond_dropout", action="store_true",
+                        help="条件特征 Dropout，破坏偶极矩等标量的捷径学习")
+    parser.add_argument("--cond_dropout_p", type=float, default=0.3,
+                        help="条件特征 Dropout 概率")
+    parser.add_argument("--use_layernorm", action="store_true",
+                        help="MLP Head 使用 LayerNorm 替代 BatchNorm")
+
     args = parser.parse_args()
 
     # ============================================================
@@ -243,6 +257,12 @@ def main():
         'no_mol_embedding': False,
         'descriptor_mode': args.descriptor_mode,
         'cond_dim': cond_dim,
+        # ── 增强开关 ──
+        'use_interaction': args.use_interaction,
+        'use_sigmoid': args.use_sigmoid,
+        'use_cond_dropout': args.use_cond_dropout,
+        'cond_dropout_p': args.cond_dropout_p,
+        'use_layernorm': args.use_layernorm,
     }
 
     print("Loading Graph Dataset (v6)...")

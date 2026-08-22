@@ -64,16 +64,44 @@ class IL_GAT_v6(torch.nn.Module):
 
         # v6 动态 cond_dim（支持 M0:7, Msize:9, Mmu:8, Mphys:10）
         cond_dim = args['cond_dim']
-        
-        # 祖宗之法：经典 MLP Head (512 + cond_dim -> 1024 -> 512 -> 1)
+
+        # ══════════════════════════════════════════════════════
+        # 【第一招】组件级交互池化开关（默认关闭，向下兼容祖宗之法）
+        # ══════════════════════════════════════════════════════
+        self.use_interaction = args.get('use_interaction', False)
+
+        # ══════════════════════════════════════════════════════
+        # 【第二招】低成本修复三件套开关（默认全部关闭）
+        # ══════════════════════════════════════════════════════
+        self.use_sigmoid = args.get('use_sigmoid', False)
+        self.use_cond_dropout = args.get('use_cond_dropout', False)
+        self.cond_dropout_p = args.get('cond_dropout_p', 0.3)
+        self.use_layernorm = args.get('use_layernorm', False)
+
+        # Condition Dropout：训练时随机屏蔽条件标量，破坏捷径学习
+        if self.use_cond_dropout:
+            self.cond_drop = nn.Dropout(p=self.cond_dropout_p)
+
+        # MLP Head 输入维度：取决于是否启用交互池化
+        if self.use_interaction:
+            # x_g(512) + h_il⊙h_ref(512) + h_il−h_ref(512) + cond
+            head_input_dim = 512 * 3 + cond_dim
+        else:
+            # 祖宗之法原版：x_g(512) + cond
+            head_input_dim = 512 + cond_dim
+
+        # 选择归一化层（LayerNorm 不受 batch 大小影响，更稳健）
+        NormLayer = nn.LayerNorm if self.use_layernorm else nn.BatchNorm1d
+
+        # 经典 MLP Head (head_input_dim -> 1024 -> 512 -> 1)
         self.l5 = nn.Sequential(
-            nn.Linear(512 + cond_dim, 1024),
-            nn.BatchNorm1d(1024),
+            nn.Linear(head_input_dim, 1024),
+            NormLayer(1024),
             nn.ReLU(),
             nn.Dropout(p=0.4),
 
             nn.Linear(1024, 512),
-            nn.BatchNorm1d(512),
+            NormLayer(512),
             nn.ReLU(),
             nn.Dropout(p=0.3),
 
@@ -166,8 +194,6 @@ class IL_GAT_v6(torch.nn.Module):
         if self.pool_type == 'global':
             x_g = self.extract(x, data_i)
         elif self.pool_type == 'mean':
-            # Mean pool 时我们需要移除全局节点，否则会被污染
-            # 但简单实现可以先直接 mean_pool 整体
             if hasattr(data_i, 'mol_type'):
                 normal_mask = (data_i.mol_type < 3)
                 x_g = global_mean_pool(x[normal_mask], data_i.batch[normal_mask])
@@ -182,9 +208,37 @@ class IL_GAT_v6(torch.nn.Module):
         else:
             raise ValueError(f"Unknown pool type {self.pool_type}")
 
-        # 祖宗之法：直接拼接 (512维图表征 + 动态cond)
-        x_concat = torch.cat([x_g, cond], dim=1)
+        # ── 第二招：Condition Dropout（训练时随机屏蔽，eval 时自动跳过）──
+        if self.use_cond_dropout:
+            cond = self.cond_drop(cond)
+
+        # ── 第一招：组件级交互池化 ──
+        if self.use_interaction and hasattr(data_i, 'mol_type'):
+            mol_type = data_i.mol_type
+            batch = data_i.batch
+
+            # 按组件类型分别做均值池化，得到各组件的独立表征
+            h_cat = global_mean_pool(x[mol_type == 0], batch[mol_type == 0])  # 阳离子 (512)
+            h_ani = global_mean_pool(x[mol_type == 1], batch[mol_type == 1])  # 阴离子 (512)
+            h_ref = global_mean_pool(x[mol_type == 2], batch[mol_type == 2])  # 制冷剂 (512)
+
+            h_il = h_cat + h_ani  # 离子液体环境表征
+
+            x_concat = torch.cat([
+                x_g,             # 全局图表征 (512)
+                h_il * h_ref,    # 乘积交互：捕捉 IL-Ref 相互作用强度 (512)
+                h_il - h_ref,    # 差分交互：捕捉 IL-Ref 环境不对称性 (512)
+                cond             # 条件标量 (cond_dim)
+            ], dim=1)
+        else:
+            # 祖宗之法原版：直接拼接
+            x_concat = torch.cat([x_g, cond], dim=1)
+
         x_out = self.l5(x_concat)
+
+        # ── 第二招：Sigmoid 物理约束，输出严格限制在 [0, 1] ──
+        if self.use_sigmoid:
+            x_out = torch.sigmoid(x_out)
 
         return x_out
 
@@ -238,15 +292,31 @@ class IL_GCN_v6(torch.nn.Module):
         # v6 动态 cond_dim（支持 M0:7, Msize:9, Mmu:8, Mphys:10）
         cond_dim = args['cond_dim']
 
-        # 祖宗之法：经典 MLP Head (512 + cond_dim -> 1024 -> 512 -> 1)
+        # ── 增强开关（与 GAT 完全一致）──
+        self.use_interaction = args.get('use_interaction', False)
+        self.use_sigmoid = args.get('use_sigmoid', False)
+        self.use_cond_dropout = args.get('use_cond_dropout', False)
+        self.cond_dropout_p = args.get('cond_dropout_p', 0.3)
+        self.use_layernorm = args.get('use_layernorm', False)
+
+        if self.use_cond_dropout:
+            self.cond_drop = nn.Dropout(p=self.cond_dropout_p)
+
+        if self.use_interaction:
+            head_input_dim = 512 * 3 + cond_dim
+        else:
+            head_input_dim = 512 + cond_dim
+
+        NormLayer = nn.LayerNorm if self.use_layernorm else nn.BatchNorm1d
+
         self.l5 = nn.Sequential(
-            nn.Linear(512 + cond_dim, 1024),
-            nn.BatchNorm1d(1024),
+            nn.Linear(head_input_dim, 1024),
+            NormLayer(1024),
             nn.ReLU(),
             nn.Dropout(p=0.4),
 
             nn.Linear(1024, 512),
-            nn.BatchNorm1d(512),
+            NormLayer(512),
             nn.ReLU(),
             nn.Dropout(p=0.3),
 
@@ -338,8 +408,30 @@ class IL_GCN_v6(torch.nn.Module):
         else:
             raise ValueError(f"Unknown pool type {self.pool_type}")
 
-        # 祖宗之法：直接拼接 (512维图表征 + 动态cond)
-        x_concat = torch.cat([x_g, cond], dim=1)
+        # ── Condition Dropout ──
+        if self.use_cond_dropout:
+            cond = self.cond_drop(cond)
+
+        # ── 组件级交互池化 ──
+        if self.use_interaction and hasattr(data_i, 'mol_type'):
+            mol_type = data_i.mol_type
+            batch = data_i.batch
+
+            h_cat = global_mean_pool(x[mol_type == 0], batch[mol_type == 0])
+            h_ani = global_mean_pool(x[mol_type == 1], batch[mol_type == 1])
+            h_ref = global_mean_pool(x[mol_type == 2], batch[mol_type == 2])
+
+            h_il = h_cat + h_ani
+
+            x_concat = torch.cat([
+                x_g, h_il * h_ref, h_il - h_ref, cond
+            ], dim=1)
+        else:
+            x_concat = torch.cat([x_g, cond], dim=1)
+
         x_out = self.l5(x_concat)
+
+        if self.use_sigmoid:
+            x_out = torch.sigmoid(x_out)
 
         return x_out
