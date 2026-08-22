@@ -64,7 +64,7 @@ class AblationRunner:
             weight_decay=args['weight_decay']
         )
         self._scheduler = CosineAnnealingLR(self._optimizer, T_max=args['epoch'], eta_min=1e-5)
-        self._criterion = nn.HuberLoss(delta=0.5)  # [FIX v2] 0.1太激进，0.5适配x1值域
+        self._criterion = nn.HuberLoss(delta=1.0)
 
     def _save(self, title):
         os.makedirs(self.save_dir, exist_ok=True)
@@ -180,7 +180,7 @@ def main():
                         help="Number of random seeds")
     parser.add_argument("--epoch", type=int, default=150,
                         help="Max epochs")
-    parser.add_argument("--patience", type=int, default=40,
+    parser.add_argument("--patience", type=int, default=25,
                         help="Early stopping patience")
     parser.add_argument("--target_ref", type=str, default=None,
                         help="Optional: Run only a single specific refrigerant (e.g. R134a)")

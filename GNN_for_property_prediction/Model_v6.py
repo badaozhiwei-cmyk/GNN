@@ -62,29 +62,22 @@ class IL_GAT_v6(torch.nn.Module):
         if self.pool_type == 'attention':
             self.att_pool = GlobalAttention(nn.Sequential(nn.Linear(512, 1)))
 
-        # v6 改动：cond_dim 不再硬编码，而是由 Dataset_v6 根据 descriptor_mode 动态计算
-        # 支持 M0(7维), Msize(9维), Mmu(8维), Mphys(10维) 四种消融模式
-        cond_dim = args['cond_dim']  # Dynamically set by Dataset_v6 based on descriptor_mode
+        # v6 动态 cond_dim（支持 M0:7, Msize:9, Mmu:8, Mphys:10）
+        cond_dim = args['cond_dim']
         
-        # [FiLM 物理特征调制架构]
-        # 1. 物理条件编码器：映射标量物理量 (cond_dim -> 32 -> 64)
-        self.cond_encoder = nn.Sequential(
-            nn.Linear(cond_dim, 32),
-            nn.LayerNorm(32),
-            nn.SiLU(),
-            nn.Linear(32, 64),
-            nn.SiLU(),
-        )
-        # 2. 生成调制参数 gamma 和 beta (作用于 512 维图表征)
-        self.to_gamma_beta = nn.Linear(64, 2 * 512)
+        # 祖宗之法：经典 MLP Head (512 + cond_dim -> 1024 -> 512 -> 1)
+        self.l5 = nn.Sequential(
+            nn.Linear(512 + cond_dim, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Dropout(p=0.4),
 
-        # 3. 紧凑 Head：防止高维 MLP 死记硬背离散分子 ID (512 -> 128 -> 1)
-        self.head = nn.Sequential(
-            nn.Linear(512, 128),
-            nn.LayerNorm(128),
-            nn.SiLU(),
-            nn.Dropout(p=0.15),
-            nn.Linear(128, 1)
+            nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Dropout(p=0.3),
+
+            nn.Linear(512, 1)
         )
 
         self.act = nn.ReLU()
@@ -189,12 +182,9 @@ class IL_GAT_v6(torch.nn.Module):
         else:
             raise ValueError(f"Unknown pool type {self.pool_type}")
 
-        # FiLM 特征调制融合
-        c = self.cond_encoder(cond)
-        gamma, beta = self.to_gamma_beta(c).chunk(2, dim=-1)
-        gamma = 0.1 * torch.tanh(gamma)
-        h_mod = x_g * (1.0 + gamma) + beta
-        x_out = self.head(h_mod)
+        # 祖宗之法：直接拼接 (512维图表征 + 动态cond)
+        x_concat = torch.cat([x_g, cond], dim=1)
+        x_out = self.l5(x_concat)
 
         return x_out
 
@@ -245,29 +235,22 @@ class IL_GCN_v6(torch.nn.Module):
         self.l3 = GCNConv(1024, 512)
 
         # Condition dimension (identical to GAT)
-        # v6 改动：cond_dim 不再硬编码，而是由 Dataset_v6 根据 descriptor_mode 动态计算
-        # 支持 M0(7维), Msize(9维), Mmu(8维), Mphys(10维) 四种消融模式
-        cond_dim = args['cond_dim']  # Dynamically set by Dataset_v6 based on descriptor_mode
+        # v6 动态 cond_dim（支持 M0:7, Msize:9, Mmu:8, Mphys:10）
+        cond_dim = args['cond_dim']
 
-        # [FiLM 物理特征调制架构]
-        # 1. 物理条件编码器：映射标量物理量 (cond_dim -> 32 -> 64)
-        self.cond_encoder = nn.Sequential(
-            nn.Linear(cond_dim, 32),
-            nn.LayerNorm(32),
-            nn.SiLU(),
-            nn.Linear(32, 64),
-            nn.SiLU(),
-        )
-        # 2. 生成调制参数 gamma 和 beta (作用于 512 维图表征)
-        self.to_gamma_beta = nn.Linear(64, 2 * 512)
+        # 祖宗之法：经典 MLP Head (512 + cond_dim -> 1024 -> 512 -> 1)
+        self.l5 = nn.Sequential(
+            nn.Linear(512 + cond_dim, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Dropout(p=0.4),
 
-        # 3. 紧凑 Head：防止高维 MLP 死记硬背离散分子 ID (512 -> 128 -> 1)
-        self.head = nn.Sequential(
-            nn.Linear(512, 128),
-            nn.LayerNorm(128),
-            nn.SiLU(),
-            nn.Dropout(p=0.15),
-            nn.Linear(128, 1)
+            nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Dropout(p=0.3),
+
+            nn.Linear(512, 1)
         )
 
         self.act = nn.ReLU()
@@ -355,11 +338,8 @@ class IL_GCN_v6(torch.nn.Module):
         else:
             raise ValueError(f"Unknown pool type {self.pool_type}")
 
-        # FiLM 特征调制融合
-        c = self.cond_encoder(cond)
-        gamma, beta = self.to_gamma_beta(c).chunk(2, dim=-1)
-        gamma = 0.1 * torch.tanh(gamma)
-        h_mod = x_g * (1.0 + gamma) + beta
-        x_out = self.head(h_mod)
+        # 祖宗之法：直接拼接 (512维图表征 + 动态cond)
+        x_concat = torch.cat([x_g, cond], dim=1)
+        x_out = self.l5(x_concat)
 
         return x_out
