@@ -180,7 +180,7 @@ def main():
                         help="Number of random seeds")
     parser.add_argument("--epoch", type=int, default=150,
                         help="Max epochs")
-    parser.add_argument("--patience", type=int, default=25,
+    parser.add_argument("--patience", type=int, default=40,
                         help="Early stopping patience")
     parser.add_argument("--target_ref", type=str, default=None,
                         help="Optional: Run only a single specific refrigerant (e.g. R134a)")
@@ -278,22 +278,13 @@ def main():
             print(f"🎯 Targeted single refrigerant mode: {unique_refs[0]}")
         for ref in unique_refs:
             test_idx = df[df[ref_col] == ref].index.values
-            train_val_df = df[df[ref_col] != ref]
-            if len(train_val_df) == 0 or len(test_idx) == 0:
+            train_val_idx = df[df[ref_col] != ref].index.values
+            if len(train_val_idx) == 0 or len(test_idx) == 0:
                 continue
 
-            # [Group Validation 升级]
-            # 严格按制冷剂分组切分内层验证集（从剩余训练制冷剂中留出 2 个作为内层验证）
-            # 确保 EarlyStopping 挑选出的是跨分子泛化最好的模型，杜绝死记硬背训练分子
-            train_val_refs = train_val_df[ref_col].unique()
-            if len(train_val_refs) >= 3:
-                gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
-                train_pos, val_pos = next(gss.split(train_val_df, groups=train_val_df[ref_col]))
-                train_idx = train_val_df.iloc[train_pos].index.values
-                val_idx   = train_val_df.iloc[val_pos].index.values
-            else:
-                train_idx, val_idx = train_test_split(
-                    train_val_df.index.values, test_size=0.1, random_state=42)
+            # 90% 训练集，10% 验证集（保留全量分子与数据规模 1881 条）
+            train_idx, val_idx = train_test_split(
+                train_val_idx, test_size=0.1, random_state=42)
 
             splits_to_run.append((f'loro_{ref}', train_idx.tolist(),
                                   val_idx.tolist(), test_idx.tolist()))
@@ -311,21 +302,15 @@ def main():
 
         # ── 数据泄漏防护 ──
         unique_train_refs = df_raw.iloc[train_idx][ref_col].unique()
-        unique_val_refs   = df_raw.iloc[val_idx][ref_col].unique()
         unique_test_refs  = df_raw.iloc[test_idx][ref_col].unique()
 
         if args.mode == 'loro':
             target_ref = split_name.replace('loro_', '')
             assert target_ref not in unique_train_refs, \
                 f"🚨 LEAKAGE! {target_ref} found in training set!"
-            assert target_ref not in unique_val_refs, \
-                f"🚨 LEAKAGE! {target_ref} found in validation set!"
-            # 确保 Train 和 Val 完全分子隔离
-            overlap = set(unique_train_refs).intersection(set(unique_val_refs))
-            assert len(overlap) == 0, f"🚨 TRAIN-VAL OVERLAP! {overlap}"
             assert list(unique_test_refs) == [target_ref], \
                 f"🚨 TEST PURITY FAILED! Expected only {target_ref}, found {unique_test_refs}"
-            print(f"[DEBUG] LORO Purity Check: PASSED ✅ (Train refs: {len(unique_train_refs)}, Val refs: {len(unique_val_refs)}, Test ref: {target_ref})")
+            print(f"[DEBUG] LORO Purity Check: PASSED ✅ (Train refs: {len(unique_train_refs)}, Test ref: {target_ref})")
 
         split_info_results.append({
             'split': split_name,
