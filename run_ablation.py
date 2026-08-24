@@ -31,6 +31,8 @@ import torch
 from torch_geometric.data import DataLoader
 from sklearn.model_selection import train_test_split, GroupShuffleSplit
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
 import sys
 import pathlib as pl
 
@@ -64,7 +66,7 @@ class AblationRunner:
             weight_decay=args['weight_decay']
         )
         self._scheduler = CosineAnnealingLR(self._optimizer, T_max=args['epoch'], eta_min=1e-5)
-        self._criterion = nn.HuberLoss(delta=1.0)
+        self._criterion = nn.HuberLoss(delta=0.05)
 
     def _save(self, title):
         os.makedirs(self.save_dir, exist_ok=True)
@@ -130,12 +132,12 @@ class AblationRunner:
 
         return best_v_loss
 
-    def test(self, test_loader):
+    def predict(self, loader):
         self._load_best()
         self._model.eval()
         raw_pred_y, true_y = [], []
         with torch.no_grad():
-            for graph, cond, label in test_loader:
+            for graph, cond, label in loader:
                 graph = graph.to(self._device)
                 cond = cond.to(self._device)
                 label = label.to(self._device)
@@ -143,11 +145,14 @@ class AblationRunner:
                 pred_vals = pred.flatten().cpu().numpy()
                 raw_pred_y.extend(pred_vals.tolist())
                 true_y.extend(label.cpu().numpy().tolist())
+        return np.asarray(raw_pred_y), np.asarray(true_y)
 
+    def test(self, test_loader):
+        raw_pred_y, true_y = self.predict(test_loader)
         pred_y = np.clip(np.asarray(raw_pred_y), 0.0, 1.0)
         mae = mean_absolute_error(true_y, pred_y)
         r2  = r2_score(true_y, pred_y)
-        print(f"  Seed {self.seed} -> R²: {r2:.4f}, MAE: {mae:.4f}")
+        print(f"  Seed {self.seed} -> GNN R²: {r2:.4f}, MAE: {mae:.4f}")
         return np.asarray(raw_pred_y), np.asarray(true_y)
 
 
@@ -198,6 +203,8 @@ def main():
                         help="条件特征 Dropout 概率")
     parser.add_argument("--use_layernorm", action="store_true",
                         help="MLP Head 使用 LayerNorm 替代 BatchNorm")
+    parser.add_argument("--use_rf_blend", action="store_true",
+                        help="启用 RF+GNN 验证集自适应动态加权融合 (自动防发散气囊)")
 
     args = parser.parse_args()
 
@@ -370,7 +377,49 @@ def main():
             runner = AblationRunner(model_args, seed=seed, save_dir=split_dir)
             runner.train(train_loader, val_loader)
 
-            test_pred, test_true = runner.test(test_loader)
+            if args.use_rf_blend:
+                # 提取 tabular 特征用于当前 fold 内的 RF 训练（严格防泄漏）
+                feature_indices = Whole_set.feature_indices
+                X_train_raw = np.array([[Whole_set.data[i][k] for k in feature_indices] for i in train_idx], dtype=np.float32)
+                X_val_raw   = np.array([[Whole_set.data[i][k] for k in feature_indices] for i in val_idx], dtype=np.float32)
+                X_test_raw  = np.array([[Whole_set.data[i][k] for k in feature_indices] for i in test_idx], dtype=np.float32)
+                y_train_raw = np.array([float(Whole_set.label[i]) for i in train_idx], dtype=np.float32)
+                y_val_raw   = np.array([float(Whole_set.label[i]) for i in val_idx], dtype=np.float32)
+
+                rf_scaler = StandardScaler()
+                X_train_s = rf_scaler.fit_transform(X_train_raw)
+                X_val_s   = rf_scaler.transform(X_val_raw)
+                X_test_s  = rf_scaler.transform(X_test_raw)
+
+                rf = RandomForestRegressor(n_estimators=100, random_state=seed, n_jobs=-1)
+                rf.fit(X_train_s, y_train_raw)
+                rf_val_pred  = np.clip(rf.predict(X_val_s), 0.0, 1.0)
+                rf_test_pred = np.clip(rf.predict(X_test_s), 0.0, 1.0)
+
+                gnn_val_pred, _ = runner.predict(val_loader)
+                gnn_test_pred, test_true = runner.predict(test_loader)
+                gnn_val_pred  = np.clip(gnn_val_pred, 0.0, 1.0)
+                gnn_test_pred = np.clip(gnn_test_pred, 0.0, 1.0)
+
+                best_lambda = 0.0
+                best_val_mae = float('inf')
+                for lam in np.linspace(0.0, 1.0, 21):
+                    blend_val = (1.0 - lam) * rf_val_pred + lam * gnn_val_pred
+                    mae_val = mean_absolute_error(y_val_raw, blend_val)
+                    if mae_val < best_val_mae:
+                        best_val_mae = mae_val
+                        best_lambda = lam
+
+                test_pred = (1.0 - best_lambda) * rf_test_pred + best_lambda * gnn_test_pred
+                test_pred = np.clip(test_pred, 0.0, 1.0)
+
+                r2_gnn = r2_score(test_true, gnn_test_pred)
+                r2_rf  = r2_score(test_true, rf_test_pred)
+                r2_blend = r2_score(test_true, test_pred)
+                mae_blend = mean_absolute_error(test_true, test_pred)
+                print(f"  Seed {seed} -> GNN R²: {r2_gnn:.4f} | RF R²: {r2_rf:.4f} | 🛡️ Blend R²: {r2_blend:.4f} (λ={best_lambda:.2f}, MAE={mae_blend:.4f})")
+            else:
+                test_pred, test_true = runner.test(test_loader)
 
             # 验证长度对齐
             assert len(test_idx) == len(test_true) == len(test_pred), \
