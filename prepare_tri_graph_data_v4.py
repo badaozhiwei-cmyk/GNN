@@ -163,9 +163,9 @@ if os.path.exists(pair_csv):
     for _, r in df_pair.iterrows():
         k = (str(r['Pair_Type']), str(r['Ion_Name']).strip().upper(), str(r['Refrigerant']).strip().upper())
         pair_lookup[k] = float(r['Delta_E_int_kcal_mol']) if pd.notna(r['Delta_E_int_kcal_mol']) else 0.0
-    print(f"✅ 成功加载超分子配对结合能表: {len(pair_lookup)} 个配对项")
+    print(f"[Info] 成功加载超分子配对结合能表: {len(pair_lookup)} 个配对项")
 else:
-    print(f"⚠️ 警告: 未找到配对结合能表 {pair_csv}，请先运行 compute_full_pair_interaction_xtb.py！")
+    print(f"[Warning] 未找到配对结合能表 {pair_csv}，请先运行 compute_full_pair_interaction_xtb.py！")
 
 # 4. 读取原始相平衡数据
 excel_name = 'ZLJ_DATA.xlsx'
