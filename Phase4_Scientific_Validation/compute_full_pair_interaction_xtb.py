@@ -25,8 +25,12 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
-# --- KAGGLE / LOCAL XTB PATH RESOLUTION ---
+# --- KAGGLE / LOCAL XTB PATH RESOLUTION & AUTO-INSTALL ---
 xtb_root = '/kaggle/working/xtb-dist'
+if not os.path.exists(os.path.join(xtb_root, 'bin', 'xtb')) and os.path.exists('/kaggle/working'):
+    print("📦 正在自动下载并解压 xTB Linux 二进制引擎 (GFN2-xTB)...")
+    os.system("cd /kaggle/working && wget -q https://github.com/grimme-lab/xtb/releases/download/v6.6.1/xtb-6.6.1-linux-x86_64.tar.xz && tar -xf xtb-6.6.1-linux-x86_64.tar.xz && mv xtb-6.6.1 xtb-dist && rm -f xtb-6.6.1-linux-x86_64.tar.xz")
+
 if os.path.exists(xtb_root):
     os.environ['PATH'] = f"{xtb_root}/bin:" + os.environ.get('PATH', '')
     os.environ['XTBPATH'] = f"{xtb_root}/share/xtb"
