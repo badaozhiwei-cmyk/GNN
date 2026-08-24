@@ -106,7 +106,8 @@ def run_xtb_opt(xyz_file, charge, work_dir):
     os.makedirs(work_dir, exist_ok=True)
     xyz_name = os.path.basename(xyz_file)
     dst_xyz = os.path.join(work_dir, xyz_name)
-    shutil.copyfile(xyz_file, dst_xyz)
+    if os.path.abspath(xyz_file) != os.path.abspath(dst_xyz):
+        shutil.copyfile(xyz_file, dst_xyz)
 
     cmd = ['xtb', xyz_name, '--opt', 'normal', '-c', str(charge)]
     try:
