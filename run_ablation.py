@@ -179,7 +179,7 @@ def main():
                         choices=['random', 'loro'],
                         help="Split mode")
     parser.add_argument("--descriptor_mode", type=str, required=True,
-                        choices=['M0', 'Msize', 'Mmu', 'Mphys'],
+                        choices=['M0', 'Msize', 'Mmu', 'Mphys', 'M_interact', 'M_all'],
                         help="Ablation descriptor mode")
     parser.add_argument("--seeds", type=int, default=3,
                         help="Number of random seeds")
@@ -209,9 +209,11 @@ def main():
     args = parser.parse_args()
 
     # ============================================================
-    # 1. 加载数据（使用 v3 版本的 processed_tri_data）
+    # 1. 加载数据（优先使用包含配对结合能的 v4 版本）
     # ============================================================
-    data_path = os.path.join(current_script_dir, 'processed_tri_data_v3/')
+    data_path_v4 = os.path.join(current_script_dir, 'processed_tri_data_v4/')
+    data_path_v3 = os.path.join(current_script_dir, 'processed_tri_data_v3/')
+    data_path = data_path_v4 if os.path.exists(os.path.join(data_path_v4, 'data.npy')) else data_path_v3
     if not os.path.exists(os.path.join(data_path, 'data.npy')):
         raise FileNotFoundError(
             f"找不到 {data_path}data.npy！\n"

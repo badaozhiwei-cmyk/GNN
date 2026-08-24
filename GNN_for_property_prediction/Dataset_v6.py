@@ -30,10 +30,12 @@ from sklearn.preprocessing import StandardScaler
 # 每种消融模式对应的条件特征索引
 # ============================================================
 MODE_INDICES = {
-    'M0':    [3, 4, 5, 6, 7, 8, 9],                    # 7 维：原始基线
-    'Msize': [3, 4, 5, 6, 7, 8, 9, 10, 11],            # 9 维：+ ref_MolWt, cat_MolWt
-    'Mmu':   [3, 4, 5, 6, 7, 8, 9, 12],                # 8 维：+ ref_dipole
-    'Mphys': [3, 4, 5, 6, 7, 8, 9, 12, 13, 14],        # 10 维：+ ref_dipole, ref_pol, ref_vol
+    'M0':         [3, 4, 5, 6, 7, 8, 9],                                 # 7 维：原始基线
+    'Msize':      [3, 4, 5, 6, 7, 8, 9, 10, 11],                         # 9 维：+ ref_MolWt, cat_MolWt
+    'Mmu':        [3, 4, 5, 6, 7, 8, 9, 12],                             # 8 维：+ ref_dipole
+    'Mphys':      [3, 4, 5, 6, 7, 8, 9, 12, 13, 14],                     # 10 维：+ ref_dipole, ref_pol, ref_vol
+    'M_interact': [3, 4, 5, 6, 7, 8, 9, 15, 16],                         # 9 维：M0 + Delta_E_anion, Delta_E_cation
+    'M_all':      [3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16],             # 12 维：全物理量 + 配对结合能
 }
 
 MODE_COND_DIM = {k: len(v) for k, v in MODE_INDICES.items()}
