@@ -28,7 +28,7 @@ import random
 import numpy as np
 import pandas as pd
 import torch
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 from sklearn.model_selection import train_test_split, GroupShuffleSplit
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.ensemble import RandomForestRegressor
@@ -183,10 +183,10 @@ def main():
                         help="Ablation descriptor mode")
     parser.add_argument("--seeds", type=int, default=3,
                         help="Number of random seeds")
-    parser.add_argument("--epoch", type=int, default=150,
-                        help="Max epochs")
-    parser.add_argument("--patience", type=int, default=25,
-                        help="Early stopping patience")
+    parser.add_argument("--epoch", type=int, default=80,
+                        help="Max epochs (default: 80)")
+    parser.add_argument("--patience", type=int, default=15,
+                        help="Early stopping patience (default: 15)")
     parser.add_argument("--target_ref", type=str, default=None,
                         help="Optional: Run only a single specific refrigerant (e.g. R134a)")
 
@@ -358,7 +358,52 @@ def main():
         test_set  = torch.utils.data.Subset(Whole_set, test_idx)
 
         split_dir = f"{out_dir}/{split_name}"
+        preds_dir = f"{split_dir}_preds"
+
+        # ── 检查是否已完成全部 Seed（断点秒级续算）──
+        all_seeds_exist = True
+        loaded_split_r2 = []
+        loaded_split_mae = []
+        for seed in range(42, 42 + args.seeds):
+            seed_file = f"{preds_dir}/seed{seed}.csv"
+            if os.path.exists(seed_file):
+                try:
+                    s_df = pd.read_csv(seed_file)
+                    if len(s_df) == len(test_idx):
+                        r2 = r2_score(s_df['true_x1'], np.clip(s_df['pred_x1'], 0, 1))
+                        mae = mean_absolute_error(s_df['true_x1'], np.clip(s_df['pred_x1'], 0, 1))
+                        loaded_split_r2.append(r2)
+                        loaded_split_mae.append(mae)
+                    else:
+                        all_seeds_exist = False
+                        break
+                except Exception:
+                    all_seeds_exist = False
+                    break
+            else:
+                all_seeds_exist = False
+                break
+
+        if all_seeds_exist and len(loaded_split_r2) == args.seeds:
+            print(f"  ⚡ [Resume] 检测到 {split_name} 已完成 ({args.seeds} seeds)，直接复用！(R²={np.mean(loaded_split_r2):.4f}, MAE={np.mean(loaded_split_mae):.4f})")
+            if not any(r['Target'] == split_name for r in summary_results):
+                summary_results.append({
+                    'Target': split_name,
+                    'Family': args.family,
+                    'Mode': args.mode,
+                    'Descriptor': args.descriptor_mode,
+                    'cond_dim': cond_dim,
+                    'n_train': len(train_idx),
+                    'n_test': len(test_idx),
+                    'R2_mean': np.mean(loaded_split_r2),
+                    'R2_std': np.std(loaded_split_r2),
+                    'MAE_mean': np.mean(loaded_split_mae),
+                    'MAE_std': np.std(loaded_split_mae),
+                })
+            continue
+
         os.makedirs(split_dir, exist_ok=True)
+        os.makedirs(preds_dir, exist_ok=True)
 
         # ── Scaler: 只用 train 拟合（防泄漏铁律）──
         Whole_set.fit_scalers(train_idx, save_dir=split_dir)
@@ -434,8 +479,6 @@ def main():
                 'true_x1': test_true,
                 'pred_x1': test_pred
             })
-            preds_dir = f"{split_dir}_preds"
-            os.makedirs(preds_dir, exist_ok=True)
             seed_df.to_csv(f"{preds_dir}/seed{seed}.csv", index=False)
 
             r2  = r2_score(test_true, np.clip(test_pred, 0, 1))
@@ -443,6 +486,8 @@ def main():
             split_r2_list.append(r2)
             split_mae_list.append(mae)
 
+        # 更新 summary 并实时落盘
+        summary_results = [r for r in summary_results if r['Target'] != split_name]
         summary_results.append({
             'Target': split_name,
             'Family': args.family,
@@ -456,6 +501,7 @@ def main():
             'MAE_mean': np.mean(split_mae_list),
             'MAE_std': np.std(split_mae_list),
         })
+        pd.DataFrame(summary_results).to_csv(f"{out_dir}/summary.csv", index=False)
 
     # ============================================================
     # 5. 保存结果
