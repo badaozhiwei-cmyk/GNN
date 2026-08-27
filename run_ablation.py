@@ -179,7 +179,7 @@ def main():
                         choices=['random', 'loro'],
                         help="Split mode")
     parser.add_argument("--descriptor_mode", type=str, required=True,
-                        choices=['M0', 'Msize', 'Mmu', 'Mphys', 'M_interact', 'M_all'],
+                        choices=['M0', 'Msize', 'Mmu', 'Malpha', 'MV', 'Mphys', 'M_interact', 'M_all'],
                         help="Ablation descriptor mode")
     parser.add_argument("--seeds", type=int, default=3,
                         help="Number of random seeds")
