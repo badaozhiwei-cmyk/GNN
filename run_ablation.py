@@ -187,6 +187,8 @@ def main():
                         help="Max epochs (default: 80)")
     parser.add_argument("--patience", type=int, default=15,
                         help="Early stopping patience (default: 15)")
+    parser.add_argument("--batch_size", type=int, default=64,
+                        help="Batch size (default: 64, recommend 128 for CPU)")
     parser.add_argument("--target_ref", type=str, default=None,
                         help="Optional: Run only a single specific refrigerant (e.g. R134a)")
 
@@ -207,6 +209,10 @@ def main():
                         help="启用 RF+GNN 验证集自适应动态加权融合 (自动防发散气囊)")
 
     args = parser.parse_args()
+
+    # CPU 多核极致并行提速
+    if not torch.cuda.is_available():
+        torch.set_num_threads(4)
 
     # ============================================================
     # 1. 加载数据（优先使用包含配对结合能的 v4 版本）
@@ -243,7 +249,7 @@ def main():
     print(f"  GNN Ablation Study")
     print(f"  Family: {args.family} | Mode: {args.mode}")
     print(f"  Descriptor: {args.descriptor_mode} (cond_dim={MODE_COND_DIM[args.descriptor_mode]})")
-    print(f"  Seeds: {args.seeds} | Epochs: {args.epoch}")
+    print(f"  Seeds: {args.seeds} | Epochs: {args.epoch} | Batch: {args.batch_size}")
     print(f"  Samples after filtering: {len(df)}")
     print(f"{'='*60}\n")
 
@@ -254,7 +260,7 @@ def main():
 
     model_args = {
         'data_path': data_path,
-        'batch_size': 64,
+        'batch_size': args.batch_size,
         'lr': 0.001,
         'epoch': args.epoch,
         'weight_decay': 1e-6,
