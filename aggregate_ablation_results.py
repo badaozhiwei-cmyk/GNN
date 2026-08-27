@@ -186,7 +186,34 @@ def main():
         print(df_ref.to_string(index=False))
 
     # ============================================================
-    # 3. 导出全量对比大宽表
+    # 3. 打印核心对比表：12 个制冷剂 MAE 修复对比表 (Table 2: Per-Refrigerant MAE Reduction)
+    # ============================================================
+    print("\n" + "━"*80)
+    print("  🎯 [Table 2] 12 个制冷剂 MAE 逐级修复横向对比表 (M0 -> Msize -> Mmu -> Mphys)")
+    print("━"*80)
+    
+    mae_comp_rows = []
+    for ref in all_refs:
+        n_samples = results[list(results.keys())[0]]['per_ref'][ref]['N'] if ref in results[list(results.keys())[0]]['per_ref'] else 0
+        r_row = {'Refrigerant': ref, 'N': n_samples}
+        m0_val = None
+        for m in MODES:
+            if m in results and ref in results[m]['per_ref']:
+                val = np.mean(results[m]['per_ref'][ref]['MAE'])
+                r_row[f"{m}_MAE"] = f"{val:.4f}"
+                if m == 'M0': m0_val = val
+                if m in ['Mmu', 'Mphys', 'M_interact'] and m0_val is not None and m0_val > 0:
+                    gain = (val - m0_val) / m0_val * 100.0
+                    r_row[f"Δ_{m}%"] = f"{gain:+.1f}%"
+            else:
+                r_row[f"{m}_MAE"] = "N/A"
+        mae_comp_rows.append(r_row)
+    
+    df_mae_comp = pd.DataFrame(mae_comp_rows)
+    print(df_mae_comp.to_string(index=False))
+
+    # ============================================================
+    # 4. 导出全量对比大宽表
     # ============================================================
     out_table_path = os.path.join(BASE_DIR, "ablation_3tier_summary_table.csv")
     
