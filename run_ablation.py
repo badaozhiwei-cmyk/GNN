@@ -35,6 +35,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 import sys
 import pathlib as pl
+import hashlib
+import json
 
 # 确保能找到子模块
 current_script_dir = str(pl.Path(__file__).resolve().parent)
@@ -303,10 +305,45 @@ def main():
     assert len(df_raw) == len(Whole_set), \
         f"Dataset length mismatch! CSV: {len(df_raw)} vs PyG: {len(Whole_set)}"
 
-    out_dir = f"results_ablation/{args.family}_{args.mode}_{args.descriptor_mode}"
-    if args.use_adaptive_gate:
-        out_dir += "_gated"
+    # ============================================================
+    # 2b. 实验配置哈希（防止不同配置复用旧预测）
+    # ============================================================
+    exp_config = {
+        "descriptor_mode": args.descriptor_mode,
+        "use_interaction": args.use_interaction,
+        "use_sigmoid": args.use_sigmoid,
+        "use_cond_dropout": args.use_cond_dropout,
+        "cond_dropout_p": args.cond_dropout_p,
+        "use_layernorm": args.use_layernorm,
+        "use_rf_blend": args.use_rf_blend,
+        "use_adaptive_gate": args.use_adaptive_gate,
+        "gate_init_bias": args.gate_init_bias if args.use_adaptive_gate else None,
+        "epoch": args.epoch,
+        "patience": args.patience,
+        "batch_size": args.batch_size,
+        "val_protocol": "group",  # 标记验证协议版本
+    }
+    config_str = json.dumps(exp_config, sort_keys=True)
+    config_hash = hashlib.md5(config_str.encode()).hexdigest()[:8]
+
+    out_dir = f"results_ablation/{args.family}_{args.mode}_{args.descriptor_mode}_{config_hash}"
     os.makedirs(out_dir, exist_ok=True)
+
+    # 保存配置文件（可溯源）
+    config_path = f"{out_dir}/config.json"
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            old_config = json.load(f)
+        if old_config != exp_config:
+            raise RuntimeError(
+                f"🚨 CONFIG COLLISION! Directory {out_dir} has different config.\n"
+                f"Old: {old_config}\nNew: {exp_config}\n"
+                f"This should never happen with hash-based naming. Check for manual changes."
+            )
+    else:
+        with open(config_path, 'w') as f:
+            json.dump(exp_config, f, indent=2)
+    print(f"  Config hash: {config_hash} | Dir: {out_dir}")
 
     # ============================================================
     # 3. 构建 LORO 切分
@@ -335,12 +372,29 @@ def main():
             if len(train_val_idx) == 0 or len(test_idx) == 0:
                 continue
 
-            # 90% 训练集，10% 验证集（保留全量分子与数据规模 1881 条）
-            train_idx, val_idx = train_test_split(
-                train_val_idx, test_size=0.1, random_state=42)
+            # ── 验证集按制冷剂分组划分（审稿铁律）──
+            # 保证 val 中的制冷剂完全不出现在 train 中，
+            # 使 Early Stopping 选择的是跨制冷剂外推最优 checkpoint。
+            train_val_df = df_raw.loc[train_val_idx]
+            gss = GroupShuffleSplit(
+                n_splits=1, test_size=0.18, random_state=42
+            )
+            tr_pos, va_pos = next(gss.split(
+                train_val_df,
+                groups=train_val_df[ref_col]
+            ))
+            train_idx = train_val_idx[tr_pos].tolist()
+            val_idx   = train_val_idx[va_pos].tolist()
 
-            splits_to_run.append((f'loro_{ref}', train_idx.tolist(),
-                                  val_idx.tolist(), test_idx.tolist()))
+            # 验证 train/val 制冷剂零重叠
+            tr_refs = set(df_raw.iloc[train_idx][ref_col])
+            va_refs = set(df_raw.iloc[val_idx][ref_col])
+            assert tr_refs.isdisjoint(va_refs), \
+                f"🚨 VAL LEAKAGE! Overlap: {tr_refs & va_refs}"
+            print(f"  [GroupVal] Train refs: {len(tr_refs)}, Val refs: {va_refs}")
+
+            splits_to_run.append((f'loro_{ref}', train_idx,
+                                  val_idx, test_idx.tolist()))
 
     # ============================================================
     # 4. 训练和评估循环

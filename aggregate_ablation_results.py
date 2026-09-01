@@ -50,7 +50,19 @@ def load_seed_predictions(mode_dir):
     return pd.concat(dfs, ignore_index=True)
 
 def analyze_mode(mode):
-    mode_dir = os.path.join(BASE_DIR, f"{FAMILY}_{SPLIT_MODE}_{mode}")
+    # 自动发现带配置哈希后缀的目录（兼容旧版无哈希目录）
+    pattern = os.path.join(BASE_DIR, f"{FAMILY}_{SPLIT_MODE}_{mode}_*")
+    matching = glob.glob(pattern)
+    # 也检查无哈希的旧目录
+    exact_dir = os.path.join(BASE_DIR, f"{FAMILY}_{SPLIT_MODE}_{mode}")
+    if os.path.isdir(exact_dir) and exact_dir not in matching:
+        matching.append(exact_dir)
+    
+    if not matching:
+        return None
+    
+    # 取最新修改的目录（如果有多个同模式不同配置，用最新的）
+    mode_dir = max(matching, key=os.path.getmtime)
     summary_csv = os.path.join(mode_dir, "summary.csv")
     
     if not os.path.exists(mode_dir):
