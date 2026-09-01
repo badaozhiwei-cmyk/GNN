@@ -21,6 +21,8 @@ aggregate_ablation_results.py — 顶刊规范消融实验多维指标汇总分�
 
 import os
 import glob
+import argparse
+import json
 import pandas as pd
 import numpy as np
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
@@ -29,12 +31,16 @@ MODES = ['M0', 'Msize', 'Mmu', 'Malpha', 'MV', 'Mphys', 'Mphys_gated', 'M_intera
 FAMILY = 'HFC'
 SPLIT_MODE = 'loro'
 BASE_DIR = 'results_ablation'
+EXPECTED_HFC_REFS = {
+    'R23', 'R32', 'R41', 'R125', 'R134', 'R134a',
+    'R143a', 'R152a', 'R161', 'R227ea', 'R236fa', 'R245fa'
+}
 
 def compute_aard(y_true, y_pred, eps=1e-4):
     y_true_safe = np.maximum(y_true, eps)
     return np.mean(np.abs(y_true - y_pred) / y_true_safe) * 100.0
 
-def load_seed_predictions(mode_dir):
+def load_seed_predictions(mode_dir, expected_seeds):
     """
     读取某个模式下所有 fold 和 seed 的原始预测文件，用于计算 Pooled R² 和各 fold 的多 seed 指标
     """
@@ -46,33 +52,86 @@ def load_seed_predictions(mode_dir):
     dfs = []
     for f in files:
         df = pd.read_csv(f)
+        if set(df.columns) < {'seed', 'refrigerant', 'true_x1', 'pred_x1'}:
+            raise ValueError(f'Malformed prediction file: {f}')
+        file_seeds = set(df['seed'].astype(int))
+        if len(file_seeds) != 1:
+            raise ValueError(f'Prediction file must contain exactly one seed: {f}')
+        file_refs = set(df['refrigerant'].astype(str))
+        if len(file_refs) != 1:
+            raise ValueError(f'Prediction file must contain exactly one refrigerant: {f}')
         dfs.append(df)
-    return pd.concat(dfs, ignore_index=True)
+    combined = pd.concat(dfs, ignore_index=True)
+    combined = combined[combined['seed'].isin(expected_seeds)].copy()
+    combined['pred_x1'] = np.clip(combined['pred_x1'], 0.0, 1.0)
+    return combined
 
-def analyze_mode(mode):
-    # 自动发现带配置哈希后缀的目录（兼容旧版无哈希目录）
-    pattern = os.path.join(BASE_DIR, f"{FAMILY}_{SPLIT_MODE}_{mode}_*")
-    matching = glob.glob(pattern)
-    # 也检查无哈希的旧目录
-    exact_dir = os.path.join(BASE_DIR, f"{FAMILY}_{SPLIT_MODE}_{mode}")
-    if os.path.isdir(exact_dir) and exact_dir not in matching:
-        matching.append(exact_dir)
-    
-    if not matching:
+def config_matches_mode(config, mode):
+    if config.get('family') != FAMILY or config.get('mode') != SPLIT_MODE:
+        return False
+    if mode == 'Mphys_gated':
+        return config.get('descriptor_mode') == 'Mphys' and config.get('use_adaptive_gate') is True
+    return config.get('descriptor_mode') == mode and config.get('use_adaptive_gate') is not True
+
+
+def discover_mode_dir(mode, selected_hash=None):
+    candidates = []
+    pattern = os.path.join(BASE_DIR, f'{FAMILY}_{SPLIT_MODE}_*_*')
+    for mode_dir in glob.glob(pattern):
+        config_path = os.path.join(mode_dir, 'config.json')
+        if not os.path.isfile(config_path):
+            continue
+        with open(config_path, 'r', encoding='utf-8') as handle:
+            config = json.load(handle)
+        if not config_matches_mode(config, mode):
+            continue
+        directory_hash = os.path.basename(mode_dir).rsplit('_', 1)[-1]
+        if selected_hash and directory_hash != selected_hash:
+            continue
+        candidates.append((mode_dir, config, directory_hash))
+
+    if not candidates:
         return None
-    
-    # 取最新修改的目录（如果有多个同模式不同配置，用最新的）
-    mode_dir = max(matching, key=os.path.getmtime)
+    if len(candidates) > 1:
+        choices = ', '.join(item[2] for item in candidates)
+        raise RuntimeError(
+            f'Multiple configurations found for {mode}: {choices}. '
+            f'Choose one with --config {mode}=HASH.'
+        )
+    return candidates[0]
+
+
+def validate_prediction_completeness(all_preds_df, expected_seeds, mode_dir):
+    if all_preds_df is None or all_preds_df.empty:
+        raise RuntimeError(f'No predictions found in {mode_dir}')
+    actual_refs = set(all_preds_df['refrigerant'].astype(str))
+    if actual_refs != EXPECTED_HFC_REFS:
+        missing = sorted(EXPECTED_HFC_REFS - actual_refs)
+        extra = sorted(actual_refs - EXPECTED_HFC_REFS)
+        raise RuntimeError(f'Incomplete folds in {mode_dir}; missing={missing}, extra={extra}')
+    for ref in EXPECTED_HFC_REFS:
+        actual_seeds = set(all_preds_df.loc[all_preds_df['refrigerant'] == ref, 'seed'].astype(int))
+        if actual_seeds != set(expected_seeds):
+            raise RuntimeError(
+                f'Incomplete seeds for {ref} in {mode_dir}: '
+                f'expected={expected_seeds}, actual={sorted(actual_seeds)}'
+            )
+
+
+def analyze_mode(mode, selected_hash=None):
+    discovered = discover_mode_dir(mode, selected_hash)
+    if discovered is None:
+        return None
+    mode_dir, config, config_hash = discovered
     summary_csv = os.path.join(mode_dir, "summary.csv")
-    
-    if not os.path.exists(mode_dir):
-        return None
+    expected_seeds = [int(seed) for seed in config['seeds']]
 
     # 读取各折汇总数据
     df_summary = pd.read_csv(summary_csv) if os.path.exists(summary_csv) else None
     
     # 读取原始各 seed 预测
-    all_preds_df = load_seed_predictions(mode_dir)
+    all_preds_df = load_seed_predictions(mode_dir, expected_seeds)
+    validate_prediction_completeness(all_preds_df, expected_seeds, mode_dir)
     
     # 1. 计算每个 Seed 的 Pooled R² 与全局指标，再求 mean ± std
     pooled_r2_seeds = []
@@ -122,6 +181,8 @@ def analyze_mode(mode):
             
     return {
         'mode': mode,
+        'config_hash': config_hash,
+        'config': config,
         'summary_df': df_summary,
         'pooled_r2_mean': np.mean(pooled_r2_seeds) if pooled_r2_seeds else np.nan,
         'pooled_r2_std': np.std(pooled_r2_seeds) if pooled_r2_seeds else np.nan,
@@ -132,17 +193,34 @@ def analyze_mode(mode):
         'per_ref': per_ref_metrics
     }
 
+def parse_config_selections(values):
+    selections = {}
+    for value in values:
+        if '=' not in value:
+            raise ValueError(f'Invalid --config value {value!r}; expected MODE=HASH')
+        mode, config_hash = value.split('=', 1)
+        selections[mode] = config_hash
+    return selections
+
+
 def main():
+    parser = argparse.ArgumentParser(description='Aggregate complete ablation configurations')
+    parser.add_argument(
+        '--config', action='append', default=[], metavar='MODE=HASH',
+        help='Select an exact configuration when multiple hashes exist (repeatable)'
+    )
+    args = parser.parse_args()
+    selections = parse_config_selections(args.config)
     print("="*80)
     print("  🏆 GNN 消融实验 (HFC LORO) 顶刊三层指标汇总分析引擎")
     print("="*80)
     
     results = {}
     for m in MODES:
-        res = analyze_mode(m)
+        res = analyze_mode(m, selections.get(m))
         if res:
             results[m] = res
-            print(f"✅ 加载成功: {m:<10} | Pooled R²: {res['pooled_r2_mean']:.4f} (±{res['pooled_r2_std']:.4f}) | Macro MAE: {res['macro_mae_mean']:.4f}")
+            print(f"✅ 加载成功: {m:<10} [{res['config_hash']}] | Pooled R²: {res['pooled_r2_mean']:.4f} (±{res['pooled_r2_std']:.4f}) | Macro MAE: {res['macro_mae_mean']:.4f}")
         else:
             pass
 

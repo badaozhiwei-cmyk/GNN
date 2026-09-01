@@ -37,6 +37,7 @@ import sys
 import pathlib as pl
 import hashlib
 import json
+import subprocess
 
 # 确保能找到子模块
 current_script_dir = str(pl.Path(__file__).resolve().parent)
@@ -52,6 +53,24 @@ from Model_v6 import IL_GAT_v6
 import torch.nn as nn
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from tqdm import tqdm
+
+
+def sha256_file(path, chunk_size=1024 * 1024):
+    digest = hashlib.sha256()
+    with open(path, 'rb') as handle:
+        for chunk in iter(lambda: handle.read(chunk_size), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def git_commit_or_unknown():
+    try:
+        return subprocess.check_output(
+            ['git', 'rev-parse', 'HEAD'], cwd=current_script_dir,
+            text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return 'unknown'
 
 
 class AblationRunner:
@@ -220,8 +239,14 @@ def main():
                         help="启用自适应门控物理描述符注入 (Adaptive Gated Descriptor Injection)")
     parser.add_argument("--gate_init_bias", type=float, default=-2.0,
                         help="门控偏置初始值 (default: -2.0, σ(-2)≈0.12)")
+    parser.add_argument("--feature_clip", type=float, default=None,
+                        help="可选：将标准化条件特征裁剪到 [-X, X]；默认不裁剪")
 
     args = parser.parse_args()
+    if args.feature_clip is not None and args.feature_clip <= 0:
+        parser.error('--feature_clip must be positive')
+    if args.use_adaptive_gate and args.descriptor_mode != 'Mphys':
+        parser.error('--use_adaptive_gate is defined only for --descriptor_mode Mphys')
 
     # CPU 多核极致并行提速
     if not torch.cuda.is_available():
@@ -296,6 +321,7 @@ def main():
         'use_adaptive_gate': args.use_adaptive_gate,
         'n_base_features': 7,  # M0 的 7 维基线特征始终作为 base
         'gate_init_bias': args.gate_init_bias,
+        'feature_clip': args.feature_clip,
     }
 
     print("Loading Graph Dataset (v6)...")
@@ -309,6 +335,9 @@ def main():
     # 2b. 实验配置哈希（防止不同配置复用旧预测）
     # ============================================================
     exp_config = {
+        "schema_version": 2,
+        "family": args.family,
+        "mode": args.mode,
         "descriptor_mode": args.descriptor_mode,
         "use_interaction": args.use_interaction,
         "use_sigmoid": args.use_sigmoid,
@@ -321,7 +350,24 @@ def main():
         "epoch": args.epoch,
         "patience": args.patience,
         "batch_size": args.batch_size,
-        "val_protocol": "group",  # 标记验证协议版本
+        "seeds": list(range(42, 42 + args.seeds)),
+        "lr": model_args['lr'],
+        "weight_decay": model_args['weight_decay'],
+        "emb_dim": model_args['emb_dim'],
+        "gnn_dropout": model_args['dropout_rate'],
+        "pool": model_args['pool'],
+        "huber_delta": 0.05,
+        "scheduler": "CosineAnnealingLR",
+        "scheduler_eta_min": 1e-5,
+        "feature_clip": args.feature_clip,
+        "data_version": os.path.basename(os.path.normpath(data_path)),
+        "data_sha256": sha256_file(os.path.join(data_path, 'data.npy')),
+        "label_sha256": sha256_file(os.path.join(data_path, 'label.npy')),
+        "meta_sha256": sha256_file(meta_csv),
+        "git_commit": git_commit_or_unknown(),
+        "split_seed": 42,
+        "val_protocol": "group_shuffle_by_refrigerant_v1",
+        "val_group_fraction": 0.18,
     }
     config_str = json.dumps(exp_config, sort_keys=True)
     config_hash = hashlib.md5(config_str.encode()).hexdigest()[:8]
@@ -344,6 +390,8 @@ def main():
         with open(config_path, 'w') as f:
             json.dump(exp_config, f, indent=2)
     print(f"  Config hash: {config_hash} | Dir: {out_dir}")
+    splits_dir = os.path.join(out_dir, 'splits')
+    os.makedirs(splits_dir, exist_ok=True)
 
     # ============================================================
     # 3. 构建 LORO 切分
@@ -375,16 +423,29 @@ def main():
             # ── 验证集按制冷剂分组划分（审稿铁律）──
             # 保证 val 中的制冷剂完全不出现在 train 中，
             # 使 Early Stopping 选择的是跨制冷剂外推最优 checkpoint。
-            train_val_df = df_raw.loc[train_val_idx]
-            gss = GroupShuffleSplit(
-                n_splits=1, test_size=0.18, random_state=42
-            )
-            tr_pos, va_pos = next(gss.split(
-                train_val_df,
-                groups=train_val_df[ref_col]
-            ))
-            train_idx = train_val_idx[tr_pos].tolist()
-            val_idx   = train_val_idx[va_pos].tolist()
+            split_path = os.path.join(splits_dir, f'loro_{ref}.npz')
+            if os.path.exists(split_path):
+                frozen = np.load(split_path)
+                train_idx = frozen['train'].astype(int).tolist()
+                val_idx = frozen['val'].astype(int).tolist()
+                frozen_test = frozen['test'].astype(int).tolist()
+                if frozen_test != test_idx.astype(int).tolist():
+                    raise RuntimeError(f'Frozen test indices disagree with current data: {split_path}')
+            else:
+                train_val_df = df_raw.loc[train_val_idx]
+                gss = GroupShuffleSplit(
+                    n_splits=1, test_size=0.18, random_state=42
+                )
+                tr_pos, va_pos = next(gss.split(
+                    train_val_df,
+                    groups=train_val_df[ref_col]
+                ))
+                train_idx = train_val_idx[tr_pos].astype(int).tolist()
+                val_idx = train_val_idx[va_pos].astype(int).tolist()
+                np.savez_compressed(
+                    split_path, train=np.asarray(train_idx),
+                    val=np.asarray(val_idx), test=np.asarray(test_idx, dtype=int)
+                )
 
             # 验证 train/val 制冷剂零重叠
             tr_refs = set(df_raw.iloc[train_idx][ref_col])
@@ -399,8 +460,16 @@ def main():
     # ============================================================
     # 4. 训练和评估循环
     # ============================================================
-    summary_results = []
-    split_info_results = []
+    summary_path = os.path.join(out_dir, 'summary.csv')
+    split_info_path = os.path.join(out_dir, 'split_information.csv')
+    summary_results = (
+        pd.read_csv(summary_path).to_dict('records')
+        if os.path.exists(summary_path) else []
+    )
+    split_info_results = (
+        pd.read_csv(split_info_path).to_dict('records')
+        if os.path.exists(split_info_path) else []
+    )
 
     for split_name, train_idx, val_idx, test_idx in splits_to_run:
         print(f"\n{'='*60}")
@@ -419,6 +488,7 @@ def main():
                 f"🚨 TEST PURITY FAILED! Expected only {target_ref}, found {unique_test_refs}"
             print(f"[DEBUG] LORO Purity Check: PASSED ✅ (Train refs: {len(unique_train_refs)}, Test ref: {target_ref})")
 
+        split_info_results = [r for r in split_info_results if r['split'] != split_name]
         split_info_results.append({
             'split': split_name,
             'descriptor_mode': args.descriptor_mode,
@@ -464,8 +534,8 @@ def main():
 
         if all_seeds_exist and len(loaded_split_r2) == args.seeds:
             print(f"  ⚡ [Resume] 检测到 {split_name} 已完成 ({args.seeds} seeds)，直接复用！(R²={np.mean(loaded_split_r2):.4f}, MAE={np.mean(loaded_split_mae):.4f})")
-            if not any(r['Target'] == split_name for r in summary_results):
-                summary_results.append({
+            summary_results = [r for r in summary_results if r['Target'] != split_name]
+            summary_results.append({
                     'Target': split_name,
                     'Family': args.family,
                     'Mode': args.mode,
