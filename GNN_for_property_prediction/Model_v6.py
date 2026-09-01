@@ -78,6 +78,34 @@ class IL_GAT_v6(torch.nn.Module):
         self.cond_dropout_p = args.get('cond_dropout_p', 0.3)
         self.use_layernorm = args.get('use_layernorm', False)
 
+        # ══════════════════════════════════════════════════════
+        # 【第三招】自适应门控物理描述符注入
+        # (Adaptive Gated Physicochemical Descriptor Injection)
+        # 科学动机：LORO 实验发现物理描述符的有效性具有强烈的
+        # 制冷剂依赖性（R23: 巨幅改善, R32/R41: 明显恶化），
+        # 简单拼接（static concatenation）不是最优策略。
+        # 门控让模型学习根据分子图嵌入，对物理描述符进行
+        # 自适应加权：g = σ(W · x_g + b)
+        # ══════════════════════════════════════════════════════
+        self.use_adaptive_gate = args.get('use_adaptive_gate', False)
+        if self.use_adaptive_gate:
+            self.n_base_features = args.get('n_base_features', 7)
+            n_phys = cond_dim - self.n_base_features
+            assert n_phys > 0, (
+                f"Adaptive gate requires physics features! "
+                f"cond_dim={cond_dim}, n_base={self.n_base_features}"
+            )
+            self.n_phys_features = n_phys
+            # 极简门控：单层线性 + Sigmoid
+            # 3 个独立标量门分别控制 μ, α, V（或更多物理描述符）
+            self.gate_linear = nn.Linear(512, n_phys)
+            nn.init.xavier_uniform_(self.gate_linear.weight)
+            # 偏置初始化为 -2.0 → σ(-2)≈0.12，默认弱使用物理描述符
+            gate_bias = args.get('gate_init_bias', -2.0)
+            nn.init.constant_(self.gate_linear.bias, gate_bias)
+            # 推理时存储门控值，用于可解释性分析
+            self._gate_values = None
+
         # Condition Dropout：训练时随机屏蔽条件标量，破坏捷径学习
         if self.use_cond_dropout:
             self.cond_drop = nn.Dropout(p=self.cond_dropout_p)
@@ -211,6 +239,15 @@ class IL_GAT_v6(torch.nn.Module):
         # ── 第二招：Condition Dropout（训练时随机屏蔽，eval 时自动跳过）──
         if self.use_cond_dropout:
             cond = self.cond_drop(cond)
+
+        # ── 第三招：自适应门控物理描述符注入 ──
+        # 门控只看图嵌入 x_g，不看条件变量（更干净的因果解释）
+        if self.use_adaptive_gate:
+            cond_base = cond[:, :self.n_base_features]   # (batch, 7)
+            cond_phys = cond[:, self.n_base_features:]   # (batch, n_phys)
+            gate = torch.sigmoid(self.gate_linear(x_g))  # (batch, n_phys)
+            self._gate_values = gate.detach()             # 存储用于分析
+            cond = torch.cat([cond_base, gate * cond_phys], dim=1)
 
         # ── 第一招：组件级交互池化 ──
         if self.use_interaction and hasattr(data_i, 'mol_type'):

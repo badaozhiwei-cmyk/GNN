@@ -136,6 +136,7 @@ class AblationRunner:
         self._load_best()
         self._model.eval()
         raw_pred_y, true_y = [], []
+        all_gate_vals = []
         with torch.no_grad():
             for graph, cond, label in loader:
                 graph = graph.to(self._device)
@@ -145,6 +146,11 @@ class AblationRunner:
                 pred_vals = pred.flatten().cpu().numpy()
                 raw_pred_y.extend(pred_vals.tolist())
                 true_y.extend(label.cpu().numpy().tolist())
+                # 收集门控激活值（如果启用了自适应门控）
+                if hasattr(self._model, '_gate_values') and self._model._gate_values is not None:
+                    all_gate_vals.append(self._model._gate_values.cpu().numpy())
+        # 存储门控值供后续可解释性分析（不修改返回签名）
+        self._last_gate_values = np.vstack(all_gate_vals) if all_gate_vals else None
         return np.asarray(raw_pred_y), np.asarray(true_y)
 
     def test(self, test_loader):
@@ -207,6 +213,11 @@ def main():
                         help="MLP Head 使用 LayerNorm 替代 BatchNorm")
     parser.add_argument("--use_rf_blend", action="store_true",
                         help="启用 RF+GNN 验证集自适应动态加权融合 (自动防发散气囊)")
+    # ── 第三招：自适应门控 ──
+    parser.add_argument("--use_adaptive_gate", action="store_true",
+                        help="启用自适应门控物理描述符注入 (Adaptive Gated Descriptor Injection)")
+    parser.add_argument("--gate_init_bias", type=float, default=-2.0,
+                        help="门控偏置初始值 (default: -2.0, σ(-2)≈0.12)")
 
     args = parser.parse_args()
 
@@ -245,10 +256,11 @@ def main():
         if len(df) == 0:
             raise ValueError(f"No samples found for family {args.family}")
 
+    gate_tag = " + AdaptiveGate" if args.use_adaptive_gate else ""
     print(f"\n{'='*60}")
     print(f"  GNN Ablation Study")
     print(f"  Family: {args.family} | Mode: {args.mode}")
-    print(f"  Descriptor: {args.descriptor_mode} (cond_dim={MODE_COND_DIM[args.descriptor_mode]})")
+    print(f"  Descriptor: {args.descriptor_mode} (cond_dim={MODE_COND_DIM[args.descriptor_mode]}){gate_tag}")
     print(f"  Seeds: {args.seeds} | Epochs: {args.epoch} | Batch: {args.batch_size}")
     print(f"  Samples after filtering: {len(df)}")
     print(f"{'='*60}\n")
@@ -278,6 +290,10 @@ def main():
         'use_cond_dropout': args.use_cond_dropout,
         'cond_dropout_p': args.cond_dropout_p,
         'use_layernorm': args.use_layernorm,
+        # ── 第三招：自适应门控 ──
+        'use_adaptive_gate': args.use_adaptive_gate,
+        'n_base_features': 7,  # M0 的 7 维基线特征始终作为 base
+        'gate_init_bias': args.gate_init_bias,
     }
 
     print("Loading Graph Dataset (v6)...")
@@ -288,6 +304,8 @@ def main():
         f"Dataset length mismatch! CSV: {len(df_raw)} vs PyG: {len(Whole_set)}"
 
     out_dir = f"results_ablation/{args.family}_{args.mode}_{args.descriptor_mode}"
+    if args.use_adaptive_gate:
+        out_dir += "_gated"
     os.makedirs(out_dir, exist_ok=True)
 
     # ============================================================
@@ -486,6 +504,18 @@ def main():
                 'pred_x1': test_pred
             })
             seed_df.to_csv(f"{preds_dir}/seed{seed}.csv", index=False)
+
+            # ── 门控可解释性：导出每个样本的门控激活值 ──
+            if hasattr(runner, '_last_gate_values') and runner._last_gate_values is not None:
+                gate_cols = [f'gate_{i}' for i in range(runner._last_gate_values.shape[1])]
+                gate_df = pd.DataFrame(runner._last_gate_values, columns=gate_cols)
+                gate_df['refrigerant'] = df_raw.iloc[test_idx][ref_col].values
+                gate_df['seed'] = seed
+                gate_df.to_csv(f"{preds_dir}/gate_values_seed{seed}.csv", index=False)
+                # 打印平均门控值
+                mean_gates = runner._last_gate_values.mean(axis=0)
+                gate_str = ", ".join([f"g{i}={v:.3f}" for i, v in enumerate(mean_gates)])
+                print(f"  🔑 Gate activations: {gate_str}")
 
             r2  = r2_score(test_true, np.clip(test_pred, 0, 1))
             mae = mean_absolute_error(test_true, np.clip(test_pred, 0, 1))
