@@ -246,6 +246,8 @@ def main():
                         help="门控偏置初始值 (default: -2.0, σ(-2)≈0.12)")
     parser.add_argument("--feature_clip", type=float, default=None,
                         help="可选：将标准化条件特征裁剪到 [-X, X]；默认不裁剪")
+    parser.add_argument("--complete_case_only", action="store_true",
+                        help="是否只使用拥有完整 ΔE 结合能的数据进行训练与测试（确保公平对比基准）")
 
     args = parser.parse_args()
     if args.feature_clip is not None and args.feature_clip <= 0:
@@ -282,6 +284,16 @@ def main():
         df = df[df['family'] == args.family]
         if len(df) == 0:
             raise ValueError(f"No samples found for family {args.family}")
+            
+    # Complete Case 过滤 (物理基准对齐)
+    if args.complete_case_only:
+        if 'pair_energy_complete' not in df.columns:
+            raise ValueError("Data metadata missing 'pair_energy_complete' column. Re-run prepare_tri_graph_data_v6.py.")
+        initial_len = len(df)
+        df = df[df['pair_energy_complete'] == True]
+        print(f"  [Complete-Case] Dropped {initial_len - len(df)} samples missing Delta E.")
+        if len(df) == 0:
+            raise ValueError("No samples have complete pair energies! Run compute_full_pair_interaction_xtb.py first.")
 
     gate_tag = " + AdaptiveGate" if args.use_adaptive_gate else ""
     print(f"\n{'='*60}")
@@ -624,9 +636,18 @@ def main():
             # 导出每个 seed 的预测
             seed_df = pd.DataFrame({
                 'seed': seed,
+                'sample_id': df_raw.loc[test_idx, 'sample_id'].values,
+                'IL cation': df_raw.loc[test_idx, 'IL cation'].values,
+                'IL anion': df_raw.loc[test_idx, 'IL anion'].values,
                 'refrigerant': df_raw.loc[test_idx, ref_col].values,
+                'T (K)': df_raw.loc[test_idx, 'T (K)'].values,
+                'P (MPa)': df_raw.loc[test_idx, 'P (MPa)'].values,
+                'descriptor_mode': args.descriptor_mode,
+                'split': split_name,
                 'true_x1': test_true,
-                'pred_x1': test_pred
+                'pred_x1': test_pred,
+                'error': test_pred - test_true,
+                'absolute_error': np.abs(test_pred - test_true)
             })
             seed_df.to_csv(f"{preds_dir}/seed{seed}.csv", index=False)
 

@@ -90,7 +90,12 @@ class IL_GAT_v6(torch.nn.Module):
         self.use_adaptive_gate = args.get('use_adaptive_gate', False)
         if self.use_adaptive_gate:
             base_names = args.get('base_feature_names', None)
-            self.n_base_features = len(base_names) if base_names is not None else args.get('n_base_features', 9)
+            if base_names is None:
+                raise ValueError("use_adaptive_gate=True requires explicit base_feature_names in args.")
+            if args.get('descriptor_mode') == 'Mreduced_pure':
+                raise ValueError("Adaptive gate is semantically invalid for Mreduced_pure (it mixes non-base features).")
+            
+            self.n_base_features = len(base_names)
             n_phys = cond_dim - self.n_base_features
             assert n_phys > 0, (
                 f"Adaptive gate requires physics features! "
