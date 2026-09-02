@@ -3,7 +3,7 @@ Dataset_v6.py — 消融实验专用数据加载器
 =====================================
 【v6 核心升级】
   支持 descriptor_mode 参数，根据模式动态选择条件向量的特征子集。
-  配合 prepare_tri_graph_data_v3.py 生成的 17 维条件数据使用。
+  配合 prepare_tri_graph_data_v3.py 生成的 20 元素样本（3 图 + 17 条件）使用。
 
   消融模式:
     M0       : 原始 7 维 (T, P, ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa)
@@ -137,6 +137,10 @@ class IL_set_v6(torch.utils.data.Dataset):
         # 确认数据中的条件特征数量足够
         sample = self.data[0]
         n_elements = len(sample)
+        if n_elements != 20:
+            raise ValueError(
+                f"数据布局错误：每条样本应为 20 个元素（3 图 + 17 条件），实际为 {n_elements}。"
+            )
         max_idx = max(self.feature_indices)
         if max_idx >= n_elements:
             raise ValueError(
@@ -146,15 +150,11 @@ class IL_set_v6(torch.utils.data.Dataset):
                 f"(应保存在 processed_tri_data_v3/ 目录下)。"
             )
 
-        # ── NaN/NA 检查 ──
-        # 对所有用到的特征索引，检查是否存在 NaN 值
-        for idx in self.feature_indices:
-            sample_val = sample[idx]
-            if sample_val is None or (isinstance(sample_val, float) and np.isnan(sample_val)):
-                raise ValueError(
-                    f"数据质量错误！第一个样本的索引 {idx} 包含 NaN/None。"
-                    f"请检查 prepare_tri_graph_data_v3.py 的输出。"
-                )
+        # ── 全量 NaN/NA 检查（避免坏行静默进入训练） ──
+        for data_idx in self.feature_indices:
+            vals = np.asarray([row[data_idx] for row in self.data], dtype=np.float64)
+            if not np.all(np.isfinite(vals)):
+                raise ValueError(f"数据质量错误：特征索引 {data_idx} 含 NaN/Inf。")
 
     def fit_scalers(self, train_indices, save_dir):
         """
@@ -181,7 +181,7 @@ class IL_set_v6(torch.utils.data.Dataset):
 
             self.scalers[feat_pos].fit(raw_vals)
             self.means[feat_pos] = float(self.scalers[feat_pos].mean_[0])
-            self.scales[feat_pos] = float(self.scalers[feat_pos].scale_[0])
+            self.scales[feat_pos] = max(float(self.scalers[feat_pos].scale_[0]), 1e-8)
 
         os.makedirs(save_dir, exist_ok=True)
         joblib.dump(self.scalers, os.path.join(save_dir, 'scalers.pkl'))

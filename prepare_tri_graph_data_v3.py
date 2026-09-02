@@ -347,10 +347,15 @@ for idx, row in df_vle.iterrows():
         continue
     
     Tc, Pc, omega = NIST_CRITICAL[r_name_upper_crit]
+    if not (np.isfinite(Tc) and np.isfinite(Pc) and np.isfinite(omega)
+            and Tc > 0.0 and Pc > 0.0):
+        raise ValueError(f"Invalid NIST critical constants for {r_name_upper_crit}: {(Tc, Pc, omega)}")
     T_val = float(row['T (K)'])
     P_val = float(row['P (MPa)'])
     Tr = T_val / Tc   # 对比温度（无量纲）
     Pr = P_val / Pc   # 对比压力（无量纲）
+    if not (np.isfinite(T_val) and np.isfinite(P_val) and np.isfinite(Tr) and np.isfinite(Pr)):
+        raise ValueError(f"Invalid thermodynamic state for row {idx}: T={T_val}, P={P_val}")
     n_crit_found += 1
 
     final_data.append([
@@ -397,7 +402,7 @@ meta_df.to_csv(f'{out_dir}/meta_info.csv', index=False)
 meta_df.to_csv(f'{out_dir}/index_with_anion.csv', index=False)
 
 print("\n" + "="*50)
-print("V3 数据处理总结 (17维条件特征: 12原始 + 5热力学)")
+print("V3 数据处理总结 (20元素样本: 3图对象 + 17个连续特征)")
 print("="*50)
 print(f"总计处理行数: {total_processed}")
 print(f"最终保存行数: {total_saved}")
@@ -412,25 +417,16 @@ if crit_missing_set:
 
 print("\n[特征索引说明]")
 feature_names = [
-    "0: Temperature T (K)",
-    "1: Pressure P (MPa)",
-    "2: Ref_Charge",
-    "3: Ref_LogP",
-    "4: Ani_MW",
-    "5: Cat_Charge",
-    "6: Cat_TPSA",
-    "7: Ref_MolWt",
-    "8: Cat_MolWt",
-    "9: Ref_xTB_Dipole",
-    "10: Ref_xTB_Polarizability",
-    "11: Ref_xTB_Volume",
-    "12: NIST Tc (K)         [NEW - 临界温度]",
-    "13: NIST Pc (MPa)       [NEW - 临界压力]",
-    "14: NIST omega           [NEW - 偏心因子]",
-    "15: Reduced T (Tr=T/Tc) [NEW - 对比温度]",
-    "16: Reduced P (Pr=P/Pc) [NEW - 对比压力]",
+    "3: Temperature T (K)", "4: Pressure P (MPa)",
+    "5: Ref_Charge", "6: Ref_LogP", "7: Ani_MW",
+    "8: Cat_Charge", "9: Cat_TPSA", "10: Ref_MolWt", "11: Cat_MolWt",
+    "12: Ref_xTB_Dipole", "13: Ref_xTB_Polarizability", "14: Ref_xTB_Volume",
+    "15: NIST Tc (K)", "16: NIST Pc (MPa)", "17: NIST omega",
+    "18: Reduced T (Tr=T/Tc)", "19: Reduced P (Pr=P/Pc)",
 ]
-print("本次合并的 17 维连续特征顺序为:")
+if final_data and any(len(row) != 20 for row in final_data):
+    raise RuntimeError("Internal feature layout error: every sample must contain 20 elements")
+print("连续特征索引顺序（样本索引 3-19，共 17 个）:")
 for f in feature_names:
     print(f"  {f}")
 print("="*50)
