@@ -30,20 +30,34 @@ from sklearn.preprocessing import StandardScaler
 
 
 # ============================================================
-# 每种消融模式对应的条件特征索引
+# 终极 22 维特征的全局索引簿 (绝对防爆防错位)
 # ============================================================
+FEATURE_SCHEMA = {
+    "T": 3, "P": 4, 
+    "ref_charge": 5, "ref_logp": 6, "ani_mw": 7, "cat_charge": 8, "cat_tpsa": 9, 
+    "ref_MW": 10, "cat_MW": 11,
+    "ref_dipole": 12, "ref_polarizability": 13, "ref_volume": 14,
+    "deltaE_anion": 15, "deltaE_cation": 16,
+    "Tc": 17, "Pc": 18, "omega": 19,
+    "Tr": 20, "Pr": 21,
+}
+
+BASE_FEATURES = ["T", "P", "ref_charge", "ref_logp", "ani_mw", "cat_charge", "cat_tpsa", "ref_MW", "cat_MW"]
+
+MODE_DEF = {
+    'M0':        BASE_FEATURES,
+    'Mphys':     BASE_FEATURES + ["ref_dipole", "ref_polarizability", "ref_volume"],
+    'Mthermo':   BASE_FEATURES + ["Tc", "Pc", "omega"],
+    'Mreduced':  BASE_FEATURES + ["Tr", "Pr", "omega"],
+    'Minteract': BASE_FEATURES + ["deltaE_anion", "deltaE_cation"],
+    'Mreduced_pure': ["ref_charge", "ref_logp", "ani_mw", "cat_charge", "cat_tpsa", "ref_MW", "cat_MW", "Tr", "Pr", "omega"],
+    'M_all':     BASE_FEATURES + ["ref_dipole", "ref_polarizability", "ref_volume", "deltaE_anion", "deltaE_cation", "Tc", "Pc", "omega"]
+}
+
+# 自动映射为网络所需的整数索引列表
 MODE_INDICES = {
-    'M0':             [3, 4, 5, 6, 7, 8, 9],                                 # 7 维：原始基线 (T, P, 5化学)
-    'Msize':          [3, 4, 5, 6, 7, 8, 9, 10, 11],                         # 9 维：+ ref_MolWt, cat_MolWt
-    'Mmu':            [3, 4, 5, 6, 7, 8, 9, 12],                             # 8 维：+ ref_dipole (偶极矩)
-    'Malpha':         [3, 4, 5, 6, 7, 8, 9, 13],                             # 8 维：+ ref_polarizability (极化率)
-    'MV':             [3, 4, 5, 6, 7, 8, 9, 14],                             # 8 维：+ ref_volume (分子体积)
-    'Mphys':          [3, 4, 5, 6, 7, 8, 9, 12, 13, 14],                     # 10 维：+ ref_dipole, ref_pol, ref_vol
-    'Mthermo':        [3, 4, 5, 6, 7, 8, 9, 15, 16, 17],                     # 10 维：+ Tc, Pc, omega (绝对临界量)
-    'Mreduced':       [3, 4, 5, 6, 7, 8, 9, 18, 19, 17],                     # 10 维：+ Tr, Pr, omega (容量匹配对比态)
-    'Mreduced_pure':  [5, 6, 7, 8, 9, 18, 19, 17],                           # 8 维：5化学 + Tr, Pr, omega (纯对比态科学对照组)
-    'M_interact':     [3, 4, 5, 6, 7, 8, 9, 15, 16],                         # 9 维：M0 + Delta_E_anion, Delta_E_cation
-    'M_all':          [3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16],             # 12 维：全物理量 + 配对结合能
+    mode: [FEATURE_SCHEMA[feat] for feat in feat_list]
+    for mode, feat_list in MODE_DEF.items()
 }
 
 MODE_COND_DIM = {k: len(v) for k, v in MODE_INDICES.items()}

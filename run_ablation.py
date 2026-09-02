@@ -211,8 +211,8 @@ def main():
     parser.add_argument("--descriptor_mode", type=str, required=True,
                         choices=['M0', 'Msize', 'Mmu', 'Malpha', 'MV', 'Mphys', 'Mthermo', 'Mreduced', 'Mreduced_pure', 'M_interact', 'M_all'],
                         help="Ablation descriptor mode")
-    parser.add_argument("--data_dir", type=str, default="processed_tri_data_v3",
-                        help="Path to preprocessed tri-graph dataset directory (default: processed_tri_data_v3)")
+    parser.add_argument("--data_dir", type=str, default="processed_tri_data_v6",
+                        help="Path to preprocessed tri-graph dataset directory (default: processed_tri_data_v6)")
     parser.add_argument("--seeds", type=int, default=3,
                         help="Number of random seeds")
     parser.add_argument("--epoch", type=int, default=80,
