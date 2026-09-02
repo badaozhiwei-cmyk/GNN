@@ -26,7 +26,10 @@ extra_smiles = {
     'R32':'C(F)F', 'R134A':'C(C(F)(F)F)F', 'R143A':'CC(F)(F)F', 'R125':'C(F)(F)(C(F)(F)F)',
     'R152A':'CC(F)F', 'R23':'C(F)(F)F', 'R41':'CF', 'R134':'FC(F)C(F)F', 'R161':'CCF',
     'R227EA':'FC(F)(F)C(F)C(F)(F)F', 'R236FA':'FC(F)(F)CC(F)(F)F', 'R245FA':'FC(F)(F)CC(F)F',
-    'R114': 'C(C(F)(F)Cl)(F)(F)Cl', 'R1234YF': 'C(=C(F)F)(C(F)(F)F)F', 'R1234ZE(E)': 'F/C=C/C(F)(F)F',
+    'R114': 'C(C(F)(F)Cl)(F)(F)Cl',
+    # R1234yf = CF3-CF=CH2; retain an explicit, chemically valid connectivity.
+    'R1234YF': 'C=C(F)C(F)(F)F',
+    'R1234ZE(E)': 'F/C=C/C(F)(F)F',
 }
 for k, v in extra_smiles.items():
     smiles_dict[k] = v
@@ -105,8 +108,10 @@ pair_csv = 'Phase4_Scientific_Validation/full_pair_interaction_results.csv'
 if os.path.exists(pair_csv):
     df_pair = pd.read_csv(pair_csv)
     for _, r in df_pair.iterrows():
-        k = (str(r['Pair_Type']), str(r['Ion_Name']).strip().upper(), str(r['Refrigerant']).strip().upper())
-        pair_lookup[k] = float(r['Delta_E_int_kcal_mol']) if pd.notna(r['Delta_E_int_kcal_mol']) else 0.0
+        k = (str(r['Pair_Type']), str(r['Ion_Name']).strip().upper().replace('[', '').replace(']', ''), str(r['Refrigerant']).strip().upper())
+        # Missing interaction energy is missing data, never a physical zero.
+        if pd.notna(r['Delta_E_int_kcal_mol']):
+            pair_lookup[k] = float(r['Delta_E_int_kcal_mol'])
 else:
     print(f"[警告] 找不到超分子结合能文件: {pair_csv}")
 
@@ -147,8 +152,9 @@ for idx, row in df_vle.iterrows():
     ref_dipole, ref_polarizability, ref_volume = xtb_lookup[r_upper]
     
     # 获取相互作用能
-    de_anion = pair_lookup.get(('Anion-Ref', a_name.upper(), r_upper), 0.0)
-    de_cation = pair_lookup.get(('Cation-Ref', c_name.upper(), r_upper), 0.0)
+    de_anion = pair_lookup.get(('Anion-Ref', a_name.upper().replace('[', '').replace(']', ''), r_upper), 0.0)
+    de_cation = pair_lookup.get(('Cation-Ref', c_name.upper().replace('[', '').replace(']', ''), r_upper), 0.0)
+    pair_complete = bool(np.isfinite(de_anion) and np.isfinite(de_cation))
     
     # 获取 NIST 热力学
     if r_upper not in NIST_CRITICAL: continue
@@ -158,13 +164,18 @@ for idx, row in df_vle.iterrows():
     
     # 获取 RDKit 基础特征
     ref_mol, ani_mol, cat_mol = Chem.MolFromSmiles(r_smi), Chem.MolFromSmiles(a_smi), Chem.MolFromSmiles(c_smi)
-    ref_charge = float(Descriptors.MaxAbsPartialCharge(ref_mol)) if ref_mol else 0.0
-    ref_logp   = float(Descriptors.MolLogP(ref_mol)) if ref_mol else 0.0
-    ani_mw     = float(Descriptors.MolWt(ani_mol)) if ani_mol else 0.0
+    try: ref_charge = float(Descriptors.MaxAbsPartialCharge(ref_mol)) if ref_mol else 0.0
+    except: ref_charge = 0.0
+    try: ref_logp   = float(Descriptors.MolLogP(ref_mol)) if ref_mol else 0.0
+    except: ref_logp = 0.0
+    try: ani_mw     = float(Descriptors.MolWt(ani_mol)) if ani_mol else 0.0
+    except: ani_mw = 0.0
     try: cat_charge = float(Descriptors.MaxAbsPartialCharge(cat_mol)) if cat_mol else 0.0
     except: cat_charge = 0.0
-    cat_tpsa   = float(Descriptors.TPSA(cat_mol)) if cat_mol else 0.0
-    ref_mw     = float(Descriptors.MolWt(ref_mol)) if ref_mol else 0.0
+    try: cat_tpsa   = float(Descriptors.TPSA(cat_mol)) if cat_mol else 0.0
+    except: cat_tpsa = 0.0
+    try: ref_mw     = float(Descriptors.MolWt(ref_mol)) if ref_mol else 0.0
+    except: ref_mw = 0.0
     cat_mw     = float(Descriptors.MolWt(cat_mol)) if cat_mol else 0.0
 
     # 严谨按照 22 维 Schema 拼装
@@ -177,7 +188,11 @@ for idx, row in df_vle.iterrows():
         Tc, Pc, omega, Tr, Pr                                               # 17~21
     ])
     final_labels.append(float(row['x1']))
-    meta_data.append({'IL cation': c_name, 'IL anion': a_name, 'Refrigerant': r_name, 'T (K)': T_val, 'P (MPa)': P_val, 'x1': row['x1']})
+    sample_id = f"{c_name}__{a_name}__{r_name}__{T_val:.8g}__{P_val:.8g}"
+    meta_data.append({'sample_id': sample_id, 'IL cation': c_name, 'IL anion': a_name,
+                      'Refrigerant': r_name, 'T (K)': T_val, 'P (MPa)': P_val,
+                      'x1': row['x1'], 'pair_energy_complete': pair_complete,
+                      'T_unit': 'K', 'P_unit': 'MPa', 'Pc_unit': 'MPa'})
     saved_count += 1
 
 out_dir = 'processed_tri_data_v6'
@@ -188,4 +203,6 @@ pd.DataFrame(meta_data).to_csv(f'{out_dir}/meta_info.csv', index=False)
 pd.DataFrame(meta_data).to_csv(f'{out_dir}/index_with_anion.csv', index=False)
 
 print(f"🎉 成功生成 22 维无歧义数据集，共保存 {saved_count} 条，保存在 {out_dir}/ 下！")
-print("特征校验：", len(final_data[0]), "维 (预期 22)")
+if final_data:
+    assert all(len(row) == 22 for row in final_data), "Internal schema error: expected 22 elements per sample"
+    print("特征校验：", len(final_data[0]), "维 (预期 22)")
