@@ -63,7 +63,13 @@ def check_contract():
     assert len(BASE_FEATURES) == 9, f"BASE_FEATURES must have 9 elements, got {len(BASE_FEATURES)}"
     
     if HAS_TORCH:
-        dummy_args = {'cond_dim': 12, 'use_adaptive_gate': True}
+        dummy_args = {
+            'cond_dim': 12, 
+            'use_adaptive_gate': True, 
+            'dropout_rate': 0.1, 
+            'base_feature_names': BASE_FEATURES,
+            'use_interaction': False
+        }
         model = IL_GAT_v6(dummy_args)
         assert model.n_base_features == 9, f"Model_v6 default n_base_features ({model.n_base_features}) != 9!"
         assert model.n_phys_features == 3, f"Mphys gate feature count ({model.n_phys_features}) != 3!"
