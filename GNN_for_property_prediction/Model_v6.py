@@ -89,7 +89,8 @@ class IL_GAT_v6(torch.nn.Module):
         # ══════════════════════════════════════════════════════
         self.use_adaptive_gate = args.get('use_adaptive_gate', False)
         if self.use_adaptive_gate:
-            self.n_base_features = args.get('n_base_features', 9)
+            base_names = args.get('base_feature_names', None)
+            self.n_base_features = len(base_names) if base_names is not None else args.get('n_base_features', 9)
             n_phys = cond_dim - self.n_base_features
             assert n_phys > 0, (
                 f"Adaptive gate requires physics features! "

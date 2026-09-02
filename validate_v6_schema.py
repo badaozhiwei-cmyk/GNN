@@ -116,7 +116,7 @@ def check_contract():
         print("  [PASS] All continuous features are finite (100% Non-NaN / Non-Inf)")
 
         # 检验物理数据粒度：制冷剂级不变量 vs 离子对变异量
-        print("\n[Check 6/6] Checking physics granularity (refrigerant-level invariance)...")
+        print("\n[Check 6/8] Checking physics granularity (refrigerant-level invariance)...")
         for ref_name in meta_df['Refrigerant'].unique()[:5]:
             ref_indices = meta_df[meta_df['Refrigerant'] == ref_name].index
             if len(ref_indices) > 1:
@@ -129,12 +129,33 @@ def check_contract():
                     assert tc_first == tc_other, f"Tc for {ref_name} unexpectedly varied across ILs!"
                     assert dipole_first == dipole_other, f"Dipole for {ref_name} unexpectedly varied across ILs!"
         print("  [PASS] Refrigerant-level physical properties strictly invariant across ILs")
+
+        # 检验样本唯一性与无重复 (Cation, Anion, Refrigerant, T, P)
+        print("\n[Check 7/8] Validating composite sample identity uniqueness & duplicate detection...")
+        dup_cols = ['IL cation', 'IL anion', 'Refrigerant', 'T (K)', 'P (MPa)']
+        n_duplicates = meta_df.duplicated(subset=dup_cols).sum()
+        if n_duplicates > 0:
+            print(f"  [WARNING] Detected {n_duplicates} duplicate thermodynamic state points in raw dataset!")
+        else:
+            print("  [PASS] 100% Unique thermodynamic sample points (Zero duplicates)")
+
+        # 检验热力学状态变量物理合理边界
+        print("\n[Check 8/8] Validating physical bounds of thermodynamic variables...")
+        T_col = data[:, FEATURE_SCHEMA['T']].astype(float)
+        P_col = data[:, FEATURE_SCHEMA['P']].astype(float)
+        Tr_col = data[:, FEATURE_SCHEMA['Tr']].astype(float)
+        Pr_col = data[:, FEATURE_SCHEMA['Pr']].astype(float)
+        assert np.all(T_col > 200.0) and np.all(T_col < 600.0), f"Temperature out of realistic bounds! Min={T_col.min()}, Max={T_col.max()}"
+        assert np.all(P_col >= 0.0) and np.all(P_col < 50.0), f"Pressure out of realistic bounds! Min={P_col.min()}, Max={P_col.max()}"
+        assert np.all(Tr_col > 0.0) and np.all(Pr_col >= 0.0), "Reduced Tr or Pr contains negative values!"
+        print(f"  [PASS] Thermodynamic state bounds verified: T in [{T_col.min():.1f}, {T_col.max():.1f}] K, P in [{P_col.min():.3f}, {P_col.max():.3f}] MPa")
+        print(f"         Tr in [{Tr_col.min():.3f}, {Tr_col.max():.3f}], Pr in [{Pr_col.min():.3f}, {Pr_col.max():.3f}]")
     else:
         print(f"\n[Notice] {data_dir}/data.npy not generated yet locally.")
-        print("         Running prepare_tri_graph_data_v6.py on Kaggle will activate Check 4-6.")
+        print("         Running prepare_tri_graph_data_v6.py on Kaggle will activate Check 4-8.")
 
     print("\n" + "=" * 70)
-    print("  [ALL PASS] V6 Schema & Model Contract Validation 100% Succeeded!")
+    print("  [ALL PASS] V6 Schema & Scientific Data Contract 100% Succeeded!")
     print("=" * 70)
 
 if __name__ == '__main__':

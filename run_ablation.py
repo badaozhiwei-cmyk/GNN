@@ -319,7 +319,7 @@ def main():
         'use_layernorm': args.use_layernorm,
         # ── 第三招：自适应门控 ──
         'use_adaptive_gate': args.use_adaptive_gate,
-        'n_base_features': len(BASE_FEATURES),  # 动态由 Dataset_v6.BASE_FEATURES 决定，9维基线
+        'base_feature_names': BASE_FEATURES,  # 动态传给 Model，彻底消除魔法常数
         'gate_init_bias': args.gate_init_bias,
         'feature_clip': args.feature_clip,
     }
