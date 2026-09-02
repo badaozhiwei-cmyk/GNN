@@ -112,14 +112,24 @@ def check_contract():
         print("  [PASS] Sample structure: strictly 22 elements (3 graphs + 19 continuous features)")
 
         # 检验数值有限性
-        print("\n[Check 5/6] Validating all continuous features are finite (No NaN/Inf)...")
+        print("\n[Check 5/6] Validating continuous features finiteness...")
+        uncomputed_pair_count = 0
         for i in range(n_samples):
             scalars = data[i][3:]
+            is_pair_complete = meta_df.loc[i, 'pair_energy_complete'] if 'pair_energy_complete' in meta_df.columns else False
             for s_idx, val in enumerate(scalars):
                 feat_name = list(FEATURE_SCHEMA.keys())[s_idx]
+                if feat_name in ['deltaE_anion', 'deltaE_cation']:
+                    if not is_pair_complete and not np.isfinite(val):
+                        uncomputed_pair_count += 1
+                        continue
                 if not np.isfinite(val):
                     raise ValueError(f"Sample {i} feature [{feat_name}] (idx {s_idx+3}) invalid: {val}")
-        print("  [PASS] All continuous features are finite (100% Non-NaN / Non-Inf)")
+        if uncomputed_pair_count > 0:
+            print(f"  [INFO] Note: {uncomputed_pair_count // 2} samples have pending Delta E values (Phase 2 xTB pending).")
+            print("  [PASS] All base and single-molecule continuous features are strictly finite (Non-NaN / Non-Inf)")
+        else:
+            print("  [PASS] All continuous features are finite (100% Non-NaN / Non-Inf including Delta E)")
 
         # 检验物理数据粒度：制冷剂级不变量 vs 离子对变异量
         print("\n[Check 6/8] Checking physics granularity (refrigerant-level invariance)...")

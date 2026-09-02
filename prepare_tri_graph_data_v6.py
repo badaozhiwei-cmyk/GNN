@@ -152,8 +152,8 @@ for idx, row in df_vle.iterrows():
     ref_dipole, ref_polarizability, ref_volume = xtb_lookup[r_upper]
     
     # 获取相互作用能
-    de_anion = pair_lookup.get(('Anion-Ref', a_name.upper().replace('[', '').replace(']', ''), r_upper), 0.0)
-    de_cation = pair_lookup.get(('Cation-Ref', c_name.upper().replace('[', '').replace(']', ''), r_upper), 0.0)
+    de_anion = pair_lookup.get(('Anion-Ref', a_name.upper().replace('[', '').replace(']', ''), r_upper), np.nan)
+    de_cation = pair_lookup.get(('Cation-Ref', c_name.upper().replace('[', '').replace(']', ''), r_upper), np.nan)
     pair_complete = bool(np.isfinite(de_anion) and np.isfinite(de_cation))
     
     # 获取 NIST 热力学
