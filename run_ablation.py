@@ -43,7 +43,7 @@ import subprocess
 current_script_dir = str(pl.Path(__file__).resolve().parent)
 sys.path.append(os.path.join(current_script_dir, 'GNN_for_property_prediction'))
 
-from Dataset_v6 import IL_set_v6, MODE_COND_DIM
+from Dataset_v6 import IL_set_v6, MODE_COND_DIM, BASE_FEATURES
 from GAT_Runner_v5 import set_seed  # set_seed 通用，不需要新版
 
 # ============================================================
@@ -319,7 +319,7 @@ def main():
         'use_layernorm': args.use_layernorm,
         # ── 第三招：自适应门控 ──
         'use_adaptive_gate': args.use_adaptive_gate,
-        'n_base_features': 7,  # M0 的 7 维基线特征始终作为 base
+        'n_base_features': len(BASE_FEATURES),  # 动态由 Dataset_v6.BASE_FEATURES 决定，9维基线
         'gate_init_bias': args.gate_init_bias,
         'feature_clip': args.feature_clip,
     }
@@ -330,8 +330,6 @@ def main():
     # 验证数据集大小与 CSV 对齐
     assert len(df_raw) == len(Whole_set), \
         f"Dataset length mismatch! CSV: {len(df_raw)} vs PyG: {len(Whole_set)}"
-
-    # ============================================================
     # 2b. 实验配置哈希（防止不同配置复用旧预测）
     # ============================================================
     exp_config = {
