@@ -27,7 +27,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
-MODES = ['M0', 'Msize', 'Mmu', 'Malpha', 'MV', 'Mphys', 'Mphys_gated', 'Mthermo', 'Mreduced', 'M_interact', 'M_all']
+MODES = ['M0', 'Msize', 'Mmu', 'Malpha', 'MV', 'Mphys', 'Mphys_gated', 'Mthermo', 'Mreduced', 'Mreduced_pure', 'M_interact', 'M_all']
 FAMILY = 'HFC'
 SPLIT_MODE = 'loro'
 BASE_DIR = 'results_ablation'

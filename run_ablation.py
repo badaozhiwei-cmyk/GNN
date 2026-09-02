@@ -260,8 +260,10 @@ def main():
                         choices=['random', 'loro'],
                         help="Split mode")
     parser.add_argument("--descriptor_mode", type=str, required=True,
-                        choices=['M0', 'Msize', 'Mmu', 'Malpha', 'MV', 'Mphys', 'Mthermo', 'Mreduced', 'M_interact', 'M_all'],
+                        choices=['M0', 'Msize', 'Mmu', 'Malpha', 'MV', 'Mphys', 'Mthermo', 'Mreduced', 'Mreduced_pure', 'M_interact', 'M_all'],
                         help="Ablation descriptor mode")
+    parser.add_argument("--data_dir", type=str, default="processed_tri_data_v3",
+                        help="Path to preprocessed tri-graph dataset directory (default: processed_tri_data_v3)")
     parser.add_argument("--seeds", type=int, default=3,
                         help="Number of random seeds")
     parser.add_argument("--epoch", type=int, default=80,
@@ -299,34 +301,29 @@ def main():
     args = parser.parse_args()
     if args.feature_clip is not None and args.feature_clip <= 0:
         parser.error('--feature_clip must be positive')
-    if args.use_adaptive_gate and args.descriptor_mode != 'Mphys':
-        parser.error('--use_adaptive_gate is defined only for --descriptor_mode Mphys')
-
     # CPU 多核极致并行提速
     if not torch.cuda.is_available():
         torch.set_num_threads(4)
 
     # ============================================================
-    # 1. 加载数据（优先使用包含配对结合能的 v4 版本）
+    # 1. 加载数据 (严格指定数据目录)
     # ============================================================
-    data_path_v4 = os.path.join(current_script_dir, 'processed_tri_data_v4/')
-    data_path_v3 = os.path.join(current_script_dir, 'processed_tri_data_v3/')
-    data_path = data_path_v4 if os.path.exists(os.path.join(data_path_v4, 'data.npy')) else data_path_v3
+    data_path = os.path.join(current_script_dir, args.data_dir)
     if not os.path.exists(os.path.join(data_path, 'data.npy')):
-        raise FileNotFoundError(
-            f"找不到 {data_path}data.npy！\n"
-            f"请先运行: python prepare_tri_graph_data_v3.py"
-        )
+        if os.path.exists(os.path.join(args.data_dir, 'data.npy')):
+            data_path = args.data_dir
+        else:
+            raise FileNotFoundError(
+                f"找不到 {data_path}/data.npy！\n"
+                f"请先运行: python prepare_tri_graph_data_v3.py"
+            )
 
-    # 加载 meta_info 用于切分（与 processed_tri_data_v3 对齐）
     meta_csv = os.path.join(data_path, 'index_with_anion.csv')
     if not os.path.exists(meta_csv):
-        # 回退到 meta_info.csv
         meta_csv = os.path.join(data_path, 'meta_info.csv')
     df_raw = pd.read_csv(meta_csv)
 
     ref_col = 'refrigerant' if 'refrigerant' in df_raw.columns else 'Refrigerant'
-
     if 'family' not in df_raw.columns:
         df_raw['family'] = df_raw[ref_col].map(FAMILY_MAP)
 

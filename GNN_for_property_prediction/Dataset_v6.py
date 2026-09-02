@@ -33,16 +33,17 @@ from sklearn.preprocessing import StandardScaler
 # 每种消融模式对应的条件特征索引
 # ============================================================
 MODE_INDICES = {
-    'M0':         [3, 4, 5, 6, 7, 8, 9],                                 # 7 维：原始基线
-    'Msize':      [3, 4, 5, 6, 7, 8, 9, 10, 11],                         # 9 维：+ ref_MolWt, cat_MolWt
-    'Mmu':        [3, 4, 5, 6, 7, 8, 9, 12],                             # 8 维：+ ref_dipole (偶极矩)
-    'Malpha':     [3, 4, 5, 6, 7, 8, 9, 13],                             # 8 维：+ ref_polarizability (极化率)
-    'MV':         [3, 4, 5, 6, 7, 8, 9, 14],                             # 8 维：+ ref_volume (分子体积)
-    'Mphys':      [3, 4, 5, 6, 7, 8, 9, 12, 13, 14],                     # 10 维：+ ref_dipole, ref_pol, ref_vol
-    'Mthermo':    [3, 4, 5, 6, 7, 8, 9, 15, 16, 17],                     # 10 维：+ Tc, Pc, omega (绝对临界量)
-    'Mreduced':   [3, 4, 5, 6, 7, 8, 9, 18, 19, 17],                     # 10 维：+ Tr, Pr, omega (无量纲对比态)
-    'M_interact': [3, 4, 5, 6, 7, 8, 9, 15, 16],                         # 9 维：M0 + Delta_E_anion, Delta_E_cation
-    'M_all':      [3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16],             # 12 维：全物理量 + 配对结合能
+    'M0':             [3, 4, 5, 6, 7, 8, 9],                                 # 7 维：原始基线 (T, P, 5化学)
+    'Msize':          [3, 4, 5, 6, 7, 8, 9, 10, 11],                         # 9 维：+ ref_MolWt, cat_MolWt
+    'Mmu':            [3, 4, 5, 6, 7, 8, 9, 12],                             # 8 维：+ ref_dipole (偶极矩)
+    'Malpha':         [3, 4, 5, 6, 7, 8, 9, 13],                             # 8 维：+ ref_polarizability (极化率)
+    'MV':             [3, 4, 5, 6, 7, 8, 9, 14],                             # 8 维：+ ref_volume (分子体积)
+    'Mphys':          [3, 4, 5, 6, 7, 8, 9, 12, 13, 14],                     # 10 维：+ ref_dipole, ref_pol, ref_vol
+    'Mthermo':        [3, 4, 5, 6, 7, 8, 9, 15, 16, 17],                     # 10 维：+ Tc, Pc, omega (绝对临界量)
+    'Mreduced':       [3, 4, 5, 6, 7, 8, 9, 18, 19, 17],                     # 10 维：+ Tr, Pr, omega (容量匹配对比态)
+    'Mreduced_pure':  [5, 6, 7, 8, 9, 18, 19, 17],                           # 8 维：5化学 + Tr, Pr, omega (纯对比态科学对照组)
+    'M_interact':     [3, 4, 5, 6, 7, 8, 9, 15, 16],                         # 9 维：M0 + Delta_E_anion, Delta_E_cation
+    'M_all':          [3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16],             # 12 维：全物理量 + 配对结合能
 }
 
 MODE_COND_DIM = {k: len(v) for k, v in MODE_INDICES.items()}
