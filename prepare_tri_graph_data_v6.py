@@ -136,6 +136,7 @@ df_vle = df_vle.dropna(subset=['IL cation', 'IL anion', 'Refrigerant', 'T (K)', 
 
 final_data, final_labels, meta_data = [], [], []
 total_processed, saved_count = 0, 0
+state_counts = {}
 
 for idx, row in df_vle.iterrows():
     total_processed += 1
@@ -188,7 +189,13 @@ for idx, row in df_vle.iterrows():
         Tc, Pc, omega, Tr, Pr                                               # 17~21
     ])
     final_labels.append(float(row['x1']))
-    sample_id = f"{c_name}__{a_name}__{r_name}__{T_val:.8g}__{P_val:.8g}"
+
+    # 重复实验测定点消歧（区分多文献测定同状态点）
+    state_key = (c_name, a_name, r_name, round(T_val, 6), round(P_val, 6))
+    state_counts[state_key] = state_counts.get(state_key, 0) + 1
+    dup_suffix = f"__#{state_counts[state_key]}" if state_counts[state_key] > 1 else ""
+    sample_id = f"{c_name}__{a_name}__{r_name}__{T_val:.8g}__{P_val:.8g}{dup_suffix}"
+
     meta_data.append({
         'sample_id': sample_id, 
         'IL cation': c_name, 
