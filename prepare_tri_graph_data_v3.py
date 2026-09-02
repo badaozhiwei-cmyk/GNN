@@ -213,6 +213,33 @@ if os.path.exists(xtb_path):
 else:
     print(f"警告：未找到 xTB 数据文件 {xtb_path}")
 
+# ==========================================
+# 模块 4b：NIST 临界性质查表 (Tc, Pc, omega)
+# ==========================================
+# 数据来源: NIST WebBook / REFPROP
+# Tc (K), Pc (MPa), omega (acentric factor)
+print("正在加载 NIST 临界性质查表...")
+NIST_CRITICAL = {
+    'R23':        (299.29,  4.832,  0.263),
+    'R32':        (351.26,  5.782,  0.277),
+    'R41':        (317.28,  5.897,  0.201),
+    'R125':       (339.17,  3.618,  0.305),
+    'R134A':      (374.21,  4.059,  0.327),
+    'R134':       (391.75,  4.641,  0.312),
+    'R143A':      (345.86,  3.761,  0.262),
+    'R152A':      (386.41,  4.517,  0.275),
+    'R161':       (375.25,  5.091,  0.217),
+    'R227EA':     (374.90,  2.925,  0.357),
+    'R236FA':     (398.07,  3.200,  0.377),
+    'R245FA':     (427.16,  3.651,  0.378),
+    # HFO 系列（备用）
+    'R1234YF':    (367.85,  3.382,  0.276),
+    'R1234ZE(E)': (382.51,  3.635,  0.313),
+}
+n_crit_found = 0
+n_crit_missing = 0
+crit_missing_set = set()
+
 
 excel_name = 'ZLJ_DATA.xlsx'
 if not os.path.exists(excel_name):
@@ -311,10 +338,25 @@ for idx, row in df_vle.iterrows():
     ref_molwt = float(Descriptors.MolWt(ref_mol)) if ref_mol else 0.0
     cat_molwt = float(Descriptors.MolWt(cat_mol)) if cat_mol else 0.0
 
+    # 查找 NIST 临界性质
+    r_name_upper_crit = r_name.upper()
+    if r_name_upper_crit not in NIST_CRITICAL:
+        print(f"[NIST 缺失警告] 未找到制冷剂 {r_name_upper_crit} 的临界性质，跳过该行。")
+        crit_missing_set.add(r_name_upper_crit)
+        n_crit_missing += 1
+        continue
+    
+    Tc, Pc, omega = NIST_CRITICAL[r_name_upper_crit]
+    T_val = float(row['T (K)'])
+    P_val = float(row['P (MPa)'])
+    Tr = T_val / Tc   # 对比温度（无量纲）
+    Pr = P_val / Pc   # 对比压力（无量纲）
+    n_crit_found += 1
+
     final_data.append([
         c_graph, a_graph, r_graph,        # indices 0,1,2: graphs
-        float(row['T (K)']),               # index 3: T
-        float(row['P (MPa)']),             # index 4: P
+        T_val,                             # index 3: T
+        P_val,                             # index 4: P
         ref_charge,                        # index 5: ref_charge (original)
         ref_logp,                          # index 6: ref_logp (original)
         ani_mw,                            # index 7: ani_mw (original)
@@ -325,6 +367,11 @@ for idx, row in df_vle.iterrows():
         ref_dipole,                        # index 12: NEW - refrigerant xTB dipole
         ref_polarizability,                # index 13: NEW - refrigerant xTB polarizability
         ref_volume,                        # index 14: NEW - refrigerant xTB volume
+        Tc,                                # index 15: NIST Tc (K)
+        Pc,                                # index 16: NIST Pc (MPa)
+        omega,                             # index 17: NIST acentric factor
+        Tr,                                # index 18: reduced temperature T/Tc
+        Pr,                                # index 19: reduced pressure P/Pc
     ])
     
     final_labels.append(float(row['x1']))
@@ -350,7 +397,7 @@ meta_df.to_csv(f'{out_dir}/meta_info.csv', index=False)
 meta_df.to_csv(f'{out_dir}/index_with_anion.csv', index=False)
 
 print("\n" + "="*50)
-print("V3 数据处理总结 (12维条件特征)")
+print("V3 数据处理总结 (17维条件特征: 12原始 + 5热力学)")
 print("="*50)
 print(f"总计处理行数: {total_processed}")
 print(f"最终保存行数: {total_saved}")
@@ -359,6 +406,9 @@ print(f"跳过行数 (RDKit 失败): {skipped_due_to_rdkit}")
 print(f"跳过行数 (xTB 数据缺失/异常): {skipped_due_to_xtb}")
 if xtb_missing_mols:
     print(f"-> 缺失的制冷剂列表: {', '.join(xtb_missing_mols)}")
+print(f"NIST 临界性质匹配成功: {n_crit_found}")
+if crit_missing_set:
+    print(f"NIST 临界性质缺失: {', '.join(crit_missing_set)}")
 
 print("\n[特征索引说明]")
 feature_names = [
@@ -369,13 +419,18 @@ feature_names = [
     "4: Ani_MW",
     "5: Cat_Charge",
     "6: Cat_TPSA",
-    "7: Ref_MolWt (NEW)",
-    "8: Cat_MolWt (NEW)",
-    "9: Ref_xTB_Dipole (NEW)",
-    "10: Ref_xTB_Polarizability (NEW)",
-    "11: Ref_xTB_Volume (NEW)"
+    "7: Ref_MolWt",
+    "8: Cat_MolWt",
+    "9: Ref_xTB_Dipole",
+    "10: Ref_xTB_Polarizability",
+    "11: Ref_xTB_Volume",
+    "12: NIST Tc (K)         [NEW - 临界温度]",
+    "13: NIST Pc (MPa)       [NEW - 临界压力]",
+    "14: NIST omega           [NEW - 偏心因子]",
+    "15: Reduced T (Tr=T/Tc) [NEW - 对比温度]",
+    "16: Reduced P (Pr=P/Pc) [NEW - 对比压力]",
 ]
-print("本次合并的 12 维连续特征顺序为:")
+print("本次合并的 17 维连续特征顺序为:")
 for f in feature_names:
     print(f"  {f}")
 print("="*50)

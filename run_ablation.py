@@ -126,6 +126,60 @@ class AblationRunner:
 
             self._scheduler.step()
 
+
+class AblationRunner:
+    """消融实验专用 Runner，使用 Model_v6 (动态 cond_dim)"""
+    def __init__(self, args, seed=42, save_dir="checkpoints_ablation"):
+        self.args = args
+        self.seed = seed
+        self.save_dir = save_dir
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self._model = IL_GAT_v6(args).to(self._device)
+        self._optimizer = torch.optim.Adam(
+            self._model.parameters(),
+            lr=args['lr'],
+            weight_decay=args['weight_decay']
+        )
+        self._scheduler = CosineAnnealingLR(self._optimizer, T_max=args['epoch'], eta_min=1e-5)
+        self._criterion = nn.HuberLoss(delta=0.05)
+
+    def _save(self, title):
+        os.makedirs(self.save_dir, exist_ok=True)
+        path = f"{self.save_dir}/{title}_seed_{self.seed}.pth"
+        torch.save({'model_state_dict': self._model.state_dict()}, path)
+
+    def _load_best(self):
+        path = f"{self.save_dir}/best_seed_{self.seed}.pth"
+        if os.path.exists(path):
+            ckpt = torch.load(path, map_location=self._device)
+            self._model.load_state_dict(ckpt['model_state_dict'])
+
+    def train(self, train_loader, dev_loader):
+        from GAT_Runner_v5 import EarlyStopping
+        early_stopping = EarlyStopping(patience=self.args['patience'])
+        best_v_loss = float('inf')
+
+        for epoch in range(1, self.args['epoch'] + 1):
+            self._model.train()
+            train_loss = 0.0
+
+            bar = tqdm(total=len(train_loader), dynamic_ncols=True, leave=False,
+                       desc=f"Epoch {epoch:>3d}")
+            for graph, cond, label in train_loader:
+                graph = graph.to(self._device)
+                cond = cond.to(self._device)
+                label = label.to(self._device)
+                self._optimizer.zero_grad()
+                y = self._model(graph, cond)
+                loss = self._criterion(y.flatten(), label.flatten())
+                loss.backward()
+                self._optimizer.step()
+                train_loss += loss.item()
+                bar.update()
+            bar.close()
+
+            self._scheduler.step()
+
             self._model.eval()
             val_loss = 0.0
             with torch.no_grad():
@@ -206,7 +260,7 @@ def main():
                         choices=['random', 'loro'],
                         help="Split mode")
     parser.add_argument("--descriptor_mode", type=str, required=True,
-                        choices=['M0', 'Msize', 'Mmu', 'Malpha', 'MV', 'Mphys', 'M_interact', 'M_all'],
+                        choices=['M0', 'Msize', 'Mmu', 'Malpha', 'MV', 'Mphys', 'Mthermo', 'Mreduced', 'M_interact', 'M_all'],
                         help="Ablation descriptor mode")
     parser.add_argument("--seeds", type=int, default=3,
                         help="Number of random seeds")

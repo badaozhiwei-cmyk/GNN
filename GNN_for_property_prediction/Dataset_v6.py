@@ -3,13 +3,15 @@ Dataset_v6.py — 消融实验专用数据加载器
 =====================================
 【v6 核心升级】
   支持 descriptor_mode 参数，根据模式动态选择条件向量的特征子集。
-  配合 prepare_tri_graph_data_v3.py 生成的 12 维条件数据使用。
+  配合 prepare_tri_graph_data_v3.py 生成的 17 维条件数据使用。
 
-  四种消融模式:
-    M0    : 原始 7 维 (T, P, ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa)
-    Msize : 7 + 2 = 9 维 (M0 + ref_MolWt, cat_MolWt)
-    Mmu   : 7 + 1 = 8 维 (M0 + ref_dipole)
-    Mphys : 7 + 3 = 10 维 (M0 + ref_dipole, ref_polarizability, ref_volume)
+  消融模式:
+    M0       : 原始 7 维 (T, P, ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa)
+    Msize    : 7 + 2 = 9 维 (M0 + ref_MolWt, cat_MolWt)
+    Mmu      : 7 + 1 = 8 维 (M0 + ref_dipole)
+    Mphys    : 7 + 3 = 10 维 (M0 + ref_dipole, ref_polarizability, ref_volume)
+    Mthermo  : 7 + 3 = 10 维 (M0 + Tc, Pc, omega)        [绝对临界量]
+    Mreduced : 7 + 3 = 10 维 (M0 + Tr, Pr, omega)        [无量纲对比态]
 
   v3 数据布局 (data[i] 的索引):
     [0] cation_graph  [1] anion_graph  [2] refri_graph
@@ -17,6 +19,7 @@ Dataset_v6.py — 消融实验专用数据加载器
     [8] cat_charge  [9] cat_tpsa
     [10] ref_MolWt  [11] cat_MolWt
     [12] ref_dipole  [13] ref_polarizability  [14] ref_volume
+    [15] Tc  [16] Pc  [17] omega  [18] Tr  [19] Pr
 """
 import os
 import joblib
@@ -36,6 +39,8 @@ MODE_INDICES = {
     'Malpha':     [3, 4, 5, 6, 7, 8, 9, 13],                             # 8 维：+ ref_polarizability (极化率)
     'MV':         [3, 4, 5, 6, 7, 8, 9, 14],                             # 8 维：+ ref_volume (分子体积)
     'Mphys':      [3, 4, 5, 6, 7, 8, 9, 12, 13, 14],                     # 10 维：+ ref_dipole, ref_pol, ref_vol
+    'Mthermo':    [3, 4, 5, 6, 7, 8, 9, 15, 16, 17],                     # 10 维：+ Tc, Pc, omega (绝对临界量)
+    'Mreduced':   [3, 4, 5, 6, 7, 8, 9, 18, 19, 17],                     # 10 维：+ Tr, Pr, omega (无量纲对比态)
     'M_interact': [3, 4, 5, 6, 7, 8, 9, 15, 16],                         # 9 维：M0 + Delta_E_anion, Delta_E_cation
     'M_all':      [3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16],             # 12 维：全物理量 + 配对结合能
 }

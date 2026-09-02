@@ -27,7 +27,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 
-MODES = ['M0', 'Msize', 'Mmu', 'Malpha', 'MV', 'Mphys', 'Mphys_gated', 'M_interact', 'M_all']
+MODES = ['M0', 'Msize', 'Mmu', 'Malpha', 'MV', 'Mphys', 'Mphys_gated', 'Mthermo', 'Mreduced', 'M_interact', 'M_all']
 FAMILY = 'HFC'
 SPLIT_MODE = 'loro'
 BASE_DIR = 'results_ablation'
@@ -292,7 +292,7 @@ def main():
                 val = np.mean(results[m]['per_ref'][ref]['MAE'])
                 r_row[f"{m}_MAE"] = f"{val:.4f}"
                 if m == 'M0': m0_val = val
-                if m in ['Mmu', 'Mphys', 'M_interact'] and m0_val is not None and m0_val > 0:
+                if m in ['Mmu', 'Mphys', 'Mphys_gated', 'Mthermo', 'Mreduced', 'M_interact'] and m0_val is not None and m0_val > 0:
                     gain = (val - m0_val) / m0_val * 100.0
                     r_row[f"Δ_{m}%"] = f"{gain:+.1f}%"
             else:
