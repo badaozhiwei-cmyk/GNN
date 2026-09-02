@@ -137,9 +137,10 @@ class IL_set_v6(torch.utils.data.Dataset):
         # 确认数据中的条件特征数量足够
         sample = self.data[0]
         n_elements = len(sample)
-        if n_elements != 20:
+        required_elements = max(self.feature_indices) + 1
+        if n_elements < required_elements:
             raise ValueError(
-                f"数据布局错误：每条样本应为 20 个元素（3 图 + 17 条件），实际为 {n_elements}。"
+                f"数据布局错误：模式 {self.descriptor_mode} 需要至少 {required_elements} 个元素，实际为 {n_elements}。"
             )
         max_idx = max(self.feature_indices)
         if max_idx >= n_elements:
