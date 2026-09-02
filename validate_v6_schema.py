@@ -131,28 +131,50 @@ def check_contract():
         print("  [PASS] Refrigerant-level physical properties strictly invariant across ILs")
 
         # 检验样本唯一性与无重复 (Cation, Anion, Refrigerant, T, P)
-        print("\n[Check 7/8] Validating composite sample identity uniqueness & duplicate detection...")
+        print("\n[Check 7/9] Exact-state duplicate detection (Cation, Anion, Refrigerant, T, P)...")
         dup_cols = ['IL cation', 'IL anion', 'Refrigerant', 'T (K)', 'P (MPa)']
         n_duplicates = meta_df.duplicated(subset=dup_cols).sum()
         if n_duplicates > 0:
-            print(f"  [WARNING] Detected {n_duplicates} duplicate thermodynamic state points in raw dataset!")
+            print(f"  [WARNING] Detected {n_duplicates} duplicate thermodynamic state points in dataset!")
         else:
-            print("  [PASS] 100% Unique thermodynamic sample points (Zero duplicates)")
+            print("  [PASS] Exact-state duplicate screening passed (Zero duplicate state points)")
 
-        # 检验热力学状态变量物理合理边界
-        print("\n[Check 8/8] Validating physical bounds of thermodynamic variables...")
+        # 检验热力学状态变量数据集合理性与代数一致性 (Tr = T/Tc, Pr = P/Pc)
+        print("\n[Check 8/9] Thermodynamic state plausibility and derived descriptor algebraic consistency...")
+        DATASET_T_RANGE = (200.0, 600.0)
+        DATASET_P_RANGE = (0.0, 50.0)
         T_col = data[:, FEATURE_SCHEMA['T']].astype(float)
         P_col = data[:, FEATURE_SCHEMA['P']].astype(float)
+        Tc_col = data[:, FEATURE_SCHEMA['Tc']].astype(float)
+        Pc_col = data[:, FEATURE_SCHEMA['Pc']].astype(float)
         Tr_col = data[:, FEATURE_SCHEMA['Tr']].astype(float)
         Pr_col = data[:, FEATURE_SCHEMA['Pr']].astype(float)
-        assert np.all(T_col > 200.0) and np.all(T_col < 600.0), f"Temperature out of realistic bounds! Min={T_col.min()}, Max={T_col.max()}"
-        assert np.all(P_col >= 0.0) and np.all(P_col < 50.0), f"Pressure out of realistic bounds! Min={P_col.min()}, Max={P_col.max()}"
-        assert np.all(Tr_col > 0.0) and np.all(Pr_col >= 0.0), "Reduced Tr or Pr contains negative values!"
-        print(f"  [PASS] Thermodynamic state bounds verified: T in [{T_col.min():.1f}, {T_col.max():.1f}] K, P in [{P_col.min():.3f}, {P_col.max():.3f}] MPa")
-        print(f"         Tr in [{Tr_col.min():.3f}, {Tr_col.max():.3f}], Pr in [{Pr_col.min():.3f}, {Pr_col.max():.3f}]")
+        
+        assert np.all(T_col >= DATASET_T_RANGE[0]) and np.all(T_col <= DATASET_T_RANGE[1]), f"Temperature outside plausibility screen: [{T_col.min()}, {T_col.max()}]"
+        assert np.all(P_col >= DATASET_P_RANGE[0]) and np.all(P_col <= DATASET_P_RANGE[1]), f"Pressure outside plausibility screen: [{P_col.min()}, {P_col.max()}]"
+        assert np.allclose(Tr_col, T_col / Tc_col, rtol=1e-5, atol=1e-8), "Algebraic inconsistency detected: Tr != T / Tc!"
+        assert np.allclose(Pr_col, P_col / Pc_col, rtol=1e-5, atol=1e-8), "Algebraic inconsistency detected: Pr != P / Pc!"
+        print(f"  [PASS] Dataset plausibility ranges verified (T in [{T_col.min():.1f}, {T_col.max():.1f}] K, P in [{P_col.min():.3f}, {P_col.max():.3f}] MPa)")
+        print("  [PASS] Derived thermodynamic algebraic consistency verified (Tr = T/Tc, Pr = P/Pc strictly matched)")
+
+        # 检验 Refrigerant–IL 覆盖矩阵与样本密度
+        print("\n[Check 9/9] Auditing Refrigerant–IL coverage matrix and state point distribution...")
+        meta_df['IL_pair'] = meta_df['IL cation'].astype(str) + " + " + meta_df['IL anion'].astype(str)
+        cov_summary = meta_df.groupby('Refrigerant').agg(
+            n_samples=('T (K)', 'count'),
+            n_ILs=('IL_pair', 'nunique'),
+            T_min=('T (K)', 'min'),
+            T_max=('T (K)', 'max'),
+            P_min=('P (MPa)', 'min'),
+            P_max=('P (MPa)', 'max')
+        ).reset_index()
+        print("  Refrigerant Sample & IL Coverage Overview:")
+        for _, row in cov_summary.iterrows():
+            print(f"    - {row['Refrigerant']:<10}: {row['n_samples']:>4} samples across {row['n_ILs']:>2} unique ILs | T:[{row['T_min']:.1f}, {row['T_max']:.1f}] K, P:[{row['P_min']:.3f}, {row['P_max']:.3f}] MPa")
+        print("  [PASS] Refrigerant-IL coverage audit completed.")
     else:
         print(f"\n[Notice] {data_dir}/data.npy not generated yet locally.")
-        print("         Running prepare_tri_graph_data_v6.py on Kaggle will activate Check 4-8.")
+        print("         Running prepare_tri_graph_data_v6.py on Kaggle will activate Check 4-9.")
 
     print("\n" + "=" * 70)
     print("  [ALL PASS] V6 Schema & Scientific Data Contract 100% Succeeded!")
