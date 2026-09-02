@@ -106,17 +106,26 @@ def check_contract():
         assert n_samples == len(meta_df), f"Length mismatch: data.npy ({n_samples}) vs meta_info.csv ({len(meta_df)})"
         print(f"  -> Total samples: {n_samples}")
 
-        # 检验每行恰好 22 元素
-        for i in range(min(500, n_samples)):
-            assert len(data[i]) == 22, f"Sample {i} elements != 22 (got {len(data[i])})"
-        print("  [PASS] Sample structure: strictly 22 elements (3 graphs + 19 continuous features)")
+        # 检验每行恰好 22 元素（全量 100% 穷举检查）
+        bad_elements = [i for i, row in enumerate(data) if len(row) != 22]
+        assert not bad_elements, f"Found {len(bad_elements)} rows with length != 22! Examples: {bad_elements[:5]}"
+        print(f"  [PASS] Full-dataset sample structure: 100% of {n_samples} samples strictly match 22 elements")
 
-        # 检验数值有限性
-        print("\n[Check 5/6] Validating continuous features finiteness...")
+        # 检验数值有限性与 Complete-Case 双向真值契约
+        print("\n[Check 5/6] Validating continuous features finiteness and pair_energy_complete contract...")
         uncomputed_pair_count = 0
         for i in range(n_samples):
             scalars = data[i][3:]
-            is_pair_complete = meta_df.loc[i, 'pair_energy_complete'] if 'pair_energy_complete' in meta_df.columns else False
+            is_pair_complete = bool(meta_df.loc[i, 'pair_energy_complete']) if 'pair_energy_complete' in meta_df.columns else False
+            
+            de_anion = data[i][FEATURE_SCHEMA['deltaE_anion']]
+            de_cation = data[i][FEATURE_SCHEMA['deltaE_cation']]
+            both_deltaE_finite = bool(np.isfinite(de_anion) and np.isfinite(de_cation))
+
+            # 契约断言：pair_energy_complete == True 当且仅当两项结合能均为有限数值
+            assert is_pair_complete == both_deltaE_finite, \
+                f"Sample {i} pair contract violation! Flag is {is_pair_complete} but deltaE finite status is {both_deltaE_finite} (ani={de_anion}, cat={de_cation})"
+
             for s_idx, val in enumerate(scalars):
                 feat_name = list(FEATURE_SCHEMA.keys())[s_idx]
                 if feat_name in ['deltaE_anion', 'deltaE_cation']:
@@ -131,23 +140,23 @@ def check_contract():
         else:
             print("  [PASS] All continuous features are finite (100% Non-NaN / Non-Inf including Delta E)")
 
-        # 检验物理数据粒度：制冷剂级不变量 vs 离子对变异量
-        print("\n[Check 6/8] Checking physics granularity (refrigerant-level invariance)...")
-        for ref_name in meta_df['Refrigerant'].unique()[:5]:
+        # 检验物理数据粒度：制冷剂级不变量（全量 100% 制冷剂与样本检验）
+        print("\n[Check 6/8] Checking physics granularity (exhaustive refrigerant-level invariance)...")
+        for ref_name in meta_df['Refrigerant'].unique():
             ref_indices = meta_df[meta_df['Refrigerant'] == ref_name].index
             if len(ref_indices) > 1:
                 first_idx = ref_indices[0]
                 tc_first = data[first_idx][FEATURE_SCHEMA['Tc']]
                 dipole_first = data[first_idx][FEATURE_SCHEMA['ref_dipole']]
-                for other_idx in ref_indices[1:5]:
+                for other_idx in ref_indices[1:]:
                     tc_other = data[other_idx][FEATURE_SCHEMA['Tc']]
                     dipole_other = data[other_idx][FEATURE_SCHEMA['ref_dipole']]
                     assert tc_first == tc_other, f"Tc for {ref_name} unexpectedly varied across ILs!"
                     assert dipole_first == dipole_other, f"Dipole for {ref_name} unexpectedly varied across ILs!"
-        print("  [PASS] Refrigerant-level physical properties strictly invariant across ILs")
+        print(f"  [PASS] Refrigerant-level physical properties strictly invariant across all {meta_df['Refrigerant'].nunique()} refrigerants")
 
         # 检验样本唯一性与无重复 (Cation, Anion, Refrigerant, T, P)
-        print("\n[Check 7/9] Exact-state duplicate detection (Cation, Anion, Refrigerant, T, P)...")
+        print("\n[Check 7/10] Exact-state duplicate detection (Cation, Anion, Refrigerant, T, P)...")
         dup_cols = ['IL cation', 'IL anion', 'Refrigerant', 'T (K)', 'P (MPa)']
         n_duplicates = meta_df.duplicated(subset=dup_cols).sum()
         if n_duplicates > 0:
@@ -155,8 +164,16 @@ def check_contract():
         else:
             print("  [PASS] Exact-state duplicate screening passed (Zero duplicate state points)")
 
+        # 检验 sample_id 完整性与一一单射关系
+        print("\n[Check 8/10] Auditing sample_id completeness and 1:1 state mapping...")
+        assert 'sample_id' in meta_df.columns, "Metadata missing 'sample_id' column!"
+        assert meta_df['sample_id'].notna().all(), "sample_id contains NaN values!"
+        assert meta_df['sample_id'].nunique() == len(meta_df), \
+            f"Duplicate sample_id detected! Unique {meta_df['sample_id'].nunique()} vs Total {len(meta_df)}"
+        print(f"  [PASS] sample_id integrity verified: 100% of {len(meta_df)} sample IDs are non-null and strictly unique")
+
         # 检验热力学状态变量数据集合理性与代数一致性 (Tr = T/Tc, Pr = P/Pc)
-        print("\n[Check 8/9] Thermodynamic state plausibility and derived descriptor algebraic consistency...")
+        print("\n[Check 9/10] Thermodynamic state plausibility and derived descriptor algebraic consistency...")
         DATASET_T_RANGE = (200.0, 600.0)
         DATASET_P_RANGE = (0.0, 50.0)
         T_col = data[:, FEATURE_SCHEMA['T']].astype(float)
@@ -174,7 +191,7 @@ def check_contract():
         print("  [PASS] Derived thermodynamic algebraic consistency verified (Tr = T/Tc, Pr = P/Pc strictly matched)")
 
         # 检验 Refrigerant–IL 覆盖矩阵与样本密度
-        print("\n[Check 9/9] Auditing Refrigerant–IL coverage matrix and state point distribution...")
+        print("\n[Check 10/10] Auditing Refrigerant–IL coverage matrix and state point distribution...")
         meta_df['IL_pair'] = meta_df['IL cation'].astype(str) + " + " + meta_df['IL anion'].astype(str)
         cov_summary = meta_df.groupby('Refrigerant').agg(
             n_samples=('T (K)', 'count'),

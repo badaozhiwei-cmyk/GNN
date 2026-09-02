@@ -88,14 +88,15 @@ def write_xyz(atom_symbols, coords, filepath):
         for sym, (x, y, z) in zip(atom_symbols, coords):
             f.write(f"{sym:<3} {x:12.6f} {y:12.6f} {z:12.6f}\n")
 
-def run_xtb_opt(xyz_file, charge, work_dir):
+def run_xtb_opt(xyz_file, charge, work_dir, opt_level='tight'):
     os.makedirs(work_dir, exist_ok=True)
     xyz_name = os.path.basename(xyz_file)
     dst_xyz = os.path.join(work_dir, xyz_name)
     if os.path.abspath(xyz_file) != os.path.abspath(dst_xyz):
         shutil.copyfile(xyz_file, dst_xyz)
 
-    cmd = ['xtb', xyz_name, '--opt', 'normal', '-c', str(charge)]
+    # 统一采用 GFN2-xTB tight 收敛标准，保证单体与二聚体优化协议 100% 同源
+    cmd = ['xtb', xyz_name, '--opt', opt_level, '--gfn', '2', '-c', str(charge)]
     try:
         res = subprocess.run(
             cmd,
@@ -103,7 +104,7 @@ def run_xtb_opt(xyz_file, charge, work_dir):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            timeout=240
+            timeout=300
         )
         out = res.stdout + "\n" + res.stderr
         converged = check_convergence(out)
@@ -140,7 +141,43 @@ def compute_min_distance(xyz_file, n_ion_atoms):
     dists = np.sqrt(np.sum(diff**2, axis=-1))
     return float(np.min(dists))
 
-def create_dimer_orientations(ion_mol, ref_mol, dist=3.2):
+def adjust_min_distance(ion_xyz, ref_xyz, target_dist=3.2, tol=1e-3, max_iter=10):
+    """
+    精确调整两个分子片段之间的最近原子间距至 target_dist (默认 3.2 Å)。
+    采用最近原子连线方向的多轮迭代微调算法，保证非对称异构体表面原子接触距离严格精确。
+    """
+    ref_xyz = ref_xyz.copy()
+
+    for _ in range(max_iter):
+        diff = ion_xyz[:, None, :] - ref_xyz[None, :, :]
+        dists = np.linalg.norm(diff, axis=-1)
+
+        i, j = np.unravel_index(np.argmin(dists), dists.shape)
+        current_min_d = dists[i, j]
+
+        if abs(current_min_d - target_dist) < tol:
+            break
+
+        direction = ref_xyz[j] - ion_xyz[i]
+        norm = np.linalg.norm(direction)
+        if norm < 1e-12:
+            break
+
+        direction /= norm
+        # 将整个 ref fragment 沿当前最近原子连线方向平移
+        ref_xyz += direction * (target_dist - current_min_d)
+
+    final_dmin = np.min(np.linalg.norm(ion_xyz[:, None, :] - ref_xyz[None, :, :], axis=-1))
+    assert abs(final_dmin - target_dist) < 1e-2, \
+        f"🚨 初始几何间距调整失败！期望 {target_dist} Å，实际 {final_dmin:.4f} Å"
+
+    return ref_xyz
+
+def create_dimer_orientations(ion_mol, ref_mol, target_dist=3.2):
+    """
+    在 4 个正交与旋转方向进行多初始构象采样 (Initial Orientation Sampling)，
+    并严格保证最近原子接触距离 d_min = 3.2 Å。
+    """
     ion_syms = [a.GetSymbol() for a in ion_mol.GetAtoms()]
     ref_syms = [a.GetSymbol() for a in ref_mol.GetAtoms()]
     combined_syms = ion_syms + ref_syms
@@ -152,22 +189,27 @@ def create_dimer_orientations(ion_mol, ref_mol, dist=3.2):
     ref_xyz = ref_xyz - np.mean(ref_xyz, axis=0)
     
     orientations = []
-    # Orient 1: +X axis
-    c1 = ref_xyz + np.array([dist + np.max(ion_xyz[:,0]), 0, 0])
+    
+    # Orient 1: +X direction
+    c1_raw = ref_xyz + np.array([target_dist + np.max(ion_xyz[:,0]) - np.min(ref_xyz[:,0]), 0, 0])
+    c1 = adjust_min_distance(ion_xyz, c1_raw, target_dist)
     orientations.append(np.vstack([ion_xyz, c1]))
     
-    # Orient 2: -X axis
-    c2 = ref_xyz + np.array([-dist + np.min(ion_xyz[:,0]), 0, 0])
+    # Orient 2: -X direction
+    c2_raw = ref_xyz + np.array([-target_dist + np.min(ion_xyz[:,0]) - np.max(ref_xyz[:,0]), 0, 0])
+    c2 = adjust_min_distance(ion_xyz, c2_raw, target_dist)
     orientations.append(np.vstack([ion_xyz, c2]))
     
-    # Orient 3: +Z axis
-    c3 = ref_xyz + np.array([0, 0, dist + np.max(ion_xyz[:,2])])
+    # Orient 3: +Z direction
+    c3_raw = ref_xyz + np.array([0, 0, target_dist + np.max(ion_xyz[:,2]) - np.min(ref_xyz[:,2])])
+    c3 = adjust_min_distance(ion_xyz, c3_raw, target_dist)
     orientations.append(np.vstack([ion_xyz, c3]))
     
-    # Orient 4: -Z axis with 90 deg Y-rotation
+    # Orient 4: -Z direction with 90 deg Y-rotation
     R_y = np.array([[0, 0, 1], [0, 1, 0], [-1, 0, 0]])
     ref_rot = np.dot(ref_xyz, R_y.T)
-    c4 = ref_rot + np.array([0, 0, -dist + np.min(ion_xyz[:,2])])
+    c4_raw = ref_rot + np.array([0, 0, -target_dist + np.min(ion_xyz[:,2]) - np.max(ref_rot[:,2])])
+    c4 = adjust_min_distance(ion_xyz, c4_raw, target_dist)
     orientations.append(np.vstack([ion_xyz, c4]))
     
     return combined_syms, orientations, len(ion_syms)

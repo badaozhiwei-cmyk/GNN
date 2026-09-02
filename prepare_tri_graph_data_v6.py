@@ -189,10 +189,21 @@ for idx, row in df_vle.iterrows():
     ])
     final_labels.append(float(row['x1']))
     sample_id = f"{c_name}__{a_name}__{r_name}__{T_val:.8g}__{P_val:.8g}"
-    meta_data.append({'sample_id': sample_id, 'IL cation': c_name, 'IL anion': a_name,
-                      'Refrigerant': r_name, 'T (K)': T_val, 'P (MPa)': P_val,
-                      'x1': row['x1'], 'pair_energy_complete': pair_complete,
-                      'T_unit': 'K', 'P_unit': 'MPa', 'Pc_unit': 'MPa'})
+    meta_data.append({
+        'sample_id': sample_id, 
+        'IL cation': c_name, 
+        'IL anion': a_name,
+        'Refrigerant': r_name, 
+        'T (K)': T_val, 
+        'P (MPa)': P_val,
+        'x1': row['x1'], 
+        'pair_energy_complete': pair_complete,
+        'deltaE_anion': de_anion,
+        'deltaE_cation': de_cation,
+        'T_unit': 'K', 
+        'P_unit': 'MPa', 
+        'Pc_unit': 'MPa'
+    })
     saved_count += 1
 
 out_dir = 'processed_tri_data_v6'

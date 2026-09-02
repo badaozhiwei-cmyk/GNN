@@ -1,26 +1,24 @@
 """
-run_ablation.py — GNN 消融实验驱动器
-====================================
+run_ablation.py — GNN 消融实验驱动器 (Unified V6 Schema)
+======================================================
 【目的】
-  在 HFC 家族上使用 LORO 切分，对比 4 种描述符模式的 GNN 模型性能。
-  证明 3D 物理描述符（尤其是偶极矩）对溶解度预测的贡献。
+  在 HFC/HFO 家族上使用 LORO / Random 切分，系统对比 5 大描述符模式的 GNN 泛化性能。
+  量化拓扑信息、电子/体积描述符、临界参数及超分子结合能对跨物质外推的贡献。
 
-【四个消融模型】
-  M0    : 原始 7 维 RDKit 基线
-  Msize : 7 + 2 = 9 维 (+ ref_MolWt, cat_MolWt)
-  Mmu   : 7 + 1 = 8 维 (+ ref_dipole)
-  Mphys : 7 + 3 = 10 维 (+ ref_dipole, ref_polarizability, ref_volume)
+【消融模型】
+  M0           : 9 维 (T, P + 7 个单分子基础物性)
+  Mphys        : 9 + 3 = 12 维 (M0 + ref_dipole, ref_polarizability, ref_volume)
+  Mthermo      : 9 + 3 = 12 维 (M0 + Tc, Pc, omega)
+  Mreduced     : 9 + 3 = 12 维 (M0 + Tr, Pr, omega)
+  Minteract    : 9 + 2 = 11 维 (M0 + deltaE_anion, deltaE_cation)
+  Mreduced_pure: 10 维 (7 个物性 + Tr, Pr, omega)
+  M_all        : 17 维 (全量描述符集合)
 
-【用法】
-  # 单模式运行
-  python run_ablation.py --family HFC --mode loro --descriptor_mode Mmu --seeds 3
-
-  # 快速测试
-  python run_ablation.py --family HFC --mode loro --descriptor_mode M0 --seeds 1 --epoch 2
-
-【注意】
-  必须先运行 prepare_tri_graph_data_v3.py 生成 processed_tri_data_v3/ 目录下的数据。
-  原始 v5 代码（run_experiment.py, Dataset_v5, Model_v5）未做任何修改。
+【用法示例】
+  # LORO 全模式消融运行 (推荐锁定 Complete-Case 公平宇宙)
+  python run_ablation.py --family HFC --mode loro --descriptor_mode M0 --seeds 3
+  python run_ablation.py --family HFC --mode loro --descriptor_mode Mphys --use_adaptive_gate --seeds 3
+  python run_ablation.py --family HFC --mode loro --descriptor_mode Minteract --complete_case_only --seeds 3
 """
 import argparse
 import os
@@ -276,7 +274,8 @@ def main():
 
     ref_col = 'refrigerant' if 'refrigerant' in df_raw.columns else 'Refrigerant'
     if 'family' not in df_raw.columns:
-        df_raw['family'] = df_raw[ref_col].map(FAMILY_MAP)
+        family_map_upper = {str(k).strip().upper(): v for k, v in FAMILY_MAP.items()}
+        df_raw['family'] = df_raw[ref_col].astype(str).str.strip().str.upper().map(family_map_upper)
 
     # 家族过滤
     df = df_raw.copy()
@@ -295,13 +294,19 @@ def main():
         if len(df) == 0:
             raise ValueError("No samples have complete pair energies! Run compute_full_pair_interaction_xtb.py first.")
 
+    # 提取活跃实验子集索引并保留原始母表行号，重置 df 索引以保持 1:1 对齐
+    active_indices = df.index.values.tolist()
+    df = df.reset_index(drop=True)
+    df['raw_row_idx'] = active_indices
+
     gate_tag = " + AdaptiveGate" if args.use_adaptive_gate else ""
     print(f"\n{'='*60}")
     print(f"  GNN Ablation Study")
     print(f"  Family: {args.family} | Mode: {args.mode}")
     print(f"  Descriptor: {args.descriptor_mode} (cond_dim={MODE_COND_DIM[args.descriptor_mode]}){gate_tag}")
+    print(f"  Complete-Case Universe: {args.complete_case_only}")
     print(f"  Seeds: {args.seeds} | Epochs: {args.epoch} | Batch: {args.batch_size}")
-    print(f"  Samples after filtering: {len(df)}")
+    print(f"  Samples in active universe: {len(df)}")
     print(f"{'='*60}\n")
 
     # ============================================================
@@ -337,11 +342,12 @@ def main():
     }
 
     print("Loading Graph Dataset (v6)...")
-    Whole_set = IL_set_v6(path=model_args['data_path'], args=model_args)
+    Whole_set = IL_set_v6(path=model_args['data_path'], args=model_args, valid_indices=active_indices)
 
-    # 验证数据集大小与 CSV 对齐
-    assert len(df_raw) == len(Whole_set), \
-        f"Dataset length mismatch! CSV: {len(df_raw)} vs PyG: {len(Whole_set)}"
+    # 验证数据集大小与活跃 CSV 对齐（三方互锁断言）
+    assert len(active_indices) == len(df) == len(Whole_set), \
+        f"Dataset length mismatch! Active indices ({len(active_indices)}) vs df ({len(df)}) vs PyG ({len(Whole_set)})"
+
     # 2b. 实验配置哈希（防止不同配置复用旧预测）
     # ============================================================
     exp_config = {
@@ -349,6 +355,8 @@ def main():
         "family": args.family,
         "mode": args.mode,
         "descriptor_mode": args.descriptor_mode,
+        "complete_case_only": args.complete_case_only,
+        "target_ref": args.target_ref,
         "use_interaction": args.use_interaction,
         "use_sigmoid": args.use_sigmoid,
         "use_cond_dropout": args.use_cond_dropout,
@@ -400,7 +408,10 @@ def main():
         with open(config_path, 'w') as f:
             json.dump(exp_config, f, indent=2)
     print(f"  Config hash: {config_hash} | Dir: {out_dir}")
-    splits_dir = os.path.join(out_dir, 'splits')
+
+    # 集中存储共享切分，保证所有消融模式读取完全同一份划分
+    shared_split_tag = f"{args.family}_{args.mode}_{'complete' if args.complete_case_only else 'all'}"
+    splits_dir = os.path.join(current_script_dir, 'splits', shared_split_tag)
     os.makedirs(splits_dir, exist_ok=True)
 
     # ============================================================
@@ -442,7 +453,7 @@ def main():
                 if frozen_test != test_idx.astype(int).tolist():
                     raise RuntimeError(f'Frozen test indices disagree with current data: {split_path}')
             else:
-                train_val_df = df_raw.loc[train_val_idx]
+                train_val_df = df.loc[train_val_idx]
                 gss = GroupShuffleSplit(
                     n_splits=1, test_size=0.18, random_state=42
                 )
@@ -458,8 +469,8 @@ def main():
                 )
 
             # 验证 train/val 制冷剂零重叠
-            tr_refs = set(df_raw.loc[train_idx, ref_col])
-            va_refs = set(df_raw.loc[val_idx, ref_col])
+            tr_refs = set(df.loc[train_idx, ref_col])
+            va_refs = set(df.loc[val_idx, ref_col])
             assert tr_refs.isdisjoint(va_refs), \
                 f"🚨 VAL LEAKAGE! Overlap: {tr_refs & va_refs}"
             print(f"  [GroupVal] Train refs: {len(tr_refs)}, Val refs: {va_refs}")
@@ -487,9 +498,9 @@ def main():
               f"Train: {len(train_idx)}, Val: {len(val_idx)}, Test: {len(test_idx)}")
 
         # ── 数据泄漏防护 ──
-        unique_train_refs = df_raw.loc[train_idx, ref_col].unique()
-        unique_val_refs   = df_raw.loc[val_idx, ref_col].unique()
-        unique_test_refs  = df_raw.loc[test_idx, ref_col].unique()
+        unique_train_refs = df.loc[train_idx, ref_col].unique()
+        unique_val_refs   = df.loc[val_idx, ref_col].unique()
+        unique_test_refs  = df.loc[test_idx, ref_col].unique()
         assert set(unique_train_refs).isdisjoint(unique_test_refs), "Train/test refrigerant overlap"
         assert set(unique_val_refs).isdisjoint(unique_test_refs), "Validation/test refrigerant overlap"
 
@@ -521,18 +532,22 @@ def main():
         split_dir = f"{out_dir}/{split_name}"
         preds_dir = f"{split_dir}_preds"
 
-        # ── 检查是否已完成全部 Seed（断点秒级续算）──
+        # ── 检查是否已完成全部 Seed（断点秒级续算，严格按 sample_id 校验）──
         all_seeds_exist = True
         loaded_split_r2 = []
         loaded_split_mae = []
+        expected_sample_ids = df.loc[test_idx, 'sample_id'].astype(str).tolist()
+
         for seed in range(42, 42 + args.seeds):
             seed_file = f"{preds_dir}/seed{seed}.csv"
             if os.path.exists(seed_file):
                 try:
                     s_df = pd.read_csv(seed_file)
-                    if len(s_df) == len(test_idx):
-                        r2 = r2_score(s_df['true_x1'], np.clip(s_df['pred_x1'], 0, 1))
-                        mae = mean_absolute_error(s_df['true_x1'], np.clip(s_df['pred_x1'], 0, 1))
+                    saved_ids = s_df['sample_id'].astype(str).tolist() if 'sample_id' in s_df.columns else []
+                    if saved_ids == expected_sample_ids:
+                        pred_col = 'pred_x1_raw' if 'pred_x1_raw' in s_df.columns else 'pred_x1'
+                        r2 = r2_score(s_df['true_x1'], np.clip(s_df[pred_col], 0, 1))
+                        mae = mean_absolute_error(s_df['true_x1'], np.clip(s_df[pred_col], 0, 1))
                         loaded_split_r2.append(r2)
                         loaded_split_mae.append(mae)
                     else:
@@ -546,7 +561,7 @@ def main():
                 break
 
         if all_seeds_exist and len(loaded_split_r2) == args.seeds:
-            print(f"  ⚡ [Resume] 检测到 {split_name} 已完成 ({args.seeds} seeds)，直接复用！(R²={np.mean(loaded_split_r2):.4f}, MAE={np.mean(loaded_split_mae):.4f})")
+            print(f"  ⚡ [Resume] 检测到 {split_name} 已完成 ({args.seeds} seeds)，直接复用！(Macro-R²={np.mean(loaded_split_r2):.4f}, MAE={np.mean(loaded_split_mae):.4f})")
             summary_results = [r for r in summary_results if r['Target'] != split_name]
             summary_results.append({
                     'Target': split_name,
@@ -633,21 +648,25 @@ def main():
             assert len(test_idx) == len(test_true) == len(test_pred), \
                 f"Length mismatch: idx({len(test_idx)}) true({len(test_true)}) pred({len(test_pred)})"
 
-            # 导出每个 seed 的预测
+            # 导出每个 seed 的预测（同时记录原始预测、截断预测与原始母表行号）
+            test_pred_clipped = np.clip(test_pred, 0.0, 1.0)
             seed_df = pd.DataFrame({
                 'seed': seed,
-                'sample_id': df_raw.loc[test_idx, 'sample_id'].values,
-                'IL cation': df_raw.loc[test_idx, 'IL cation'].values,
-                'IL anion': df_raw.loc[test_idx, 'IL anion'].values,
-                'refrigerant': df_raw.loc[test_idx, ref_col].values,
-                'T (K)': df_raw.loc[test_idx, 'T (K)'].values,
-                'P (MPa)': df_raw.loc[test_idx, 'P (MPa)'].values,
+                'raw_row_idx': df.loc[test_idx, 'raw_row_idx'].values,
+                'sample_id': df.loc[test_idx, 'sample_id'].values,
+                'IL cation': df.loc[test_idx, 'IL cation'].values,
+                'IL anion': df.loc[test_idx, 'IL anion'].values,
+                'refrigerant': df.loc[test_idx, ref_col].values,
+                'T (K)': df.loc[test_idx, 'T (K)'].values,
+                'P (MPa)': df.loc[test_idx, 'P (MPa)'].values,
                 'descriptor_mode': args.descriptor_mode,
                 'split': split_name,
                 'true_x1': test_true,
-                'pred_x1': test_pred,
-                'error': test_pred - test_true,
-                'absolute_error': np.abs(test_pred - test_true)
+                'pred_x1_raw': test_pred,
+                'pred_x1_clipped': test_pred_clipped,
+                'error_raw': test_pred - test_true,
+                'error_clipped': test_pred_clipped - test_true,
+                'absolute_error_clipped': np.abs(test_pred_clipped - test_true)
             })
             seed_df.to_csv(f"{preds_dir}/seed{seed}.csv", index=False)
 
@@ -655,7 +674,7 @@ def main():
             if hasattr(runner, '_last_gate_values') and runner._last_gate_values is not None:
                 gate_cols = [f'gate_{i}' for i in range(runner._last_gate_values.shape[1])]
                 gate_df = pd.DataFrame(runner._last_gate_values, columns=gate_cols)
-                gate_df['refrigerant'] = df_raw.loc[test_idx, ref_col].values
+                gate_df['refrigerant'] = df.loc[test_idx, ref_col].values
                 gate_df['seed'] = seed
                 gate_df.to_csv(f"{preds_dir}/gate_values_seed{seed}.csv", index=False)
                 # 打印平均门控值
@@ -701,10 +720,10 @@ def main():
     print(f"{'='*60}")
 
     if len(summary_df) > 0:
-        print(f"\n  Overall {args.descriptor_mode} Performance:")
-        print(f"  R² mean: {summary_df['R2_mean'].mean():.4f} "
+        print(f"\n  Overall {args.descriptor_mode} Performance (Macro-Average across Held-Out Refrigerants):")
+        print(f"  Macro-R² mean: {summary_df['R2_mean'].mean():.4f} "
               f"(±{summary_df['R2_mean'].std():.4f})")
-        print(f"  MAE mean: {summary_df['MAE_mean'].mean():.4f} "
+        print(f"  Macro-MAE mean: {summary_df['MAE_mean'].mean():.4f} "
               f"(±{summary_df['MAE_mean'].std():.4f})")
         print(f"\nPer-refrigerant breakdown:")
         print(summary_df[['Target', 'R2_mean', 'R2_std', 'MAE_mean', 'MAE_std']].to_string(index=False))

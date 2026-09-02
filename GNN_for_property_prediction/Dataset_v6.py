@@ -1,25 +1,18 @@
 """
-Dataset_v6.py — 消融实验专用数据加载器
-=====================================
-【v6 核心升级】
-  支持 descriptor_mode 参数，根据模式动态选择条件向量的特征子集。
-  配合 prepare_tri_graph_data_v3.py 生成的 20 元素样本（3 图 + 17 条件）使用。
+Dataset_v6.py — 消融实验专用数据加载器 (Unified V6 22-dim Schema)
+=================================================================
+【v6 核心规范】
+  严格按照 22 维统一数据布局（3 分子图 + 19 连续标量）进行动态条件特征映射。
+  支持 valid_indices 传入，实现 Complete-Case 公平基准子集的无缝加载与 NaN 隔离。
 
   消融模式:
-    M0       : 原始 7 维 (T, P, ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa)
-    Msize    : 7 + 2 = 9 维 (M0 + ref_MolWt, cat_MolWt)
-    Mmu      : 7 + 1 = 8 维 (M0 + ref_dipole)
-    Mphys    : 7 + 3 = 10 维 (M0 + ref_dipole, ref_polarizability, ref_volume)
-    Mthermo  : 7 + 3 = 10 维 (M0 + Tc, Pc, omega)        [绝对临界量]
-    Mreduced : 7 + 3 = 10 维 (M0 + Tr, Pr, omega)        [无量纲对比态]
-
-  v3 数据布局 (data[i] 的索引):
-    [0] cation_graph  [1] anion_graph  [2] refri_graph
-    [3] T  [4] P  [5] ref_charge  [6] ref_logp  [7] ani_mw
-    [8] cat_charge  [9] cat_tpsa
-    [10] ref_MolWt  [11] cat_MolWt
-    [12] ref_dipole  [13] ref_polarizability  [14] ref_volume
-    [15] Tc  [16] Pc  [17] omega  [18] Tr  [19] Pr
+    M0           : 9 维 (T, P + 7 个单分子基础物性)
+    Mphys        : 9 + 3 = 12 维 (M0 + ref_dipole, ref_polarizability, ref_volume)
+    Mthermo      : 9 + 3 = 12 维 (M0 + Tc, Pc, omega)
+    Mreduced     : 9 + 3 = 12 维 (M0 + Tr, Pr, omega)
+    Minteract    : 9 + 2 = 11 维 (M0 + deltaE_anion, deltaE_cation)
+    Mreduced_pure: 10 维 (7 个物性 + Tr, Pr, omega)
+    M_all        : 17 维 (全物理描述符汇聚)
 """
 import os
 import joblib
@@ -115,16 +108,17 @@ def add_global(graph):
 class IL_set_v6(torch.utils.data.Dataset):
     """
     v6 版本数据集：
-    1. 支持 descriptor_mode 参数 (M0/Msize/Mmu/Mphys)
+    1. 支持 descriptor_mode 参数 (M0/Mphys/Mthermo/Mreduced/Minteract 等)
     2. 根据模式动态选择条件特征子集
-    3. 内置 StandardScaler 管理，支持按照 split 保存和加载
-    4. 暴露 cond_dim 属性供 Model_v6 读取
+    3. 支持 valid_indices 传入，只对活跃实验子集执行 NaN 拦截和训练
+    4. 内置 StandardScaler 管理，支持按照 split 保存和加载
+    5. 暴露 cond_dim 属性供 Model_v6 读取
     """
-    def __init__(self, path, args):
+    def __init__(self, path, args, valid_indices=None):
         super(IL_set_v6, self).__init__()
         self.args = args
 
-        # 读取消融模式，默认 M0（与 v5 行为一致）
+        # 读取消融模式，默认 M0
         self.descriptor_mode = args.get('descriptor_mode', 'M0')
         if self.descriptor_mode not in MODE_INDICES:
             raise ValueError(
@@ -143,13 +137,21 @@ class IL_set_v6(torch.utils.data.Dataset):
         data_path = os.path.join(path, 'data.npy')
         label_path = os.path.join(path, 'label.npy')
 
-        self.data = np.load(data_path, allow_pickle=True)
-        self.label = np.load(label_path, allow_pickle=True)
+        raw_data = np.load(data_path, allow_pickle=True)
+        raw_label = np.load(label_path, allow_pickle=True)
+
+        # 支持子集切片 (如 Complete-Case 过滤)
+        if valid_indices is not None:
+            self.data = raw_data[valid_indices]
+            self.label = raw_label[valid_indices]
+        else:
+            self.data = raw_data
+            self.label = raw_label
+
         self.length = self.label.shape[0]
         self.scalers = None
 
         # ── 数据完整性检查 ──
-        # 确认数据中的条件特征数量足够
         sample = self.data[0]
         n_elements = len(sample)
         required_elements = max(self.feature_indices) + 1
@@ -157,20 +159,14 @@ class IL_set_v6(torch.utils.data.Dataset):
             raise ValueError(
                 f"数据布局错误：模式 {self.descriptor_mode} 需要至少 {required_elements} 个元素，实际为 {n_elements}。"
             )
-        max_idx = max(self.feature_indices)
-        if max_idx >= n_elements:
-            raise ValueError(
-                f"数据完整性错误！descriptor_mode='{self.descriptor_mode}' "
-                f"需要索引 {max_idx}，但数据每行只有 {n_elements} 个元素。\n"
-                f"请确认你使用的是 prepare_tri_graph_data_v3.py 生成的数据 "
-                f"(应保存在 processed_tri_data_v3/ 目录下)。"
-            )
 
-        # ── 全量 NaN/NA 检查（避免坏行静默进入训练） ──
+        # ── 活跃子集 NaN/NA 检查（严格防止坏行进入训练） ──
         for data_idx in self.feature_indices:
             vals = np.asarray([row[data_idx] for row in self.data], dtype=np.float64)
             if not np.all(np.isfinite(vals)):
-                raise ValueError(f"数据质量错误：特征索引 {data_idx} 含 NaN/Inf。")
+                raise ValueError(
+                    f"数据质量错误：特征索引 {data_idx} 在当前实验子集中含 NaN/Inf。"
+                )
 
     def fit_scalers(self, train_indices, save_dir):
         """
