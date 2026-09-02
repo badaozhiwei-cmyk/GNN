@@ -96,63 +96,10 @@ class AblationRunner:
 
     def _load_best(self):
         path = f"{self.save_dir}/best_seed_{self.seed}.pth"
-        if os.path.exists(path):
-            ckpt = torch.load(path, map_location=self._device)
-            self._model.load_state_dict(ckpt['model_state_dict'])
-
-    def train(self, train_loader, dev_loader):
-        from GAT_Runner_v5 import EarlyStopping
-        early_stopping = EarlyStopping(patience=self.args['patience'])
-        best_v_loss = float('inf')
-
-        for epoch in range(1, self.args['epoch'] + 1):
-            self._model.train()
-            train_loss = 0.0
-
-            bar = tqdm(total=len(train_loader), dynamic_ncols=True, leave=False,
-                       desc=f"Epoch {epoch:>3d}")
-            for graph, cond, label in train_loader:
-                graph = graph.to(self._device)
-                cond = cond.to(self._device)
-                label = label.to(self._device)
-                self._optimizer.zero_grad()
-                y = self._model(graph, cond)
-                loss = self._criterion(y.flatten(), label.flatten())
-                loss.backward()
-                self._optimizer.step()
-                train_loss += loss.item()
-                bar.update()
-            bar.close()
-
-            self._scheduler.step()
-
-
-class AblationRunner:
-    """消融实验专用 Runner，使用 Model_v6 (动态 cond_dim)"""
-    def __init__(self, args, seed=42, save_dir="checkpoints_ablation"):
-        self.args = args
-        self.seed = seed
-        self.save_dir = save_dir
-        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self._model = IL_GAT_v6(args).to(self._device)
-        self._optimizer = torch.optim.Adam(
-            self._model.parameters(),
-            lr=args['lr'],
-            weight_decay=args['weight_decay']
-        )
-        self._scheduler = CosineAnnealingLR(self._optimizer, T_max=args['epoch'], eta_min=1e-5)
-        self._criterion = nn.HuberLoss(delta=0.05)
-
-    def _save(self, title):
-        os.makedirs(self.save_dir, exist_ok=True)
-        path = f"{self.save_dir}/{title}_seed_{self.seed}.pth"
-        torch.save({'model_state_dict': self._model.state_dict()}, path)
-
-    def _load_best(self):
-        path = f"{self.save_dir}/best_seed_{self.seed}.pth"
-        if os.path.exists(path):
-            ckpt = torch.load(path, map_location=self._device)
-            self._model.load_state_dict(ckpt['model_state_dict'])
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Best checkpoint missing; refusing to evaluate last-epoch weights: {path}")
+        ckpt = torch.load(path, map_location=self._device)
+        self._model.load_state_dict(ckpt['model_state_dict'])
 
     def train(self, train_loader, dev_loader):
         from GAT_Runner_v5 import EarlyStopping
@@ -190,6 +137,8 @@ class AblationRunner:
                     y = self._model(graph, cond)
                     val_loss += self._criterion(y.flatten(), label.flatten()).item()
 
+            if len(train_loader.dataset) == 0 or len(dev_loader.dataset) == 0:
+                raise RuntimeError("Empty train/validation loader; cannot train or early-stop safely")
             avg_train = train_loss / len(train_loader)
             avg_val   = val_loss / len(dev_loader)
 
@@ -499,8 +448,8 @@ def main():
                 )
 
             # 验证 train/val 制冷剂零重叠
-            tr_refs = set(df_raw.iloc[train_idx][ref_col])
-            va_refs = set(df_raw.iloc[val_idx][ref_col])
+            tr_refs = set(df_raw.loc[train_idx, ref_col])
+            va_refs = set(df_raw.loc[val_idx, ref_col])
             assert tr_refs.isdisjoint(va_refs), \
                 f"🚨 VAL LEAKAGE! Overlap: {tr_refs & va_refs}"
             print(f"  [GroupVal] Train refs: {len(tr_refs)}, Val refs: {va_refs}")
@@ -528,8 +477,11 @@ def main():
               f"Train: {len(train_idx)}, Val: {len(val_idx)}, Test: {len(test_idx)}")
 
         # ── 数据泄漏防护 ──
-        unique_train_refs = df_raw.iloc[train_idx][ref_col].unique()
-        unique_test_refs  = df_raw.iloc[test_idx][ref_col].unique()
+        unique_train_refs = df_raw.loc[train_idx, ref_col].unique()
+        unique_val_refs   = df_raw.loc[val_idx, ref_col].unique()
+        unique_test_refs  = df_raw.loc[test_idx, ref_col].unique()
+        assert set(unique_train_refs).isdisjoint(unique_test_refs), "Train/test refrigerant overlap"
+        assert set(unique_val_refs).isdisjoint(unique_test_refs), "Validation/test refrigerant overlap"
 
         if args.mode == 'loro':
             target_ref = split_name.replace('loro_', '')
@@ -674,7 +626,7 @@ def main():
             # 导出每个 seed 的预测
             seed_df = pd.DataFrame({
                 'seed': seed,
-                'refrigerant': df_raw.iloc[test_idx][ref_col].values,
+                'refrigerant': df_raw.loc[test_idx, ref_col].values,
                 'true_x1': test_true,
                 'pred_x1': test_pred
             })
@@ -684,7 +636,7 @@ def main():
             if hasattr(runner, '_last_gate_values') and runner._last_gate_values is not None:
                 gate_cols = [f'gate_{i}' for i in range(runner._last_gate_values.shape[1])]
                 gate_df = pd.DataFrame(runner._last_gate_values, columns=gate_cols)
-                gate_df['refrigerant'] = df_raw.iloc[test_idx][ref_col].values
+                gate_df['refrigerant'] = df_raw.loc[test_idx, ref_col].values
                 gate_df['seed'] = seed
                 gate_df.to_csv(f"{preds_dir}/gate_values_seed{seed}.csv", index=False)
                 # 打印平均门控值

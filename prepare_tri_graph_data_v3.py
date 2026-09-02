@@ -395,7 +395,7 @@ for idx, row in df_vle.iterrows():
 out_dir = 'processed_tri_data_v3'
 os.makedirs(out_dir, exist_ok=True)
 np.save(f'{out_dir}/data.npy', np.array(final_data, dtype=object))
-np.save(f'{out_dir}/label.npy', np.array(final_labels, dtype=object))
+np.save(f'{out_dir}/label.npy', np.asarray(final_labels, dtype=np.float32))
 
 meta_df = pd.DataFrame(meta_data)
 meta_df.to_csv(f'{out_dir}/meta_info.csv', index=False)
