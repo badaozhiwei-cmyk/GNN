@@ -506,11 +506,12 @@ def main():
         print(f"Running Split: {split_name} | "
               f"Train: {len(train_idx)}, Val: {len(val_idx)}, Test: {len(test_idx)}")
 
+        unique_train_refs = df.loc[train_idx, ref_col].unique()
+        unique_val_refs   = df.loc[val_idx, ref_col].unique()
+        unique_test_refs  = df.loc[test_idx, ref_col].unique()
+
         # ── 数据泄漏防护（仅 LORO 模式严格要求物质不重叠） ──
         if args.mode == 'loro':
-            unique_train_refs = df.loc[train_idx, ref_col].unique()
-            unique_val_refs   = df.loc[val_idx, ref_col].unique()
-            unique_test_refs  = df.loc[test_idx, ref_col].unique()
             assert set(unique_train_refs).isdisjoint(unique_test_refs), "Train/test refrigerant overlap"
             assert set(unique_val_refs).isdisjoint(unique_test_refs), "Validation/test refrigerant overlap"
 
