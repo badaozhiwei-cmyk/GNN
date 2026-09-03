@@ -9,6 +9,10 @@ from rdkit.Chem import Descriptors
 import os
 import math
 
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 print("🚀 开始执行 V6 终极 Tri-Graph 数据预处理 (22 维 Schema)...")
 
 # 1. 加载 SMILES

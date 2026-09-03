@@ -11,6 +11,9 @@ run_mechanistic_probes.py — 论文级事后物理探针 (Post-hoc Probes) 与 
 6. R134 vs R134a 同分异构体深度剖析
 """
 import os
+import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 import glob
 import numpy as np
 import pandas as pd
@@ -35,30 +38,40 @@ def run_probes(results_dir='results_ablation', preds_summary='paper_results/tabl
     print("=" * 80)
     
     # 1. 提取所有已完成评估的制冷剂列表与各模式 MAE
+    recovered_csv = 'paper_results/recovered_overnight_results.csv'
     m0_preds = glob.glob(os.path.join(results_dir, 'HFC_loro_M0_*', 'loro_*_preds'))
-    if not m0_preds:
-        print("[错误] 未找到 M0 预测目录，请先运行实验或检查路径。")
-        return
-        
-    refs = [os.path.basename(p).replace('loro_', '').replace('_preds', '') for p in m0_preds]
-    refs = sorted(list(set(refs)))
-    print(f"检测到 {len(refs)} 种目标制冷剂: {refs}")
     
-    # 加载各模式的 per-refrigerant MAE
     modes = ['M0', 'Mphys', 'Mthermo', 'Mreduced']
     mae_dict = {m: {} for m in modes}
     
-    for m in modes:
-        mdirs = glob.glob(os.path.join(results_dir, f'HFC_loro_{m}_*'))
-        if not mdirs: continue
-        md = mdirs[0]
-        for r in refs:
-            sfiles = glob.glob(os.path.join(md, f'loro_{r}_preds', 'seed*.csv'))
-            if sfiles:
-                maes = [mean_absolute_error_safe(sf) for sf in sfiles]
-                mae_dict[m][r] = np.mean(maes)
-            else:
-                mae_dict[m][r] = np.nan
+    if m0_preds:
+        refs = [os.path.basename(p).replace('loro_', '').replace('_preds', '') for p in m0_preds]
+        refs = sorted(list(set(refs)))
+        for m in modes:
+            mdirs = glob.glob(os.path.join(results_dir, f'HFC_loro_{m}_*'))
+            if not mdirs: continue
+            md = mdirs[0]
+            for r in refs:
+                sfiles = glob.glob(os.path.join(md, f'loro_{r}_preds', 'seed*.csv'))
+                if sfiles:
+                    maes = [mean_absolute_error_safe(sf) for sf in sfiles]
+                    mae_dict[m][r] = np.mean(maes)
+                else:
+                    mae_dict[m][r] = np.nan
+    elif os.path.exists(recovered_csv):
+        print(f"  ℹ️ 检测到已恢复的历史实验数据: {recovered_csv}，直接加载！")
+        rec_df = pd.read_csv(recovered_csv)
+        refs = sorted(list(rec_df['Target'].str.replace('loro_', '').unique()))
+        for m in modes:
+            sub = rec_df[rec_df['Mode'] == m]
+            for _, row in sub.iterrows():
+                r_clean = str(row['Target']).replace('loro_', '')
+                mae_dict[m][r_clean] = float(row['MAE_mean'])
+    else:
+        print("[错误] 未找到预测结果或恢复数据，请检查路径。")
+        return
+        
+    print(f"检测到 {len(refs)} 种目标制冷剂: {refs}")
 
     def mean_absolute_error_safe(csv_path):
         df = pd.read_csv(csv_path)
