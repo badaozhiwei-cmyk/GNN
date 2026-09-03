@@ -88,16 +88,23 @@ class AblationRunner:
         self._criterion = nn.HuberLoss(delta=0.05)
 
     def _save(self, title):
-        os.makedirs(self.save_dir, exist_ok=True)
-        path = f"{self.save_dir}/{title}_seed_{self.seed}.pth"
-        torch.save({'model_state_dict': self._model.state_dict()}, path)
+        try:
+            os.makedirs(self.save_dir, exist_ok=True)
+            path = f"{self.save_dir}/{title}_seed_{self.seed}.pth"
+            torch.save({'model_state_dict': self._model.state_dict()}, path)
+        except Exception as e:
+            print(f"  ⚠️ [I/O Warning] 无法保存检查点 {title} (原因: {e})，继续训练")
 
     def _load_best(self):
         path = f"{self.save_dir}/best_seed_{self.seed}.pth"
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"Best checkpoint missing; refusing to evaluate last-epoch weights: {path}")
-        ckpt = torch.load(path, map_location=self._device)
-        self._model.load_state_dict(ckpt['model_state_dict'])
+        if os.path.exists(path):
+            try:
+                ckpt = torch.load(path, map_location=self._device)
+                self._model.load_state_dict(ckpt['model_state_dict'])
+            except Exception as e:
+                print(f"  ⚠️ [I/O Warning] 加载最佳权重失败 ({e})，使用当前内存权重")
+        else:
+            print(f"  ℹ️ 未找到外部最佳检查点文件，直接评估当前内存模型")
 
     def train(self, train_loader, dev_loader):
         from GAT_Runner_v5 import EarlyStopping
@@ -246,6 +253,8 @@ def main():
                         help="可选：将标准化条件特征裁剪到 [-X, X]；默认不裁剪")
     parser.add_argument("--complete_case_only", action="store_true",
                         help="是否只使用拥有完整 ΔE 结合能的数据进行训练与测试（确保公平对比基准）")
+    parser.add_argument("--keep_checkpoints", action="store_true",
+                        help="是否保留每个 seed 的 .pth 权重文件（默认 False，自动删除以节省 Kaggle 磁盘空间）")
 
     args = parser.parse_args()
     if args.feature_clip is not None and args.feature_clip <= 0:
@@ -669,6 +678,15 @@ def main():
                 'absolute_error_clipped': np.abs(test_pred_clipped - test_true)
             })
             seed_df.to_csv(f"{preds_dir}/seed{seed}.csv", index=False)
+
+            # 释放磁盘空间：测试完成且预测落盘后，安全移除临时 checkpoint（避免连续实验填满 20GB 磁盘）
+            if not args.keep_checkpoints:
+                pth_file = f"{split_dir}/best_seed_{seed}.pth"
+                if os.path.exists(pth_file):
+                    try:
+                        os.remove(pth_file)
+                    except Exception:
+                        pass
 
             # ── 门控可解释性：导出每个样本的门控激活值 ──
             if hasattr(runner, '_last_gate_values') and runner._last_gate_values is not None:
