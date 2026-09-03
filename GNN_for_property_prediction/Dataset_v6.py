@@ -39,6 +39,7 @@ BASE_FEATURES = ["T", "P", "ref_charge", "ref_logp", "ani_mw", "cat_charge", "ca
 
 MODE_DEF = {
     'M0':        BASE_FEATURES,
+    'Mstd':      BASE_FEATURES + ["T", "P", "omega"],
     'Mphys':     BASE_FEATURES + ["ref_dipole", "ref_polarizability", "ref_volume"],
     'Mthermo':   BASE_FEATURES + ["Tc", "Pc", "omega"],
     'Mreduced':  BASE_FEATURES + ["Tr", "Pr", "omega"],

@@ -1,0 +1,7 @@
+Target,Mode,MAE_25%,MAE_100%,Relative_Change,Scientific Verdict
+R245fa,M0,0.0558781202020202,0.059634970101010105,+6.7%,Representation-Limited (增加数据无改善，受制于表征/物理边界)
+R245fa,Mreduced,0.06908101590187594,0.01454024767676767,-79.0%,Coverage-Limited (数据量增加显著缓解误差)
+R134,M0,0.1872332658816425,0.20128315406602257,+7.5%,Representation-Limited (增加数据无改善，受制于表征/物理边界)
+R134,Mreduced,0.12943412493098685,0.11233445194386932,-13.2%,Representation-Limited (增加数据无改善，受制于表征/物理边界)
+R134a,M0,0.11464881597222222,0.13001967681327162,+13.4%,Representation-Limited (增加数据无改善，受制于表征/物理边界)
+R134a,Mreduced,0.0923582545138889,0.08566515330687834,-7.2%,Representation-Limited (增加数据无改善，受制于表征/物理边界)

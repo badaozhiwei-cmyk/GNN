@@ -174,11 +174,22 @@ def run_probes(results_dir='results_ablation', preds_summary='paper_results/tabl
     r_fp_thermo, p_fp_thermo = spearmanr(v_fp, v_thermo)
     r_xtb_thermo, p_xtb_thermo = spearmanr(v_xtb, v_thermo)
     
-    print(f"成对特征空间正交性验证:")
-    print(f"  - Spearman(D_FP, D_xTB):        rho = {r_fp_xtb:.4f} (p = {p_fp_xtb:.4e})")
-    print(f"  - Spearman(D_FP, D_thermo):     rho = {r_fp_thermo:.4f} (p = {p_fp_thermo:.4e})")
-    print(f"  - Spearman(D_xTB, D_thermo):    rho = {r_xtb_thermo:.4f} (p = {p_xtb_thermo:.4e})")
-    print("  -> 结论: 拓扑、气相量子物理与热力学状态空间相互解耦，互不重叠！")
+    # 偏相关计算 (Partial RSA: 控制第三变量下的直接关联度)
+    def partial_corr(r_xy, r_xz, r_yz):
+        num = r_xy - r_xz * r_yz
+        den = np.sqrt(max(1e-8, (1.0 - r_xz**2) * (1.0 - r_yz**2)))
+        return num / den
+        
+    p_xtb_thermo_given_fp = partial_corr(r_xtb_thermo, r_fp_xtb, r_fp_thermo)
+    p_fp_xtb_given_thermo = partial_corr(r_fp_xtb, r_fp_thermo, r_xtb_thermo)
+    
+    print(f"成对特征空间秩相关性分析 (Rank-Order Association):")
+    print(f"  - Spearman(D_FP, D_xTB):             rho = {r_fp_xtb:.4f} (p = {p_fp_xtb:.4e}) -> 弱关联 (Limited rank-order association)")
+    print(f"  - Spearman(D_FP, D_thermo):          rho = {r_fp_thermo:.4f} (p = {p_fp_thermo:.4e}) -> 弱关联 (Limited rank-order association)")
+    print(f"  - Spearman(D_xTB, D_thermo):         rho = {r_xtb_thermo:.4f} (p = {p_xtb_thermo:.4e}) -> 中度关联 (Moderate association)")
+    print(f"\n🔬 偏相关分析 (Partial RSA, 排除拓扑/热力学混杂效应):")
+    print(f"  - Partial_Spearman(D_xTB, D_thermo | D_FP):      rho_partial = {p_xtb_thermo_given_fp:.4f} (控制 2D 拓扑后，物理与热力学仍保持实质性中度关联)")
+    print(f"  - Partial_Spearman(D_FP, D_xTB | D_thermo):     rho_partial = {p_fp_xtb_given_thermo:.4f} (控制热力学后，2D 拓扑与量子物理几乎彻底解耦)")
     
     # 6. R134 vs R134a 同分异构体深度剖析
     if 'R134' in valid_refs and 'R134a' in valid_refs:

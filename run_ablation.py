@@ -214,7 +214,7 @@ def main():
                         choices=['random', 'loro'],
                         help="Split mode")
     parser.add_argument("--descriptor_mode", type=str, required=True,
-                        choices=['M0', 'Mphys', 'Mthermo', 'Mreduced', 'Minteract', 'Mreduced_pure', 'M_all'],
+                        choices=['M0', 'Mstd', 'Mphys', 'Mthermo', 'Mreduced', 'Minteract', 'Mreduced_pure', 'M_all'],
                         help="Ablation descriptor mode")
     parser.add_argument("--data_dir", type=str, default="processed_tri_data_v6",
                         help="Path to preprocessed tri-graph dataset directory (default: processed_tri_data_v6)")

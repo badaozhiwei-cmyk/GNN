@@ -1,0 +1,2 @@
+Metric,Mean,CI95_Lower,CI95_Upper,Median,Median_CI95_Lower,Median_CI95_Upper,Win_Count,Win_Rate(%),Binomial_p,Wilcoxon_p,Statistically_Significant
+Delta MAE (M0 - Mreduced),0.038982333333333334,0.019578766666666664,0.05751949374999999,0.046943,0.0042724999999999985,0.069886,9/12,75.0,0.072998046875,0.00341796875,True
