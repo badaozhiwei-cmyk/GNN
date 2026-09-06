@@ -108,32 +108,57 @@ def audit_all_modes(results_dir='results_ablation'):
             continue
             
         pooled_trues = []
-        pooled_preds = []
+        pooled_preds_ensemble = []
         ref_records = []
         
         for pf in pred_folders:
             ref_name = os.path.basename(pf).replace('loro_', '').replace('_preds', '')
-            seed_files = glob.glob(os.path.join(pf, 'seed*.csv'))
+            seed_files = sorted(glob.glob(os.path.join(pf, 'seed*.csv')))
             if not seed_files:
                 continue
                 
-            # 加载各 seed 预测并计算 seed 平均
-            seed_dfs = [pd.read_csv(sf) for sf in seed_files]
+            # ── 1. 严格显式按 sample_id 对齐 ──
+            seed_dfs = []
+            for sf in seed_files:
+                sdf = pd.read_csv(sf)
+                required = {'sample_id', 'true_x1', 'pred_x1_raw'}
+                if not required.issubset(sdf.columns):
+                    raise ValueError(f"{sf} 缺失必要列: {required - set(sdf.columns)}")
+                if sdf['sample_id'].duplicated().any():
+                    raise ValueError(f"{sf} 存在重复的 sample_id！")
+                seed_dfs.append(sdf[['sample_id', 'true_x1', 'pred_x1_raw']].set_index('sample_id'))
+                
+            base_ids = seed_dfs[0].index
+            for i, sdf in enumerate(seed_dfs[1:], start=1):
+                if not sdf.index.equals(base_ids):
+                    raise ValueError(f"🚨 {pf} 中 seed 文件样本 ID 顺序不一致: seed{i} vs seed0")
+                    
+            y_true = seed_dfs[0].loc[base_ids, 'true_x1'].to_numpy()
+            pred_mat = np.column_stack([sdf.loc[base_ids, 'pred_x1_raw'].to_numpy() for sdf in seed_dfs])
             
-            # 对齐行（以 sample_id 为准）
-            base_df = seed_dfs[0].copy()
-            pred_mat = np.column_stack([sdf['pred_x1_raw'].values for sdf in seed_dfs])
+            # ── 2. 双轨制计算：单 Seed 分别评估求均值 vs 5-seed 集成 ──
+            seed_maes = [mean_absolute_error(y_true, np.clip(pred_mat[:, s], 0, 1)) for s in range(pred_mat.shape[1])]
+            seed_r2s = [r2_score(y_true, np.clip(pred_mat[:, s], 0, 1)) for s in range(pred_mat.shape[1])]
+            
             avg_pred = np.mean(pred_mat, axis=1)
-            y_true = base_df['true_x1'].values
+            metrics_ensemble = compute_metrics(y_true, avg_pred)
             
-            # 单物质指标
-            metrics = compute_metrics(y_true, avg_pred)
-            metrics['refrigerant'] = ref_name
-            metrics['num_seeds'] = len(seed_files)
-            ref_records.append(metrics)
+            metrics_record = {
+                'refrigerant': ref_name,
+                'num_seeds': len(seed_files),
+                'MAE_seed_mean': np.mean(seed_maes),
+                'MAE_seed_std': np.std(seed_maes),
+                'R2_seed_mean': np.mean(seed_r2s),
+                'R2_seed_std': np.std(seed_r2s),
+                'MAE_ensemble': metrics_ensemble['MAE'],
+                'R2_ensemble': metrics_ensemble['R2'],
+                'MARD(%)_ensemble': metrics_ensemble['MARD(%)'],
+                'log_MAE_ensemble': metrics_ensemble['log_MAE'],
+            }
+            ref_records.append(metrics_record)
             
             pooled_trues.extend(y_true)
-            pooled_preds.extend(avg_pred)
+            pooled_preds_ensemble.extend(avg_pred)
             
         if not ref_records:
             continue
@@ -141,34 +166,27 @@ def audit_all_modes(results_dir='results_ablation'):
         ref_df = pd.DataFrame(ref_records)
         detailed_ref_results[mode] = ref_df
         
-        # 1. Macro 指标
-        macro_mae = ref_df['MAE'].mean()
-        macro_mae_std = ref_df['MAE'].std()
-        macro_r2 = ref_df['R2'].mean()
-        macro_r2_std = ref_df['R2'].std()
-        median_r2 = ref_df['R2'].median()
-        macro_log_mae = ref_df['log_MAE'].mean()
-        macro_mard = ref_df['MARD(%)'].mean()
+        # ── 3. 宏观统计：同时呈现标准 Seed-Mean 与 Ensemble ──
+        macro_mae_seed = ref_df['MAE_seed_mean'].mean()
+        macro_r2_seed = ref_df['R2_seed_mean'].mean()
+        macro_mae_ens = ref_df['MAE_ensemble'].mean()
+        macro_r2_ens = ref_df['R2_ensemble'].mean()
         
-        # 2. Pooled 指标
-        pooled_metrics = compute_metrics(pooled_trues, pooled_preds)
+        pooled_ens = compute_metrics(pooled_trues, pooled_preds_ensemble)
         
-        # 3. Cluster Bootstrap 95% CI
-        ci_dict = cluster_bootstrap_macro(ref_df)
+        ci_dict = cluster_bootstrap_macro(ref_df.rename(columns={'MAE_seed_mean': 'MAE', 'R2_seed_mean': 'R2', 'log_MAE_ensemble': 'log_MAE'}))
         
         all_mode_results[mode] = {
             'Mode': mode,
             'Num_Refs': len(ref_df),
-            'Macro_MAE': f"{macro_mae:.4f} ± {macro_mae_std:.4f}",
+            'Macro_MAE (Seed-Mean)': f"{macro_mae_seed:.4f}",
             'MAE_95CI': f"[{ci_dict['MAE_CI95'][0]:.4f}, {ci_dict['MAE_CI95'][1]:.4f}]",
-            'Macro_R2': f"{macro_r2:.4f} ± {macro_r2_std:.4f}",
-            'R2_Median': f"{median_r2:.4f}",
-            'R2_95CI': f"[{ci_dict['R2_CI95'][0]:.4f}, {ci_dict['R2_CI95'][1]:.4f}]",
-            'Macro_logMAE': f"{macro_log_mae:.4f}",
-            'Macro_MARD': f"{macro_mard:.2f}%",
-            'Pooled_MAE': f"{pooled_metrics['MAE']:.4f}",
-            'Pooled_R2': f"{pooled_metrics['R2']:.4f}",
-            'Pooled_RMSE': f"{pooled_metrics['RMSE']:.4f}"
+            'Macro_R2 (Seed-Mean)': f"{macro_r2_seed:.4f}",
+            'Macro_MAE (Ensemble)': f"{macro_mae_ens:.4f}",
+            'Macro_R2 (Ensemble)': f"{macro_r2_ens:.4f}",
+            'Pooled_MAE (Ensemble)': f"{pooled_ens['MAE']:.4f}",
+            'Pooled_R2 (Ensemble)': f"{pooled_ens['R2']:.4f}",
+            'Pooled_RMSE (Ensemble)': f"{pooled_ens['RMSE']:.4f}"
         }
         
     summary_df = pd.DataFrame(list(all_mode_results.values()))
