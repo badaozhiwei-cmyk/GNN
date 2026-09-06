@@ -42,11 +42,39 @@ current_script_dir = str(pl.Path(__file__).resolve().parent)
 sys.path.append(os.path.join(current_script_dir, 'GNN_for_property_prediction'))
 
 from Dataset_v6 import IL_set_v6, MODE_COND_DIM, BASE_FEATURES
-from GAT_Runner_v5 import set_seed  # set_seed 通用，不需要新版
 
-# ============================================================
-# Runner (复用 v5 的训练逻辑，但使用 v6 Model)
-# ============================================================
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+class EarlyStopping:
+    def __init__(self, patience=15, delta=0.0):
+        self.patience = patience
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.val_loss_min = np.inf
+        self.delta = delta
+
+    def __call__(self, val_loss):
+        score = -val_loss
+        if self.best_score is None:
+            self.best_score = score
+            self.val_loss_min = val_loss
+        elif score < self.best_score + self.delta:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.val_loss_min = val_loss
+            self.counter = 0
+
 from Model_v6 import IL_GAT_v6
 import torch.nn as nn
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -107,7 +135,6 @@ class AblationRunner:
             print(f"  ℹ️ 未找到外部最佳检查点文件，直接评估当前内存模型")
 
     def train(self, train_loader, dev_loader):
-        from GAT_Runner_v5 import EarlyStopping
         early_stopping = EarlyStopping(patience=self.args['patience'])
         best_v_loss = float('inf')
 
@@ -218,14 +245,14 @@ def main():
                         help="Ablation descriptor mode")
     parser.add_argument("--data_dir", type=str, default="processed_tri_data_v6",
                         help="Path to preprocessed tri-graph dataset directory (default: processed_tri_data_v6)")
-    parser.add_argument("--seeds", type=int, default=3,
-                        help="Number of random seeds")
-    parser.add_argument("--epoch", type=int, default=80,
-                        help="Max epochs (default: 80)")
+    parser.add_argument("--seeds", type=int, default=5,
+                        help="Number of random seeds (default: 5)")
+    parser.add_argument("--epoch", type=int, default=100,
+                        help="Max epochs (default: 100)")
     parser.add_argument("--patience", type=int, default=15,
                         help="Early stopping patience (default: 15)")
-    parser.add_argument("--batch_size", type=int, default=64,
-                        help="Batch size (default: 64, recommend 128 for CPU)")
+    parser.add_argument("--batch_size", type=int, default=32,
+                        help="Batch size (default: 32)")
     parser.add_argument("--target_ref", type=str, default=None,
                         help="Optional: Run only a single specific refrigerant (e.g. R134a)")
 

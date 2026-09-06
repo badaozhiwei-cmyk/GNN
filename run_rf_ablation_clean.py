@@ -39,9 +39,9 @@ def get_morgan_fp(smi, n_bits=128):
     fp = AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=n_bits)
     return np.array([int(b) for b in fp.ToBitString()], dtype=np.float32)
 
-def run_decoupling_study(data_dir='processed_tri_data_v6'):
+def run_decoupling_study(data_dir='processed_tri_data_v6', complete_case_only=True):
     print("=" * 85)
-    print("🔬 启动 RF 纯粹解耦基准：Thermodynamics-Only vs Molecular-Only vs Combined")
+    print(f"🔬 启动 RF 纯粹解耦基准：Thermodynamics-Only vs Molecular-Only vs Combined (CompleteCase={complete_case_only})")
     print("=" * 85)
     
     meta_path = os.path.join(data_dir, 'meta_info.csv')
@@ -53,10 +53,13 @@ def run_decoupling_study(data_dir='processed_tri_data_v6'):
     family_map_upper = {str(k).strip().upper(): v for k, v in FAMILY_MAP.items()}
     df_raw['family'] = df_raw[ref_col].astype(str).str.strip().str.upper().map(family_map_upper)
     mask = (df_raw['family'] == 'HFC')
+    if complete_case_only and 'pair_energy_complete' in df_raw.columns:
+        mask = mask & (df_raw['pair_energy_complete'] == True)
     
     active_indices = df_raw[mask].index.values
     df = df_raw.loc[active_indices].reset_index(drop=True)
     data = data_raw[active_indices]
+    print(f"  [RF Universe] Samples in active evaluation: {len(df)}")
     
     from prepare_tri_graph_data_v6 import lookup_smiles
     fp_cache = {}

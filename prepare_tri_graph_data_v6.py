@@ -194,8 +194,10 @@ for idx, row in df_vle.iterrows():
     ])
     final_labels.append(float(row['x1']))
 
-    # 重复实验测定点消歧（区分多文献测定同状态点）
-    state_key = (c_name, a_name, r_name, round(T_val, 6), round(P_val, 6))
+    # 重复实验测定点消歧（区分多文献测定同状态点，采用规范化键）
+    c_canon = c_name.strip().upper().replace('[', '').replace(']', '')
+    a_canon = a_name.strip().upper().replace('[', '').replace(']', '')
+    state_key = (c_canon, a_canon, r_upper, round(T_val, 6), round(P_val, 6))
     state_counts[state_key] = state_counts.get(state_key, 0) + 1
     dup_suffix = f"__#{state_counts[state_key]}" if state_counts[state_key] > 1 else ""
     sample_id = f"{c_name}__{a_name}__{r_name}__{T_val:.8g}__{P_val:.8g}{dup_suffix}"

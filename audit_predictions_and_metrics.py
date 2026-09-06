@@ -91,11 +91,17 @@ def audit_all_modes(results_dir='results_ablation'):
     
     for md in sorted(mode_dirs):
         dir_name = os.path.basename(md)
-        # 解析模式名称
-        parts = dir_name.split('_')
-        mode = parts[2]
-        if 'AdaptiveGate' in dir_name or (len(parts) > 3 and '37bf2064' in dir_name):
-            mode = f"{mode}+Gate"
+        config_file = os.path.join(md, 'config.json')
+        if os.path.exists(config_file):
+            import json
+            with open(config_file, 'r') as f:
+                cfg = json.load(f)
+            mode = cfg.get('descriptor_mode', 'Unknown')
+            if cfg.get('use_adaptive_gate', False):
+                mode = f"{mode}+Gate"
+        else:
+            parts = dir_name.split('_')
+            mode = parts[2] if len(parts) > 2 else dir_name
             
         pred_folders = glob.glob(os.path.join(md, 'loro_*_preds'))
         if not pred_folders:
