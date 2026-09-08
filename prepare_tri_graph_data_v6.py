@@ -13,8 +13,6 @@ import sys
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-print("🚀 开始执行 V6 终极 Tri-Graph 数据预处理 (22 维 Schema)...")
-
 # 1. 加载 SMILES
 smiles_csv_path = 'Original_Data/smiles.csv' if os.path.exists('Original_Data/smiles.csv') else 'smiles.csv'
 il_df = pd.read_csv(smiles_csv_path)
@@ -117,7 +115,7 @@ if os.path.exists(pair_csv):
         if pd.notna(r['Delta_E_int_kcal_mol']):
             pair_lookup[k] = float(r['Delta_E_int_kcal_mol'])
 else:
-    print(f"[警告] 找不到超分子结合能文件: {pair_csv}")
+    pass
 
 # ==========================================
 # 5. 加载 NIST 临界参数 (Tc, Pc, omega)
@@ -131,102 +129,111 @@ NIST_CRITICAL = {
 }
 
 # ==========================================
-# 6. 主循环生成数据
+# 6. 主循环生成数据 (严格门锁：仅在直接运行时执行，import 时零副作用)
 # ==========================================
-excel_name = 'ZLJ_DATA.xlsx'
-if not os.path.exists(excel_name): excel_name = '../' + excel_name
-df_vle = pd.concat([pd.read_excel(excel_name, sheet_name=s, skiprows=2) for s in ['Table S3. VLE HFCs', 'Table S4. VLE HFOs', 'Table S5. VLE Other']], ignore_index=True)
-df_vle = df_vle.dropna(subset=['IL cation', 'IL anion', 'Refrigerant', 'T (K)', 'P (MPa)', 'x1'])
+def generate_tri_graph_data():
+    excel_name = 'ZLJ_DATA.xlsx'
+    if not os.path.exists(excel_name): excel_name = '../' + excel_name
+    df_vle = pd.concat([pd.read_excel(excel_name, sheet_name=s, skiprows=2) for s in ['Table S3. VLE HFCs', 'Table S4. VLE HFOs', 'Table S5. VLE Other']], ignore_index=True)
+    df_vle = df_vle.dropna(subset=['IL cation', 'IL anion', 'Refrigerant', 'T (K)', 'P (MPa)', 'x1'])
 
-final_data, final_labels, meta_data = [], [], []
-total_processed, saved_count = 0, 0
-state_counts = {}
+    final_data, final_labels, meta_data = [], [], []
+    total_processed, saved_count = 0, 0
+    state_counts = {}
 
-for idx, row in df_vle.iterrows():
-    total_processed += 1
-    c_name, a_name, r_name = str(row['IL cation']).strip(), str(row['IL anion']).strip(), str(row['Refrigerant']).strip()
-    r_upper = r_name.upper()
-    c_smi, a_smi, r_smi = lookup_smiles(c_name), lookup_smiles(a_name), lookup_smiles(r_name)
-    
-    if None in (c_smi, a_smi, r_smi): continue
-    c_graph, a_graph, r_graph = mol2graph_components(c_smi), mol2graph_components(a_smi), mol2graph_components(r_smi)
-    if None in (c_graph, a_graph, r_graph): continue
-    
-    # 获取 xTB 标量
-    if r_upper not in xtb_lookup: continue
-    ref_dipole, ref_polarizability, ref_volume = xtb_lookup[r_upper]
-    
-    # 获取相互作用能
-    de_anion = pair_lookup.get(('Anion-Ref', a_name.upper().replace('[', '').replace(']', ''), r_upper), np.nan)
-    de_cation = pair_lookup.get(('Cation-Ref', c_name.upper().replace('[', '').replace(']', ''), r_upper), np.nan)
-    pair_complete = bool(np.isfinite(de_anion) and np.isfinite(de_cation))
-    
-    # 获取 NIST 热力学
-    if r_upper not in NIST_CRITICAL: continue
-    Tc, Pc, omega = NIST_CRITICAL[r_upper]
-    T_val, P_val = float(row['T (K)']), float(row['P (MPa)'])
-    Tr, Pr = T_val / Tc, P_val / Pc
-    
-    # 获取 RDKit 基础特征
-    ref_mol, ani_mol, cat_mol = Chem.MolFromSmiles(r_smi), Chem.MolFromSmiles(a_smi), Chem.MolFromSmiles(c_smi)
-    try: ref_charge = float(Descriptors.MaxAbsPartialCharge(ref_mol)) if ref_mol else 0.0
-    except: ref_charge = 0.0
-    try: ref_logp   = float(Descriptors.MolLogP(ref_mol)) if ref_mol else 0.0
-    except: ref_logp = 0.0
-    try: ani_mw     = float(Descriptors.MolWt(ani_mol)) if ani_mol else 0.0
-    except: ani_mw = 0.0
-    try: cat_charge = float(Descriptors.MaxAbsPartialCharge(cat_mol)) if cat_mol else 0.0
-    except: cat_charge = 0.0
-    try: cat_tpsa   = float(Descriptors.TPSA(cat_mol)) if cat_mol else 0.0
-    except: cat_tpsa = 0.0
-    try: ref_mw     = float(Descriptors.MolWt(ref_mol)) if ref_mol else 0.0
-    except: ref_mw = 0.0
-    cat_mw     = float(Descriptors.MolWt(cat_mol)) if cat_mol else 0.0
+    for idx, row in df_vle.iterrows():
+        total_processed += 1
+        c_name, a_name, r_name = str(row['IL cation']).strip(), str(row['IL anion']).strip(), str(row['Refrigerant']).strip()
+        r_upper = r_name.upper()
+        c_smi, a_smi, r_smi = lookup_smiles(c_name), lookup_smiles(a_name), lookup_smiles(r_name)
+        
+        if None in (c_smi, a_smi, r_smi): continue
+        c_graph, a_graph, r_graph = mol2graph_components(c_smi), mol2graph_components(a_smi), mol2graph_components(r_smi)
+        if None in (c_graph, a_graph, r_graph): continue
+        
+        # 获取 xTB 标量
+        if r_upper not in xtb_lookup: continue
+        ref_dipole, ref_polarizability, ref_volume = xtb_lookup[r_upper]
+        
+        # 获取相互作用能
+        de_anion = pair_lookup.get(('Anion-Ref', a_name.upper().replace('[', '').replace(']', ''), r_upper), np.nan)
+        de_cation = pair_lookup.get(('Cation-Ref', c_name.upper().replace('[', '').replace(']', ''), r_upper), np.nan)
+        pair_complete = bool(np.isfinite(de_anion) and np.isfinite(de_cation))
+        
+        # 获取 NIST 热力学
+        if r_upper not in NIST_CRITICAL: continue
+        Tc, Pc, omega = NIST_CRITICAL[r_upper]
+        T_val, P_val = float(row['T (K)']), float(row['P (MPa)'])
+        Tr, Pr = T_val / Tc, P_val / Pc
+        
+        # 获取 RDKit 基础特征
+        ref_mol, ani_mol, cat_mol = Chem.MolFromSmiles(r_smi), Chem.MolFromSmiles(a_smi), Chem.MolFromSmiles(c_smi)
+        try: ref_charge = float(Descriptors.MaxAbsPartialCharge(ref_mol)) if ref_mol else 0.0
+        except: ref_charge = 0.0
+        try: ref_logp   = float(Descriptors.MolLogP(ref_mol)) if ref_mol else 0.0
+        except: ref_logp = 0.0
+        try: ani_mw     = float(Descriptors.MolWt(ani_mol)) if ani_mol else 0.0
+        except: ani_mw = 0.0
+        try: cat_charge = float(Descriptors.MaxAbsPartialCharge(cat_mol)) if cat_mol else 0.0
+        except: cat_charge = 0.0
+        try: cat_tpsa   = float(Descriptors.TPSA(cat_mol)) if cat_mol else 0.0
+        except: cat_tpsa = 0.0
+        try: ref_mw     = float(Descriptors.MolWt(ref_mol)) if ref_mol else 0.0
+        except: ref_mw = 0.0
+        try: cat_mw     = float(Descriptors.MolWt(cat_mol)) if cat_mol else 0.0
+        except: cat_mw = 0.0
 
-    # 严谨按照 22 维 Schema 拼装
-    final_data.append([
-        c_graph, a_graph, r_graph,    # 0, 1, 2
-        T_val, P_val,                 # 3, 4
-        ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa, ref_mw, cat_mw, # 5~11
-        ref_dipole, ref_polarizability, ref_volume,                         # 12, 13, 14
-        de_anion, de_cation,                                                # 15, 16
-        Tc, Pc, omega, Tr, Pr                                               # 17~21
-    ])
-    final_labels.append(float(row['x1']))
+        # 构造严格 22 维物理-热力学特征向量 (顺序与 FEATURE_SCHEMA 严格锁定)
+        cond_vec = [
+            T_val, P_val,                                           # 3, 4: 标况条件
+            ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa,    # 5~9: 基础物性
+            ref_mw, cat_mw,                                         # 10, 11: 分子量
+            ref_dipole, ref_polarizability, ref_volume,             # 12~14: xTB 单分子物理 (mu, alpha, V)
+            de_anion, de_cation,                                    # 15, 16: 超分子相互作用能
+            Tc, Pc, omega,                                          # 17~19: NIST 临界参数
+            Tr, Pr                                                  # 20, 21: 对比态无量纲温度/压力
+        ]
+        
+        item = [c_graph, a_graph, r_graph] + cond_vec
+        final_data.append(item)
+        final_labels.append(float(row['x1']))
 
-    # 重复实验测定点消歧（区分多文献测定同状态点，采用规范化键）
-    c_canon = c_name.strip().upper().replace('[', '').replace(']', '')
-    a_canon = a_name.strip().upper().replace('[', '').replace(']', '')
-    state_key = (c_canon, a_canon, r_upper, round(T_val, 6), round(P_val, 6))
-    state_counts[state_key] = state_counts.get(state_key, 0) + 1
-    dup_suffix = f"__#{state_counts[state_key]}" if state_counts[state_key] > 1 else ""
-    sample_id = f"{c_name}__{a_name}__{r_name}__{T_val:.8g}__{P_val:.8g}{dup_suffix}"
+        # sample_id 唯一性构建
+        c_canon = Chem.MolToSmiles(cat_mol) if cat_mol else c_smi
+        a_canon = Chem.MolToSmiles(ani_mol) if ani_mol else a_smi
+        state_key = (c_canon, a_canon, r_upper, round(T_val, 6), round(P_val, 6))
+        state_counts[state_key] = state_counts.get(state_key, 0) + 1
+        dup_suffix = f"__#{state_counts[state_key]}" if state_counts[state_key] > 1 else ""
+        sample_id = f"{c_name}__{a_name}__{r_name}__{T_val:.8g}__{P_val:.8g}{dup_suffix}"
 
-    meta_data.append({
-        'sample_id': sample_id, 
-        'IL cation': c_name, 
-        'IL anion': a_name,
-        'Refrigerant': r_name, 
-        'T (K)': T_val, 
-        'P (MPa)': P_val,
-        'x1': row['x1'], 
-        'pair_energy_complete': pair_complete,
-        'deltaE_anion': de_anion,
-        'deltaE_cation': de_cation,
-        'T_unit': 'K', 
-        'P_unit': 'MPa', 
-        'Pc_unit': 'MPa'
-    })
-    saved_count += 1
+        meta_data.append({
+            'sample_id': sample_id, 
+            'IL cation': c_name, 
+            'IL anion': a_name,
+            'Refrigerant': r_name, 
+            'T (K)': T_val, 
+            'P (MPa)': P_val,
+            'x1': row['x1'], 
+            'pair_energy_complete': pair_complete,
+            'deltaE_anion': de_anion,
+            'deltaE_cation': de_cation,
+            'T_unit': 'K', 
+            'P_unit': 'MPa', 
+            'Pc_unit': 'MPa'
+        })
+        saved_count += 1
 
-out_dir = 'processed_tri_data_v6'
-os.makedirs(out_dir, exist_ok=True)
-np.save(f'{out_dir}/data.npy', np.array(final_data, dtype=object))
-np.save(f'{out_dir}/label.npy', np.asarray(final_labels, dtype=np.float32))
-pd.DataFrame(meta_data).to_csv(f'{out_dir}/meta_info.csv', index=False)
-pd.DataFrame(meta_data).to_csv(f'{out_dir}/index_with_anion.csv', index=False)
+    out_dir = 'processed_tri_data_v6'
+    os.makedirs(out_dir, exist_ok=True)
+    np.save(f'{out_dir}/data.npy', np.array(final_data, dtype=object))
+    np.save(f'{out_dir}/label.npy', np.asarray(final_labels, dtype=np.float32))
+    pd.DataFrame(meta_data).to_csv(f'{out_dir}/meta_info.csv', index=False)
+    pd.DataFrame(meta_data).to_csv(f'{out_dir}/index_with_anion.csv', index=False)
 
-print(f"🎉 成功生成 22 维无歧义数据集，共保存 {saved_count} 条，保存在 {out_dir}/ 下！")
-if final_data:
-    assert all(len(row) == 22 for row in final_data), "Internal schema error: expected 22 elements per sample"
-    print("特征校验：", len(final_data[0]), "维 (预期 22)")
+    print(f"🎉 成功生成 22 维无歧义数据集，共保存 {saved_count} 条，保存在 {out_dir}/ 下！")
+    if final_data:
+        assert all(len(row) == 22 for row in final_data), "Internal schema error: expected 22 elements per sample"
+        print("特征校验：", len(final_data[0]), "维 (预期 22)")
+
+if __name__ == '__main__':
+    generate_tri_graph_data()

@@ -22,15 +22,7 @@ from scipy.spatial.distance import cdist, pdist, squareform
 from rdkit import Chem
 from rdkit.Chem import AllChem, DataStructs
 
-from prepare_tri_graph_data_v6 import lookup_smiles, xtb_lookup, NIST_CRITICAL, mol2graph_components
-
-def compute_tanimoto_dist(smi1, smi2):
-    m1 = Chem.MolFromSmiles(smi1)
-    m2 = Chem.MolFromSmiles(smi2)
-    fp1 = AllChem.GetMorganFingerprintAsBitVect(m1, 2, nBits=1024)
-    fp2 = AllChem.GetMorganFingerprintAsBitVect(m2, 2, nBits=1024)
-    sim = DataStructs.TanimotoSimilarity(fp1, fp2)
-    return 1.0 - sim
+from v6_metadata_utils import lookup_smiles, xtb_lookup, NIST_CRITICAL, compute_tanimoto_dist
 
 def mean_absolute_error_safe(csv_path):
     df = pd.read_csv(csv_path)
@@ -131,9 +123,9 @@ def run_probes(results_dir='results_ablation', preds_summary='paper_results/tabl
         
         records.append({
             'Refrigerant': r,
-            'D_FP (Chemical)': d_fp_min,
-            'D_xTB (Physical)': d_xtb_min,
-            'D_thermo (Thermodynamic)': d_thermo_min,
+            'D_FP (LORO-NN Chemical)': d_fp_min,
+            'D_xTB (LORO-NN Physical)': d_xtb_min,
+            'D_thermo (LORO-NN Thermo)': d_thermo_min,
             'MAE_M0': mae_dict['M0'].get(r, np.nan),
             'MAE_Mphys': mae_dict['Mphys'].get(r, np.nan),
             'MAE_Mthermo': mae_dict['Mthermo'].get(r, np.nan),
@@ -141,18 +133,19 @@ def run_probes(results_dir='results_ablation', preds_summary='paper_results/tabl
         })
         
     df_probes = pd.DataFrame(records)
-    print("\n" + "=" * 90)
-    print("📊 Probe 1~4: 目标制冷剂到训练集最近邻的多维距离与泛化误差对照表")
-    print("=" * 90)
+    print("\n" + "=" * 95)
+    print("📊 Probe 1~4: 目标制冷剂留一最近邻距离 (LORO Nearest-Neighbor Distance) 与泛化误差对照表")
+    print("=" * 95)
     print(df_probes.to_string(index=False))
     
     # 4. 距离与误差的相关性检验 (Correlations)
-    print("\n" + "=" * 90)
-    print("📈 科学判决：泛化误差到底由哪种距离驱动？(Spearman 秩相关分析)")
-    print("=" * 90)
+    print("\n" + "=" * 95)
+    print("📈 科学判决：泛化误差与 LORO 最近邻距离的秩相关分析 (Spearman rho)")
+    print("=" * 95)
     
+    dist_cols = ['D_FP (LORO-NN Chemical)', 'D_xTB (LORO-NN Physical)', 'D_thermo (LORO-NN Thermo)']
     corr_results = []
-    for dist_col in ['D_FP (Chemical)', 'D_xTB (Physical)', 'D_thermo (Thermodynamic)']:
+    for dist_col in dist_cols:
         for mode_col in ['MAE_M0', 'MAE_Mphys', 'MAE_Mthermo', 'MAE_Mreduced']:
             sub_df = df_probes[[dist_col, mode_col]].dropna()
             if len(sub_df) >= 5:
@@ -170,9 +163,9 @@ def run_probes(results_dir='results_ablation', preds_summary='paper_results/tabl
     print(corr_df.to_string(index=False))
     
     # 5. 纯组分化学编码器 RSA 分析
-    print("\n" + "=" * 90)
-    print("🧬 RSA (Representational Similarity Analysis): GNN 内部到底表征了什么？")
-    print("=" * 90)
+    print("\n" + "=" * 95)
+    print("🧬 RSA (Representational Similarity Analysis): 描述性表征空间秩对齐度")
+    print("=" * 95)
     # 取 upper triangle 进行 Mantel / 距离矩阵比对
     triu_idx = np.triu_indices(n, k=1)
     v_fp = d_fp_mat[triu_idx]
@@ -192,13 +185,14 @@ def run_probes(results_dir='results_ablation', preds_summary='paper_results/tabl
     p_xtb_thermo_given_fp = partial_corr(r_xtb_thermo, r_fp_xtb, r_fp_thermo)
     p_fp_xtb_given_thermo = partial_corr(r_fp_xtb, r_fp_thermo, r_xtb_thermo)
     
-    print(f"成对特征空间秩相关性分析 (Rank-Order Association):")
-    print(f"  - Spearman(D_FP, D_xTB):             rho = {r_fp_xtb:.4f} (p = {p_fp_xtb:.4e}) -> 弱关联 (Limited rank-order association)")
-    print(f"  - Spearman(D_FP, D_thermo):          rho = {r_fp_thermo:.4f} (p = {p_fp_thermo:.4e}) -> 弱关联 (Limited rank-order association)")
-    print(f"  - Spearman(D_xTB, D_thermo):         rho = {r_xtb_thermo:.4f} (p = {p_xtb_thermo:.4e}) -> 中度关联 (Moderate association)")
+    print(f"成对特征空间秩对齐分析 (Descriptive Rank-Order Alignment):")
+    print(f"  - Spearman(D_FP, D_xTB):             rho = {r_fp_xtb:.4f} -> 弱关联 (Limited rank-order association, descriptive)")
+    print(f"  - Spearman(D_FP, D_thermo):          rho = {r_fp_thermo:.4f} -> 弱关联 (Limited rank-order association, descriptive)")
+    print(f"  - Spearman(D_xTB, D_thermo):         rho = {r_xtb_thermo:.4f} -> 中度关联 (Moderate association, descriptive)")
+    print(f"  ℹ️ 注：66 对二元组存在分子共享重叠，此处 Spearman rho 作为描述性对齐度量，不作为独立推断假设检验证据。")
     print(f"\n🔬 偏相关分析 (Partial RSA, 排除拓扑/热力学混杂效应):")
-    print(f"  - Partial_Spearman(D_xTB, D_thermo | D_FP):      rho_partial = {p_xtb_thermo_given_fp:.4f} (控制 2D 拓扑后，物理与热力学仍保持实质性中度关联)")
-    print(f"  - Partial_Spearman(D_FP, D_xTB | D_thermo):     rho_partial = {p_fp_xtb_given_thermo:.4f} (控制热力学后，2D 拓扑与量子物理几乎彻底解耦)")
+    print(f"  - Partial_Spearman(D_xTB, D_thermo | D_FP):      rho_partial = {p_xtb_thermo_given_fp:.4f} (控制 2D 拓扑后，物理与热力学仍保持中度关联，描述性)")
+    print(f"  - Partial_Spearman(D_FP, D_xTB | D_thermo):     rho_partial = {p_fp_xtb_given_thermo:.4f} (控制热力学后，2D 拓扑与量子物理几乎彻底解耦，描述性)")
     
     # 6. R134 vs R134a 同分异构体深度剖析
     ref_upper_map = {r.upper(): r for r in valid_refs}

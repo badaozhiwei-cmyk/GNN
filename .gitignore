@@ -11,6 +11,7 @@ __pycache__/
 **/*.h5
 
 # 预处理生成的大型二进制数据
+processed_tri_data_v6/
 processed_tri_data_v3/
 processed_tri_data/
 **/*.npy

@@ -1,7 +1,7 @@
 """
 audit_predictions_and_metrics.py — 论文级原始预测统计审计引擎
 严格实现：
-1. Complete-Case 公平宇宙评估 (U_complete)
+1. Common HFC Universe 严格评测宇宙 (N=1403, 12 LORO Refrigerants)
 2. 多维指标：MAE, RMSE, MedianAE, MARD, log-MAE, R²
 3. Macro-Average (Refrigerant-level) 与 Pooled Metrics (Global-level) 解耦
 4. 按物质聚类的 Cluster Bootstrap (1000 次重抽样 12 个制冷剂)，提供 95% CI
@@ -191,7 +191,7 @@ def audit_all_modes(results_dir='results_ablation'):
         
     summary_df = pd.DataFrame(list(all_mode_results.values()))
     print("\n" + "=" * 110)
-    print("📋 Table 1: Complete-Case 严格公平宇宙评测基准大表 (Cluster Bootstrap 95% CI)")
+    print("📋 Table 1: Common HFC Universe (N=1403) 严格评测基准大表 (Cluster Bootstrap 95% CI)")
     print("=" * 110)
     print(summary_df.to_string(index=False))
     
