@@ -15,6 +15,7 @@ import sys
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 import glob
+import json
 import numpy as np
 import pandas as pd
 from scipy.stats import pearsonr, spearmanr
@@ -41,12 +42,25 @@ def run_probes(results_dir='results_ablation', preds_summary='paper_results/tabl
     mae_dict = {m: {} for m in modes}
     
     if m0_preds:
-        refs = [os.path.basename(p).replace('loro_', '').replace('_preds', '') for p in m0_preds]
-        refs = sorted(list(set(refs)))
+        refs = sorted(list(set([os.path.basename(p).replace('loro_', '').replace('_preds', '') for p in m0_preds])))
         for m in modes:
-            # 严格精确匹配模式名称，防止 Mreduced 误匹配到 Mreduced_pure
+            # 严格基于 config.json 或目录名精确匹配模式
             candidate_dirs = glob.glob(os.path.join(results_dir, f'HFC_loro_{m}_*'))
-            exact_dirs = [cd for cd in candidate_dirs if len(os.path.basename(cd).split('_')) >= 3 and os.path.basename(cd).split('_')[2] == m]
+            exact_dirs = []
+            for cd in candidate_dirs:
+                cfg_path = os.path.join(cd, 'config.json')
+                if os.path.exists(cfg_path):
+                    try:
+                        with open(cfg_path, 'r') as f:
+                            cfg = json.load(f)
+                        if cfg.get('descriptor_mode') == m and cfg.get('family') == 'HFC' and cfg.get('mode') == 'loro':
+                            exact_dirs.append(cd)
+                    except Exception:
+                        pass
+                else:
+                    parts = os.path.basename(cd).split('_')
+                    if len(parts) >= 3 and parts[2] == m:
+                        exact_dirs.append(cd)
             if not exact_dirs:
                 exact_dirs = candidate_dirs
             if not exact_dirs: continue
