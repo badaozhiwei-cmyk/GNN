@@ -52,11 +52,20 @@ def run_probes(results_dir='results_ablation', preds_summary='paper_results/tabl
         refs = [os.path.basename(p).replace('loro_', '').replace('_preds', '') for p in m0_preds]
         refs = sorted(list(set(refs)))
         for m in modes:
-            mdirs = glob.glob(os.path.join(results_dir, f'HFC_loro_{m}_*'))
-            if not mdirs: continue
-            md = mdirs[0]
+            # 严格精确匹配模式名称，防止 Mreduced 误匹配到 Mreduced_pure
+            candidate_dirs = glob.glob(os.path.join(results_dir, f'HFC_loro_{m}_*'))
+            exact_dirs = [cd for cd in candidate_dirs if len(os.path.basename(cd).split('_')) >= 3 and os.path.basename(cd).split('_')[2] == m]
+            if not exact_dirs:
+                exact_dirs = candidate_dirs
+            if not exact_dirs: continue
+            md = sorted(exact_dirs, key=lambda d: len(glob.glob(os.path.join(d, '**', 'seed*.csv'), recursive=True)), reverse=True)[0]
+            
             for r in refs:
                 sfiles = glob.glob(os.path.join(md, f'loro_{r}_preds', 'seed*.csv'))
+                if not sfiles:
+                    sfiles = glob.glob(os.path.join(md, f'loro_{r.upper()}_preds', 'seed*.csv'))
+                if not sfiles:
+                    sfiles = glob.glob(os.path.join(md, f'loro_{r.lower()}_preds', 'seed*.csv'))
                 if sfiles:
                     maes = [mean_absolute_error_safe(sf) for sf in sfiles]
                     mae_dict[m][r] = np.mean(maes)
@@ -192,12 +201,15 @@ def run_probes(results_dir='results_ablation', preds_summary='paper_results/tabl
     print(f"  - Partial_Spearman(D_FP, D_xTB | D_thermo):     rho_partial = {p_fp_xtb_given_thermo:.4f} (控制热力学后，2D 拓扑与量子物理几乎彻底解耦)")
     
     # 6. R134 vs R134a 同分异构体深度剖析
-    if 'R134' in valid_refs and 'R134a' in valid_refs:
+    ref_upper_map = {r.upper(): r for r in valid_refs}
+    if 'R134' in ref_upper_map and 'R134A' in ref_upper_map:
         print("\n" + "=" * 90)
         print("🔍 Case Study: R134 与 R134a 同分异构体异常判决剖析")
         print("=" * 90)
-        idx_134 = valid_refs.index('R134')
-        idx_134a = valid_refs.index('R134a')
+        r134_name = ref_upper_map['R134']
+        r134a_name = ref_upper_map['R134A']
+        idx_134 = valid_refs.index(r134_name)
+        idx_134a = valid_refs.index(r134a_name)
         
         smi_134, smi_134a = smiles_list[idx_134], smiles_list[idx_134a]
         dist_2d = compute_tanimoto_dist(smi_134, smi_134a)
@@ -213,10 +225,13 @@ def run_probes(results_dir='results_ablation', preds_summary='paper_results/tabl
             {'Property': 'Polarizability α (a.u.)', 'R134 (CHF2-CHF2)': f"{alpha_134:.2f}", 'R134a (CF3-CH2F)': f"{alpha_134a:.2f}"},
             {'Property': 'Critical Temp Tc (K)', 'R134 (CHF2-CHF2)': f"{tc_134:.2f}", 'R134a (CF3-CH2F)': f"{tc_134a:.2f}"},
             {'Property': 'Acentric Factor ω', 'R134 (CHF2-CHF2)': f"{om_134:.3f}", 'R134a (CF3-CH2F)': f"{om_134a:.3f}"},
-            {'Property': 'M0 LORO MAE (纯图)', 'R134 (CHF2-CHF2)': f"{mae_dict['M0'].get('R134', np.nan):.4f}", 'R134a (CF3-CH2F)': f"{mae_dict['M0'].get('R134a', np.nan):.4f}"},
-            {'Property': 'Mreduced LORO MAE (对比态)', 'R134 (CHF2-CHF2)': f"{mae_dict['Mreduced'].get('R134', np.nan):.4f}", 'R134a (CF3-CH2F)': f"{mae_dict['Mreduced'].get('R134a', np.nan):.4f}"},
+            {'Property': 'M0 LORO MAE (纯图)', 'R134 (CHF2-CHF2)': f"{mae_dict['M0'].get(r134_name, np.nan):.4f}", 'R134a (CF3-CH2F)': f"{mae_dict['M0'].get(r134a_name, np.nan):.4f}"},
+            {'Property': 'Mphys LORO MAE (量化物性)', 'R134 (CHF2-CHF2)': f"{mae_dict['Mphys'].get(r134_name, np.nan):.4f}", 'R134a (CF3-CH2F)': f"{mae_dict['Mphys'].get(r134a_name, np.nan):.4f}"},
+            {'Property': 'Mthermo LORO MAE (临界参数)', 'R134 (CHF2-CHF2)': f"{mae_dict['Mthermo'].get(r134_name, np.nan):.4f}", 'R134a (CF3-CH2F)': f"{mae_dict['Mthermo'].get(r134a_name, np.nan):.4f}"},
+            {'Property': 'Mreduced LORO MAE (对比态)', 'R134 (CHF2-CHF2)': f"{mae_dict['Mreduced'].get(r134_name, np.nan):.4f}", 'R134a (CF3-CH2F)': f"{mae_dict['Mreduced'].get(r134a_name, np.nan):.4f}"},
         ])
         print(case_df.to_string(index=False))
+        case_df.to_csv('paper_results/table_r134_isomer_casestudy.csv', index=False)
         
     os.makedirs('paper_results', exist_ok=True)
     df_probes.to_csv('paper_results/table_posthoc_probes.csv', index=False)
