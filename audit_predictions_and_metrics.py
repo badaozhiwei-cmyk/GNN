@@ -202,6 +202,7 @@ def audit_all_modes(results_dir='results_ablation'):
         common_refs = [r for r in m0_df.index if r in mr_df.index]
         
         delta_records = []
+        delta_maes = []
         for r in common_refs:
             m0_mae = m0_df.loc[r, 'MAE_seed_mean']
             mr_mae = mr_df.loc[r, 'MAE_seed_mean']
@@ -209,6 +210,7 @@ def audit_all_modes(results_dir='results_ablation'):
             m0_r2 = m0_df.loc[r, 'R2_seed_mean']
             mr_r2 = mr_df.loc[r, 'R2_seed_mean']
             d_r2 = mr_r2 - m0_r2
+            delta_maes.append(d_mae)
             delta_records.append({
                 'Refrigerant': r,
                 'MAE_M0': m0_mae,
@@ -226,6 +228,39 @@ def audit_all_modes(results_dir='results_ablation'):
         print(f"🏆 Mreduced 相对 M0 的跨物质泛化稳定性分析 (胜率: {win_count}/{total_count} = {win_count/total_count*100:.1f}%)")
         print("=" * 110)
         print(win_df.to_string(index=False))
+
+        # ── 5. 配对簇级 Bootstrap 与 Wilcoxon 符号秩检验 ──
+        delta_arr = np.array(delta_maes, dtype=np.float64)
+        mean_delta = np.mean(delta_arr)
+        rng = np.random.RandomState(42)
+        boot_deltas = [np.mean(rng.choice(delta_arr, size=len(delta_arr), replace=True)) for _ in range(10000)]
+        ci_low, ci_high = np.percentile(boot_deltas, 2.5), np.percentile(boot_deltas, 97.5)
+
+        try:
+            from scipy.stats import wilcoxon
+            stat, p_val = wilcoxon(delta_arr, alternative='greater')
+        except Exception:
+            stat, p_val = np.nan, np.nan
+
+        print("\n" + "=" * 80)
+        print("📊 Mreduced vs M0 配对统计显著性检验 (Paired Cluster Bootstrap & Wilcoxon)")
+        print("=" * 80)
+        print(f"  Mean Delta MAE       : +{mean_delta:.4f} (正值表示 Mreduced 优于 M0)")
+        print(f"  Cluster Bootstrap 95% CI : [+{ci_low:.4f}, +{ci_high:.4f}]")
+        print(f"  Wilcoxon signed-rank p   : {p_val:.5f}")
+        print(f"  Win Rate                 : {win_count}/{total_count} ({win_count/total_count*100:.1f}%)")
+        print("=" * 80)
+
+        stat_df = pd.DataFrame([{
+            'Comparison': 'Mreduced vs M0',
+            'Mean_Delta_MAE': mean_delta,
+            'CI95_Low': ci_low,
+            'CI95_High': ci_high,
+            'Wilcoxon_stat': stat,
+            'Wilcoxon_p': p_val,
+            'Win_Rate': f"{win_count}/{total_count} ({win_count/total_count*100:.1f}%)"
+        }])
+        stat_df.to_csv('paper_results/table_delta_mae_significance.csv', index=False)
         
     # 保存结果表
     os.makedirs('paper_results', exist_ok=True)
