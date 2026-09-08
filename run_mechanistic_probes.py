@@ -32,6 +32,10 @@ def compute_tanimoto_dist(smi1, smi2):
     sim = DataStructs.TanimotoSimilarity(fp1, fp2)
     return 1.0 - sim
 
+def mean_absolute_error_safe(csv_path):
+    df = pd.read_csv(csv_path)
+    return np.mean(np.abs(np.clip(df['pred_x1_raw'].values, 0.0, 1.0) - df['true_x1'].values))
+
 def run_probes(results_dir='results_ablation', preds_summary='paper_results/table1_formal_benchmark.csv'):
     print("=" * 80)
     print("🔬 启动事后物理探针 (Post-hoc Probes) 与 RSA 表征机制检验")
@@ -72,10 +76,6 @@ def run_probes(results_dir='results_ablation', preds_summary='paper_results/tabl
         return
         
     print(f"检测到 {len(refs)} 种目标制冷剂: {refs}")
-
-    def mean_absolute_error_safe(csv_path):
-        df = pd.read_csv(csv_path)
-        return np.mean(np.abs(np.clip(df['pred_x1_raw'].values, 0.0, 1.0) - df['true_x1'].values))
 
     # 2. 构建特征空间 (FP, xTB, Thermo)
     xtb_feats, thermo_feats, smiles_list = [], [], []

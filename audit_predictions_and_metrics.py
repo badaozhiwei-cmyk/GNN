@@ -203,15 +203,19 @@ def audit_all_modes(results_dir='results_ablation'):
         
         delta_records = []
         for r in common_refs:
-            d_mae = m0_df.loc[r, 'MAE'] - mr_df.loc[r, 'MAE']
-            d_r2 = mr_df.loc[r, 'R2'] - m0_df.loc[r, 'R2']
+            m0_mae = m0_df.loc[r, 'MAE_seed_mean']
+            mr_mae = mr_df.loc[r, 'MAE_seed_mean']
+            d_mae = m0_mae - mr_mae
+            m0_r2 = m0_df.loc[r, 'R2_seed_mean']
+            mr_r2 = mr_df.loc[r, 'R2_seed_mean']
+            d_r2 = mr_r2 - m0_r2
             delta_records.append({
                 'Refrigerant': r,
-                'MAE_M0': m0_df.loc[r, 'MAE'],
-                'MAE_Mreduced': mr_df.loc[r, 'MAE'],
+                'MAE_M0': m0_mae,
+                'MAE_Mreduced': mr_mae,
                 'Delta_MAE (M0 - Mred)': d_mae,
-                'R2_M0': m0_df.loc[r, 'R2'],
-                'R2_Mreduced': mr_df.loc[r, 'R2'],
+                'R2_M0': m0_r2,
+                'R2_Mreduced': mr_r2,
                 'Win (Delta>0)': '✅ 改善' if d_mae > 0 else '❌ 退化'
             })
             
