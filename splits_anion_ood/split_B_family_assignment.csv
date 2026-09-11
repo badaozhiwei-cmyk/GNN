@@ -1,0 +1,24 @@
+﻿anion_family,anion_clean,charged_core_motif,sample_count_hfc2739,sample_count_total4444
+Fam-1_Sulfonimide,BEI,[(SO2)2N]- central core,130,189
+Fam-1_Sulfonimide,TF2N,[(SO2)2N]- central core,768,1228
+Fam-1_Sulfonimide,TMEM,[(SO2)3C]- central core,62,62
+Fam-2_Fluorosulfonate,FS,-SO3- sulfonate core,8,8
+Fam-2_Fluorosulfonate,HFPS,-SO3- sulfonate core,72,72
+Fam-2_Fluorosulfonate,OTF,-SO3- sulfonate core,189,279
+Fam-2_Fluorosulfonate,PFBS,-SO3- sulfonate core,63,63
+Fam-2_Fluorosulfonate,TFES,-SO3- sulfonate core,69,115
+Fam-2_Fluorosulfonate,TPES,-SO3- sulfonate core,72,72
+Fam-2_Fluorosulfonate,TTES,-SO3- sulfonate core,40,40
+Fam-3_InorganicFluoride,BF4,Tetrahedral [BF4]- core,255,710
+Fam-3_InorganicFluoride,PF6,Octahedral [PF6]- core,343,737
+Fam-4_PhosphorusOrganic,ET2PO4,Phosphate P(=O)[O-] core,15,15
+Fam-4_PhosphorusOrganic,FEP,Organofluoro [P(C2F5)3F3]- core,153,153
+Fam-4_PhosphorusOrganic,TMPP,Phosphinate P(=O)[O-] core,260,260
+Fam-5_Carboxylate_Sulfate,AC,Carboxylate -COO- core,52,167
+Fam-5_Carboxylate_Sulfate,MESO4,Alkyl sulfate -OSO3- core,23,23
+Fam-5_Carboxylate_Sulfate,PE,Carboxylate -COO- core,15,15
+Fam-5_Carboxylate_Sulfate,PFP,Perfluorocarboxylate -COO- core,26,26
+Fam-5_Carboxylate_Sulfate,PR,Carboxylate -COO- core,15,15
+Fam-6_Halide_Pseudohalide,CL,Monoatomic [Cl-],29,95
+Fam-6_Halide_Pseudohalide,I,Monoatomic [I-],16,16
+Fam-6_Halide_Pseudohalide,SCN,Pseudohalide [S-C#N],64,84

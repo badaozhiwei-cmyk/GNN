@@ -1,0 +1,22 @@
+Split B Formal Leakage & Feasibility Audit Log
+============================================================
+Base Universe: Table S3. VLE HFCs (N=2739)
+Scientific Objective: Orthogonal Solvent-side (Anion-Family) OOD Benchmarking
+
+[B1_Fam2_Fluorosulfonate] Audit Status: PASSED (Verified zero family/species/condition leakage)
+  Target Family: Fam-2_Fluorosulfonate
+  Test Samples: 513 (18.73%)
+  Train Samples: 2003, Val Samples: 223
+  Test Anions (7): ['FS', 'HFPS', 'OTF', 'PFBS', 'TFES', 'TPES', 'TTES']
+  Train Anions (16): ['AC', 'BEI', 'BF4', 'CL', 'ET2PO4', 'FEP', 'I', 'MESO4', 'PE', 'PF6', 'PFP', 'PR', 'SCN', 'TF2N', 'TMEM', 'TMPP']
+  Cation Overlap: 5/9
+  Refrigerant Overlap: 7/7
+
+[B2_Fam3_InorganicFluoride] Audit Status: PASSED (Verified zero family/species/condition leakage)
+  Target Family: Fam-3_InorganicFluoride
+  Test Samples: 598 (21.83%)
+  Train Samples: 1927, Val Samples: 214
+  Test Anions (2): ['BF4', 'PF6']
+  Train Anions (21): ['AC', 'BEI', 'CL', 'ET2PO4', 'FEP', 'FS', 'HFPS', 'I', 'MESO4', 'OTF', 'PE', 'PFBS', 'PFP', 'PR', 'SCN', 'TF2N', 'TFES', 'TMEM', 'TMPP', 'TPES', 'TTES']
+  Cation Overlap: 3/3
+  Refrigerant Overlap: 12/12

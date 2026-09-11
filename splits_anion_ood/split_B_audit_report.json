@@ -1,0 +1,210 @@
+{
+  "B1_Fam2_Fluorosulfonate": {
+    "split_name": "B1_Fam2_Fluorosulfonate",
+    "target_held_out_family": "Fam-2_Fluorosulfonate",
+    "n_total": 2739,
+    "n_train": 2003,
+    "n_val": 223,
+    "n_test": 513,
+    "test_fraction": 0.18729463307776562,
+    "unique_cations": {
+      "train": 13,
+      "val": 9,
+      "test": 9,
+      "test_overlap_with_train": 5,
+      "test_novel_cations": 4
+    },
+    "unique_refrigerants": {
+      "train": 12,
+      "val": 12,
+      "test": 7,
+      "test_overlap_with_train": 7,
+      "test_novel_refrigerants": 0,
+      "test_refrigerants_list": [
+        "R125",
+        "R134a",
+        "R143a",
+        "R152a",
+        "R161",
+        "R23",
+        "R32"
+      ]
+    },
+    "unique_anions": {
+      "train": [
+        "AC",
+        "BEI",
+        "BF4",
+        "CL",
+        "ET2PO4",
+        "FEP",
+        "I",
+        "MESO4",
+        "PE",
+        "PF6",
+        "PFP",
+        "PR",
+        "SCN",
+        "TF2N",
+        "TMEM",
+        "TMPP"
+      ],
+      "val": [
+        "AC",
+        "BEI",
+        "BF4",
+        "CL",
+        "FEP",
+        "I",
+        "MESO4",
+        "PE",
+        "PF6",
+        "PFP",
+        "PR",
+        "SCN",
+        "TF2N",
+        "TMEM",
+        "TMPP"
+      ],
+      "test": [
+        "FS",
+        "HFPS",
+        "OTF",
+        "PFBS",
+        "TFES",
+        "TPES",
+        "TTES"
+      ],
+      "overlap": 0
+    },
+    "state_variables": {
+      "T_K": {
+        "train_min": 282.6,
+        "train_max": 353.15,
+        "test_min": 273.13,
+        "test_max": 348.24
+      },
+      "P_MPa": {
+        "train_min": 0.0094,
+        "train_max": 2.16,
+        "test_min": 0.0095,
+        "test_max": 2.0007
+      },
+      "x1": {
+        "train_mean": 0.21711328007988018,
+        "train_std": 0.1820425918427611,
+        "test_mean": 0.2214737621832359,
+        "test_std": 0.17616280563040582
+      }
+    }
+  },
+  "B2_Fam3_InorganicFluoride": {
+    "split_name": "B2_Fam3_InorganicFluoride",
+    "target_held_out_family": "Fam-3_InorganicFluoride",
+    "n_total": 2739,
+    "n_train": 1927,
+    "n_val": 214,
+    "n_test": 598,
+    "test_fraction": 0.21832785688207376,
+    "unique_cations": {
+      "train": 17,
+      "val": 17,
+      "test": 3,
+      "test_overlap_with_train": 3,
+      "test_novel_cations": 0
+    },
+    "unique_refrigerants": {
+      "train": 12,
+      "val": 12,
+      "test": 12,
+      "test_overlap_with_train": 12,
+      "test_novel_refrigerants": 0,
+      "test_refrigerants_list": [
+        "R125",
+        "R134",
+        "R134a",
+        "R143a",
+        "R152a",
+        "R161",
+        "R227ea",
+        "R23",
+        "R236fa",
+        "R245fa",
+        "R32",
+        "R41"
+      ]
+    },
+    "unique_anions": {
+      "train": [
+        "AC",
+        "BEI",
+        "CL",
+        "ET2PO4",
+        "FEP",
+        "FS",
+        "HFPS",
+        "I",
+        "MESO4",
+        "OTF",
+        "PE",
+        "PFBS",
+        "PFP",
+        "PR",
+        "SCN",
+        "TF2N",
+        "TFES",
+        "TMEM",
+        "TMPP",
+        "TPES",
+        "TTES"
+      ],
+      "val": [
+        "AC",
+        "BEI",
+        "CL",
+        "ET2PO4",
+        "FEP",
+        "FS",
+        "HFPS",
+        "I",
+        "MESO4",
+        "OTF",
+        "PE",
+        "PFBS",
+        "PFP",
+        "SCN",
+        "TF2N",
+        "TFES",
+        "TMEM",
+        "TMPP",
+        "TPES",
+        "TTES"
+      ],
+      "test": [
+        "BF4",
+        "PF6"
+      ],
+      "overlap": 0
+    },
+    "state_variables": {
+      "T_K": {
+        "train_min": 273.13,
+        "train_max": 348.2,
+        "test_min": 282.6,
+        "test_max": 353.15
+      },
+      "P_MPa": {
+        "train_min": 0.0094,
+        "train_max": 2.16,
+        "test_min": 0.0095,
+        "test_max": 2.057
+      },
+      "x1": {
+        "train_mean": 0.23351765438505448,
+        "train_std": 0.1805979620585109,
+        "test_mean": 0.16021698996655517,
+        "test_std": 0.170575655584338
+      }
+    }
+  }
+}
