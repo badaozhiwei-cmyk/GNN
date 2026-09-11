@@ -260,9 +260,20 @@ def main():
 
             seed_metrics = []
             test_preds_all = []
-            test_trues = None
-            expected_sample_ids = df_meta.loc[test_idx, 'sample_id'].astype(str).tolist()
+            if 'sample_id' in df_meta.columns:
+                expected_sample_ids = df_meta.loc[test_idx, 'sample_id'].astype(str).tolist()
+            else:
+                cat_c = 'cation' if 'cation' in df_meta.columns else 'IL cation'
+                ani_c = 'anion' if 'anion' in df_meta.columns else 'IL anion'
+                ref_c = 'refrigerant' if 'refrigerant' in df_meta.columns else 'Refrigerant'
+                t_c   = 'T_K' if 'T_K' in df_meta.columns else 'T (K)'
+                p_c   = 'P_MPa' if 'P_MPa' in df_meta.columns else 'P (MPa)'
+                expected_sample_ids = [
+                    f"{r[cat_c]}__{r[ani_c]}__{r[ref_c]}__{float(r[t_c]):.8g}__{float(r[p_c]):.8g}"
+                    for _, r in df_meta.loc[test_idx].iterrows()
+                ]
 
+            test_trues = None
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
             for seed in seeds:
