@@ -1,0 +1,50 @@
+{
+  "universe": "Saturated HFC Table S3 (N=2739)",
+  "split_primary": {
+    "name": "L2_controlled_composite",
+    "architecture": "3x2 Factorial Controlled Composite",
+    "target_pairs": [
+      "EMIM__BF4",
+      "BMIM__OTF",
+      "EMIM__OTF",
+      "HMIM__BF4"
+    ],
+    "n_train": 2129,
+    "n_val": 236,
+    "n_test": 374,
+    "test_fraction": 0.13654618473895583,
+    "unique_test_cations": [
+      "BMIM",
+      "EMIM",
+      "HMIM"
+    ],
+    "unique_test_anions": [
+      "BF4",
+      "OTF"
+    ],
+    "unique_test_refrigerants": [
+      "R125",
+      "R134A",
+      "R143A",
+      "R152A",
+      "R161",
+      "R227EA",
+      "R236FA",
+      "R245FA",
+      "R32"
+    ],
+    "gatekeeper_assertions": "PASSED (7/7)"
+  },
+  "split_star_anchor": {
+    "name": "L2_star_anchor",
+    "architecture": "Single-Star High-Density Anchor",
+    "target_pairs": [
+      "HMIM__TF2N"
+    ],
+    "n_train": 2181,
+    "n_val": 242,
+    "n_test": 316,
+    "test_fraction": 0.1153705732018985,
+    "gatekeeper_assertions": "PASSED (7/7)"
+  }
+}

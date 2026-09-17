@@ -1,0 +1,32 @@
+{
+  "split": "B1",
+  "split_tag": "B1_Fam2_Fluorosulfonate",
+  "target_family": "Fam-2_Fluorosulfonate",
+  "descriptor_mode": "M0",
+  "cond_dim": 9,
+  "feature_indices": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "epoch": 100,
+  "batch_size": 32,
+  "lr": 0.001,
+  "patience": 15,
+  "data_sha256": "a408c2832352d69799d1c0a8b7151dd7535fe2edf34d171992b9385b1bd3e6bb",
+  "label_sha256": "f8cd8f4e58c746c2b41122466cebcee0a08929fe3c94f349d4cd34a51b3c2f3a",
+  "split_sha256": "f36b83802722f22f8947c68170faf03076783ddb934be37b0409cc80b804b094"
+}

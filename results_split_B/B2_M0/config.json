@@ -1,0 +1,32 @@
+{
+  "split": "B2",
+  "split_tag": "B2_Fam3_InorganicFluoride",
+  "target_family": "Fam-3_InorganicFluoride",
+  "descriptor_mode": "M0",
+  "cond_dim": 9,
+  "feature_indices": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "epoch": 100,
+  "batch_size": 32,
+  "lr": 0.001,
+  "patience": 15,
+  "data_sha256": "a408c2832352d69799d1c0a8b7151dd7535fe2edf34d171992b9385b1bd3e6bb",
+  "label_sha256": "f8cd8f4e58c746c2b41122466cebcee0a08929fe3c94f349d4cd34a51b3c2f3a",
+  "split_sha256": "09ddb00349c3b77bca490a5d5ab5a22a0c76e6be8abf329862ee711a32f67180"
+}

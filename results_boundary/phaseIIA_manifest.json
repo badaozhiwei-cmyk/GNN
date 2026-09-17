@@ -1,0 +1,44 @@
+{
+  "phase": "Phase II-A",
+  "m1_targets": [
+    "R32",
+    "R134A",
+    "R125",
+    "R23",
+    "R41",
+    "R152A",
+    "R134",
+    "R161",
+    "R143A",
+    "R245FA",
+    "R236FA",
+    "R227EA"
+  ],
+  "b1_targets": [
+    "FS",
+    "HFPS",
+    "OTF",
+    "PFBS",
+    "TFES",
+    "TPES",
+    "TTES"
+  ],
+  "b2_targets": [
+    "BF4",
+    "PF6"
+  ],
+  "n_unique_anions_expected": 23,
+  "distance_definitions": {
+    "D_FP": "nearest-neighbour 1 - Morgan Tanimoto, radius=2, nBits=2048",
+    "D_thermo": "nearest-neighbour Euclidean distance after train-species z-scoring of (Tc,Pc,omega); applicable to M1 refrigerant axis only",
+    "D_phys": "nearest-neighbour Euclidean distance after train-species z-scoring of (MW, MolLogP, TPSA, HBA, rotatable bonds); RDKit proxy, NOT xTB"
+  },
+  "failure_threshold": NaN,
+  "failure_threshold_definition": "Externally supplied absolute-error threshold; do not infer from species-level summary MAE.",
+  "notes": [
+    "No breakpoint is assumed to exist.",
+    "Broken-stick output is exploratory and must not be reported as a definitive D* without evidence.",
+    "M1 and Split B are analysed on their own chemical axes; no common universal distance scale is assumed.",
+    "D_thermo uses Tc/Pc/omega for refrigerants only. It is N/A for anions unless an explicit anion thermodynamic descriptor source is supplied."
+  ]
+}

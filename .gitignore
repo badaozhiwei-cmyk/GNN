@@ -34,7 +34,14 @@ checkpoints_ablation/
 !ZLJ_DATA.xlsx
 !index_with_anion.csv
 !processed_tri_data_hfc2739/*.npy
+!processed_tri_data/*.npy
+!processed_tri_data/*.csv
 !splits_anion_ood/*.npz
+!splits/*.npz
+
+# 忽略本地大压缩包
+*.zip
+*.tar.gz
 
 # 系统文件
 .DS_Store
