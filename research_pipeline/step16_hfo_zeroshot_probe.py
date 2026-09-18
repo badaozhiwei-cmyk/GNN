@@ -147,17 +147,25 @@ def main():
 
         mol_ref = Chem.MolFromSmiles(r['refri_smiles'])
         ref_logp = float(Descriptors.MolLogP(mol_ref)) if mol_ref else 0.0
+        try:
+            ref_charge = float(Descriptors.MaxAbsPartialCharge(mol_ref)) if mol_ref else 0.0
+        except Exception:
+            ref_charge = 0.0
 
         mol_cat = Chem.MolFromSmiles(r['cation_smiles'])
         cat_tpsa = float(Descriptors.TPSA(mol_cat)) if mol_cat else 0.0
+        try:
+            cat_charge = float(Descriptors.MaxAbsPartialCharge(mol_cat)) if mol_cat else 0.0
+        except Exception:
+            cat_charge = 0.0
 
         cond_22 = [
             0, 0, 0, # 0,1,2 reserved for graphs
             t_val, p_val,
-            0.0, ref_logp, ani_mw, 1.0, cat_tpsa,
+            ref_charge, ref_logp, ani_mw, cat_charge, cat_tpsa,  # FIXED: Gasteiger charges
             ref_mw, cat_mw,
-            0.0, 0.0, 0.0,
-            0.0, 0.0,
+            0.0, 0.0, 0.0,   # 12~14: xTB (M0/Mreduced not used)
+            0.0, 0.0,         # 15~16: deltaE (M0/Mreduced not used)
             tc, pc, omega,
             tr, pr
         ]
