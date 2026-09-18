@@ -169,7 +169,7 @@ def main():
 
         for seed in seeds:
             set_seed(seed)
-            train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
+            train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
             model_args = {
                 'emb_dim': 300,

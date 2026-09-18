@@ -185,7 +185,7 @@ def main():
 
         for seed in seeds:
             set_seed(seed)
-            train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True)
+            train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, drop_last=True)
             val_loader   = DataLoader(val_set,   batch_size=args.batch_size, shuffle=False)
 
             model_args = {

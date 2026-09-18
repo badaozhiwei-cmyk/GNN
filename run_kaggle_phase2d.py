@@ -36,16 +36,24 @@ def run_cmd(cmd_list: list[str], desc: str):
     print(f">>> [TASK DONE] {desc} (Exit Code: {res.returncode})")
 
 # 1. 训练 L2 (10 runs)
-run_cmd(
-    [sys.executable, "research_pipeline/run_split_L2_benchmark.py", "--mode", "all", "--seeds", "42,43,44,45,46"],
-    "Step 1: Training L2 Compositional Recombination Benchmark (10 runs)"
-)
+l2_summary = ROOT / "results_split_L2" / "split_L2_benchmark_summary.csv"
+if l2_summary.exists():
+    print(f"\n[INFO] Step 1: L2 benchmark summary found at {l2_summary}. Skipping Step 1 training to resume downstream tasks!")
+else:
+    run_cmd(
+        [sys.executable, "research_pipeline/run_split_L2_benchmark.py", "--mode", "all", "--seeds", "42,43,44,45,46"],
+        "Step 1: Training L2 Compositional Recombination Benchmark (10 runs)"
+    )
 
 # 2. 训练 All-HFC 生产模型 (10 runs)
-run_cmd(
-    [sys.executable, "research_pipeline/run_hfc_all_production.py", "--mode", "all", "--seeds", "42,43,44,45,46"],
-    "Step 2: Training All-HFC Production Baseline Models (10 runs)"
-)
+hfc_summary = ROOT / "results_hfc_all" / "split_HFC_all_summary.csv"
+if hfc_summary.exists():
+    print(f"\n[INFO] Step 2: All-HFC production model summary found at {hfc_summary}. Skipping Step 2 training to resume downstream tasks!")
+else:
+    run_cmd(
+        [sys.executable, "research_pipeline/run_hfc_all_production.py", "--mode", "all", "--seeds", "42,43,44,45,46"],
+        "Step 2: Training All-HFC Production Baseline Models (10 runs)"
+    )
 
 # 3. 运行 1106 点不饱和工质 (HFO/HCFO) Zero-Shot 探测
 # 3.1 主模型: HFC_all
