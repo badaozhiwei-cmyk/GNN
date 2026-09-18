@@ -35,6 +35,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 os.chdir(PROJECT_ROOT)
+sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.append(str(PROJECT_ROOT / 'GNN_for_property_prediction'))
 
 import torch
@@ -58,6 +59,17 @@ HFO_CRITICAL = {
     'R1336MZZ(E)': (403.53, 2.779, 0.4128),
     'R1336MZZ(Z)': (444.50, 2.9037, 0.386),
 }
+
+# 国际标准权威 SMILES 映射表 (纠正历史数据中 R1234yf 误填为全氟丙烯 C3F6 的严重偏差)
+HFO_CANONICAL_SMILES = {
+    'R1234YF': 'C=C(F)C(F)(F)F',           # 2,3,3,3-tetrafluoropropene (C3H2F4, MW=114.041)
+    'R1234ZE(E)': 'F/C=C/C(F)(F)F',         # trans-1,3,3,3-tetrafluoropropene (C3H2F4, MW=114.041)
+    'R1233ZD(E)': 'FC(F)(F)/C=C/Cl',        # trans-1-chloro-3,3,3-trifluoropropene (C3H2ClF3, MW=130.496)
+    'R1336MZZ(E)': 'FC(F)(F)/C=C/C(F)(F)F',  # trans-1,1,1,4,4,4-hexafluoro-2-butene (C4H2F6, MW=164.048)
+    'R1336MZZ(Z)': r'FC(F)(F)/C=C\C(F)(F)F', # cis-1,1,1,4,4,4-hexafluoro-2-butene (C4H2F6, MW=164.048)
+}
+
+from prepare_tri_graph_data_v6 import mol2graph_components
 
 def mol2graph(mol_data):
     x = torch.tensor(mol_data[0], dtype=torch.long)
@@ -126,14 +138,22 @@ def main():
     for row_idx, r in df_hfo.iterrows():
         orig_i = int(r['orig_data_idx'])
         raw_item = raw_data[orig_i]
+        r_clean = str(r['refrigerant']).strip().upper()
+
+        ref_smi = HFO_CANONICAL_SMILES.get(r_clean, str(r['refri_smiles']).strip())
+
         cg = mol2graph(raw_item[0])
         ag = mol2graph(raw_item[1])
-        rg = mol2graph(raw_item[2])
+        # 修正历史数据中 R1234yf (误存为全氟丙烯 C3F6) 的图拓扑，其余工质与原图严格一致
+        if r_clean == 'R1234YF':
+            rg = mol2graph(mol2graph_components(ref_smi))
+        else:
+            rg = mol2graph(raw_item[2])
+
         combined_g = add_global(combine_Graph([cg, ag, rg]))
 
         t_val = float(r['T_K'])
         p_val = float(r['P_MPa'])
-        r_clean = str(r['refrigerant']).strip().upper()
         if r_clean not in HFO_CRITICAL:
             raise KeyError(f"Missing critical parameters for {r_clean}")
 
@@ -141,11 +161,11 @@ def main():
         tr = t_val / tc
         pr = p_val / pc
 
-        ref_mw = get_mw(r['refri_smiles'])
+        ref_mw = get_mw(ref_smi)
         cat_mw = get_mw(r['cation_smiles'])
         ani_mw = get_mw(r['anion_smiles'])
 
-        mol_ref = Chem.MolFromSmiles(r['refri_smiles'])
+        mol_ref = Chem.MolFromSmiles(ref_smi)
         ref_logp = float(Descriptors.MolLogP(mol_ref)) if mol_ref else 0.0
         try:
             ref_charge = float(Descriptors.MaxAbsPartialCharge(mol_ref)) if mol_ref else 0.0
