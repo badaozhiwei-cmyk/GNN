@@ -1,0 +1,6 @@
+species,N,MAE,mean_sigma,spearman_rho,false_confidence_detected,root_cause
+R1233ZD(E),90,0.019270062532358665,0.01649104795845572,0.6303082685105157,False,Parametric extrapolation bounded by ensemble disagreement
+R1234YF,685,0.025007109731417943,0.013434737677052234,0.4848633202251868,False,Parametric extrapolation bounded by ensemble disagreement
+R1234ZE(E),308,0.030280849178125735,0.0158015570028259,0.5332372001674048,False,Parametric extrapolation bounded by ensemble disagreement
+R1336MZZ(E),11,0.2884813180403276,0.021332434348088358,0.08181818181818183,True,2D graph topological stereoisomer blindness (G_E = G_Z)
+R1336MZZ(Z),12,0.15361492894093198,0.0116325544459493,-0.11188811188811189,True,2D graph topological stereoisomer blindness (G_E = G_Z)

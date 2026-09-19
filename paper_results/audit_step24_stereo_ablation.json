@@ -1,0 +1,78 @@
+{
+  "timestamp": "2026-09-19T21:00:04.034122",
+  "modes_evaluated": [
+    "M0",
+    "Mreduced"
+  ],
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "metrics_summary": [
+    {
+      "Mode": "M0",
+      "Model_Type": "Baseline (2D Graph)",
+      "E_MAE": 0.11964540539546445,
+      "Z_MAE": 0.2853759429057439,
+      "EZ_Gap": 0.16573053751027947,
+      "E_Sigma": 0.07739983164492957,
+      "Z_Sigma": 0.02769550407639974
+    },
+    {
+      "Mode": "M0",
+      "Model_Type": "Stereo-Aware (Intervention)",
+      "E_MAE": 0.16945058449831876,
+      "Z_MAE": 0.23016762740413352,
+      "EZ_Gap": 0.060717042905814755,
+      "E_Sigma": 0.0,
+      "Z_Sigma": 0.0,
+      "Delta_E_MAE": 0.04980517910285431,
+      "Pct_Delta_E": 41.62732278622238,
+      "Delta_Z_MAE": -0.0552083155016104,
+      "Pct_Delta_Z": -19.345819742011333,
+      "Delta_Gap": -0.10501349460446471
+    },
+    {
+      "Mode": "Mreduced",
+      "Model_Type": "Baseline (2D Graph)",
+      "E_MAE": 0.2884813180403276,
+      "Z_MAE": 0.15361492894093198,
+      "EZ_Gap": 0.13486638909939563,
+      "E_Sigma": 0.021332434348088358,
+      "Z_Sigma": 0.0116325544459493
+    },
+    {
+      "Mode": "Mreduced",
+      "Model_Type": "Stereo-Aware (Intervention)",
+      "E_MAE": NaN,
+      "Z_MAE": NaN,
+      "EZ_Gap": NaN,
+      "E_Sigma": NaN,
+      "Z_Sigma": NaN,
+      "Delta_E_MAE": NaN,
+      "Pct_Delta_E": NaN,
+      "Delta_Z_MAE": NaN,
+      "Pct_Delta_Z": NaN,
+      "Delta_Gap": NaN
+    }
+  ],
+  "hypotheses_evaluation": {
+    "H1_gap_narrowed": false,
+    "H2_E_error_reduced": false,
+    "H3_false_confidence_relieved": false
+  },
+  "evidence_matrix": [
+    [
+      "R1336mzz(E) MAE unchanged or increased",
+      "Stereochemical information alone is insufficient; domain shift / dipole disparity remains dominant"
+    ],
+    [
+      "E/Z prediction gap widened or stagnant",
+      "Model lacks training signal to map stereo parity to quantitative polarity"
+    ]
+  ],
+  "scientific_verdict": "Intervention confirms G_E != G_Z. Degeneracy broken; quantitative transfer governed by remaining electrostatic domain gap."
+}

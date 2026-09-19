@@ -1,0 +1,15 @@
+Gate ID,Audit Scope,Status,Scientific Verification & Evidence
+Gate 1 (P0-1),HFC_all_split Binding,PASS,"2465 train / 274 val cover 100% of 2739 rows, 12 HFCs"
+Gate 1 (P0-1),L2 Split Binding,PASS,374 test rows strictly map to 4 held-out pairs; zero leakage
+Gate 1 (P0-1),Split B1 Binding,PASS,513 test rows strictly map to Fam-2 anions; zero leakage
+Gate 1 (P0-1),Split B2 Binding,PASS,598 test rows strictly map to Fam-3 anions; zero leakage
+Gate 1 (P0-1),M1 LORO Split Binding,PASS,12 splits strictly partition full HFC_2739 into 2739 disjoint points; v6 1403 benchmark subset confirmed
+Gate 2 (P0-2),M1 LORO Production Runner,PASS,Dedicated production runner verified (step4_gat_loro_runner.py)
+Gate 2 (P0-2),B1/B2 Anion OOD Runner,PASS,Dedicated production runner verified (run_split_B_benchmark.py)
+Gate 2 (P0-2),L2 Recombination Runner,PASS,Dedicated production runner verified (run_split_L2_benchmark.py)
+Gate 2 (P0-2),All-HFC Baseline Runner,PASS,Dedicated production runner verified (run_hfc_all_production.py)
+Gate 2 (P0-2),HFO Zero-Shot Probe,PASS,Dedicated production runner verified (step16_hfo_zeroshot_probe.py)
+Gate 3 (P0-3),Metric Aggregation Rules,PASS,"M1 macro/pooled duality confirmed; HFO rho=0.4926, risk50=34.44% confirmed"
+Gate 4 (P0-4),Physical Descriptor Provenance,PASS,"xTB (mu, alpha, V), NIST (Tc, Pc, omega), and derived (Tr, Pr) verified"
+Gate 5 (P0-5),Quad-Binding (Ckpt/Config/Scaler/Split),PASS,"All 8 production directories verified with 5 seeds, scalers, and SHA-bound configs"
+Gate 6 (P1),Wrapper Transparency,PASS,run_kaggle_phase2d.py confirmed to execute official runners with zero hyperparameter mutation

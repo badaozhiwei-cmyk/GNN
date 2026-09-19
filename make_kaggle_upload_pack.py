@@ -12,6 +12,7 @@ ZIP_OUT = ROOT / "kaggle_upload_pack.zip"
 
 INCLUDE_PATTERNS = [
     "run_kaggle_phase2d.py",
+    "run_hfo_probe_only.py",
     "index_with_anion.csv",
     "GNN_for_property_prediction/Model_v6.py",
     "GNN_for_property_prediction/Dataset_v6.py",
@@ -28,10 +29,16 @@ INCLUDE_PATTERNS = [
     "splits/HFC_all_split.npz",
     "splits/L2_star_anchor.npz",
     "splits/L2_pair_assignment.csv",
-    "results_split_B/B1_M0/best_seed_*.pth",
-    "results_split_B/B1_M0/scalers.pkl",
-    "results_split_B/B1_Mreduced/best_seed_*.pth",
-    "results_split_B/B1_Mreduced/scalers.pkl",
+    "results_hfc_all/HFC_all_M0/best_seed_*.pth",
+    "results_hfc_all/HFC_all_M0/scalers.pkl",
+    "results_hfc_all/HFC_all_M0/config.json",
+    "results_hfc_all/HFC_all_Mreduced/best_seed_*.pth",
+    "results_hfc_all/HFC_all_Mreduced/scalers.pkl",
+    "results_hfc_all/HFC_all_Mreduced/config.json",
+    "results_hfc_all/split_HFC_all_summary.csv",
+    "research_pipeline/step24_stereo_ablation.py",
+    "research_pipeline/step24_stereo_preflight_final.py",
+    "paper_results/hfo_zeroshot_predictions_HFC_all.csv",
 ]
 
 print("=" * 70)

@@ -1,0 +1,157 @@
+{
+  "audit_timestamp": "2026-09-19T20:36:42.264761",
+  "cross_axis_uq_recompute": {
+    "M1": {
+      "N": 1403,
+      "ensemble_mae_pooled": 0.0720206836122669,
+      "ensemble_mae_macro": 0.06108964994125259,
+      "mean_sigma": 0.03108493168735625,
+      "spearman_rho": 0.30583108267591874,
+      "spearman_p": 9.234295715007003e-32,
+      "pearson_r": 0.39062190445157785,
+      "risk_coverage_curve": {
+        "100%": 0.07202068361226689,
+        "90%": 0.06632587445264952,
+        "80%": 0.06337701336164425,
+        "70%": 0.06181238972066946,
+        "60%": 0.057935823247471555,
+        "50%": 0.05244387518156829,
+        "reduction_at_50pct": 0.27182203012808104
+      },
+      "frozen_rho": 0.3058,
+      "frozen_risk50": 0.272,
+      "audit_match": true
+    },
+    "B1": {
+      "N": 513,
+      "ensemble_mae_pooled": 0.029218730483146035,
+      "ensemble_mae_macro": 0.029218730483146035,
+      "mean_sigma": 0.00922588354177452,
+      "spearman_rho": 0.5061521193141739,
+      "spearman_p": 9.985295682993025e-35,
+      "pearson_r": 0.48121178015832916,
+      "risk_coverage_curve": {
+        "100%": 0.029218730483146035,
+        "90%": 0.02577078580973243,
+        "80%": 0.02256579408217676,
+        "70%": 0.019211547902959054,
+        "60%": 0.017261698805460975,
+        "50%": 0.013876263713973458,
+        "reduction_at_50pct": 0.5250901225165285
+      },
+      "frozen_rho": 0.5062,
+      "frozen_risk50": 0.525,
+      "audit_match": true
+    },
+    "B2": {
+      "N": 598,
+      "ensemble_mae_pooled": 0.04724851226528334,
+      "ensemble_mae_macro": 0.04724851226528334,
+      "mean_sigma": 0.011024266254075316,
+      "spearman_rho": 0.61008061901084,
+      "spearman_p": 3.0103677558050333e-62,
+      "pearson_r": 0.5342754679018544,
+      "risk_coverage_curve": {
+        "100%": 0.047248512265283336,
+        "90%": 0.04163858808051677,
+        "80%": 0.03618893518359069,
+        "70%": 0.03328101109598845,
+        "60%": 0.028187416444926894,
+        "50%": 0.02306337688705357,
+        "reduction_at_50pct": 0.5118708339944963
+      },
+      "frozen_rho": 0.6101,
+      "frozen_risk50": 0.512,
+      "audit_match": true
+    },
+    "L2": {
+      "N": 374,
+      "ensemble_mae_pooled": 0.027089294162952405,
+      "ensemble_mae_macro": 0.027089294162952405,
+      "mean_sigma": 0.014247990505128275,
+      "spearman_rho": 0.3084066464996918,
+      "spearman_p": 1.1046649098806214e-09,
+      "pearson_r": 0.2135385154998445,
+      "risk_coverage_curve": {
+        "100%": 0.02708929416295241,
+        "90%": 0.025847262260434975,
+        "80%": 0.024369984536578126,
+        "70%": 0.02461570179594667,
+        "60%": 0.022940576958353633,
+        "50%": 0.020094825742756298,
+        "reduction_at_50pct": 0.2582004676135791
+      },
+      "frozen_rho": 0.3084066465,
+      "frozen_risk50": 0.2582004676,
+      "audit_match": true
+    },
+    "HFO/HCFO": {
+      "N": 1106,
+      "ensemble_mae_pooled": 0.03002472964424149,
+      "ensemble_mae_macro": 0.03002472964424149,
+      "mean_sigma": 0.01440155209140374,
+      "spearman_rho": 0.4925930397808066,
+      "spearman_p": 1.145658727274995e-68,
+      "pearson_r": 0.2859927305070183,
+      "risk_coverage_curve": {
+        "100%": 0.030024729644241487,
+        "90%": 0.026447423760252692,
+        "80%": 0.02436888048469314,
+        "70%": 0.023005041033575938,
+        "60%": 0.02183200569935099,
+        "50%": 0.01968496761230352,
+        "reduction_at_50pct": 0.3443748588064656
+      },
+      "frozen_rho": 0.4925930398,
+      "frozen_risk50": 0.3443748588,
+      "audit_match": true
+    }
+  },
+  "false_confidence_case_study": [
+    {
+      "species": "R1233ZD(E)",
+      "N": 90,
+      "MAE": 0.019270062532358665,
+      "mean_sigma": 0.01649104795845572,
+      "spearman_rho": 0.6303082685105157,
+      "false_confidence_detected": false,
+      "root_cause": "Parametric extrapolation bounded by ensemble disagreement"
+    },
+    {
+      "species": "R1234YF",
+      "N": 685,
+      "MAE": 0.025007109731417943,
+      "mean_sigma": 0.013434737677052234,
+      "spearman_rho": 0.4848633202251868,
+      "false_confidence_detected": false,
+      "root_cause": "Parametric extrapolation bounded by ensemble disagreement"
+    },
+    {
+      "species": "R1234ZE(E)",
+      "N": 308,
+      "MAE": 0.030280849178125735,
+      "mean_sigma": 0.0158015570028259,
+      "spearman_rho": 0.5332372001674048,
+      "false_confidence_detected": false,
+      "root_cause": "Parametric extrapolation bounded by ensemble disagreement"
+    },
+    {
+      "species": "R1336MZZ(E)",
+      "N": 11,
+      "MAE": 0.2884813180403276,
+      "mean_sigma": 0.021332434348088358,
+      "spearman_rho": 0.08181818181818183,
+      "false_confidence_detected": true,
+      "root_cause": "2D graph topological stereoisomer blindness (G_E = G_Z)"
+    },
+    {
+      "species": "R1336MZZ(Z)",
+      "N": 12,
+      "MAE": 0.15361492894093198,
+      "mean_sigma": 0.0116325544459493,
+      "spearman_rho": -0.11188811188811189,
+      "false_confidence_detected": true,
+      "root_cause": "2D graph topological stereoisomer blindness (G_E = G_Z)"
+    }
+  ]
+}

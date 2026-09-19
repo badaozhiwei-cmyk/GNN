@@ -1,0 +1,6 @@
+Gate ID,Verification Scope,Status,Detail
+G1_DATA_REPRESENTATION_LOCK,G1 DATA REPRESENTATION LOCK,PASS,Raw source SMILES are distinct; RDKit resolves STEREOE (3) vs STEREOZ (2).
+G2_ISOLATED_FEATURE_INTERVENTION,G2 ISOLATED FEATURE INTERVENTION,PASS,Baseline graph is mathematically degenerate; stereo graph isolates difference strictly to 4th bond dimension.
+G3_PARAMETRIC_MODEL_PIPELINE,G3 PARAMETRIC MODEL PIPELINE,PASS,IL_GAT_v6 with edge_dim=4 natively preserves stereo distinctions through all 3 attention convolutions and MLP head to produce distinct scalar predictions.
+G4_CHECKPOINT_SERIALIZATION,G4 CHECKPOINT SERIALIZATION,PASS,Model checkpoint serialization and deserialization preserves parameters with 0.0 numerical drift.
+G5_SEED_DETERMINISM,G5 SEED DETERMINISM,PASS,Repeated initialization with fixed seed yields bitwise identical model predictions.

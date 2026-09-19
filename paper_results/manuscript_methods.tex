@@ -1,0 +1,162 @@
+\section{Computational and Theoretical Methodology}
+\label{sec:methods}
+
+\subsection{Dataset Universe, Quality Control, and Lineage Tracking}
+\label{subsec:dataset_provenance}
+
+To systematically evaluate the out-of-distribution (OOD) generalization boundaries of deep graph representations in multicomponent gas--liquid equilibria, we assembled an exhaustive benchmark database of vapor--liquid equilibrium (VLE) solubility measurements for fluorinated refrigerants across structurally diverse ionic liquid (IL) matrices. The raw experimental corpus comprises $4,444$ high-precision solubility measurements across $1,029$ unique cation--anion--refrigerant chemical triplets compiled from NIST Standard Reference Databases and peer-reviewed experimental literature~\cite{Sarmiento2021_Consistency}.
+
+\subsubsection{Benchmark Data Universes and Physical Isolation}
+To enforce rigorous provenance, eliminate data snooping, and ensure reproducible lineage tracking, the data universe is partitioned into two strictly isolated domains:
+
+\begin{enumerate}
+    \item \textbf{Saturated Hydrofluorocarbon (HFC) Benchmark Universe ($N = 2,739$, Table~S3)}: 
+    This dataset comprises $2,739$ experimental data points spanning $12$ structurally diverse pure saturated HFC solutes: $\text{R23}$ ($\text{CHF}_3$), $\text{R32}$ ($\text{CH}_2\text{F}_2$), $\text{R41}$ ($\text{CH}_3\text{F}$), $\text{R125}$ ($\text{CHF}_2\text{CF}_3$), $\text{R134}$ ($\text{CHF}_2\text{CHF}_2$), $\text{R134a}$ ($\text{CF}_3\text{CH}_2\text{F}$), $\text{R143a}$ ($\text{CH}_3\text{CF}_3$), $\text{R152a}$ ($\text{CH}_3\text{CHF}_2$), $\text{R161}$ ($\text{CH}_3\text{CH}_2\text{F}$), $\text{R227ea}$ ($\text{CF}_3\text{CHFCF}_3$), $\text{R236fa}$ ($\text{CF}_3\text{CH}_2\text{CF}_3$), and $\text{R245fa}$ ($\text{CF}_3\text{CH}_2\text{CHF}_2$). The matrices encompass $67$ distinct IL cations and $41$ anions across broad temperature ($273.15\text{--}368.15\text{ K}$) and pressure ($0.0095\text{--}4.999\text{ MPa}$) ranges, corresponding to liquid-phase refrigerant mole fractions $x_1 \in [0.0010, 0.8900]$.
+    
+    To guarantee immutable reproducibility, the row ordering and numeric feature tensors are permanently fingerprinted via cryptographic SHA-256 digests:
+    \begin{align}
+        \text{Hash}_{\rm row\_order} &= \texttt{33719d8f5e1a0b66b18165dab5f613282c4935926cb9adecd277cbd0ad92bbc5} \\
+        \text{Hash}_{\rm data.npy} &= \texttt{a408c2832352d69799d1c0a8b7151dd7535fe2edf34d171992b9385b1bd3e6bb}
+    \end{align}
+
+    \item \textbf{M1 Benchmark Evaluation Subset ($N = 1,403$)}: 
+    Within the saturated HFC domain, an unconstrained multi-condition evaluation subset of $N = 1,403$ points across the identical $12$ HFC species is maintained for standardized Leave-One-Refrigerant-Out (LORO) comparative benchmarking, strictly binding to all production baseline checkpoints and uncertainty quantification (UQ) distributions.
+
+    \item \textbf{Unsaturated Hydrofluoroolefin (HFO/HCFO) Zero-Shot Universe ($N = 1,106$, Table~S4)}: 
+    This downstream evaluation domain comprises $1,106$ experimental points encompassing five commercial and next-generation low-global-warming-potential (GWP) unsaturated haloolefins: $\text{R1234yf}$ ($N=685$), $\text{R1234ze(E)}$ ($N=308$), $\text{R1233zd(E)}$ ($N=90$), $\text{R1336mzz(E)}$ ($N=11$), and $\text{R1336mzz(Z)}$ ($N=12$). This universe serves strictly as an external, zero-shot transfer test bed and is \textbf{physically quarantined from all model training, hyperparameter tuning, and feature scaler fitting}~\cite{Li2023_NatCommun}.
+
+    \item \textbf{Data Accounting and Curation Scope}: 
+    Across the complete experimental corpus of $4,444$ collected solubility records, benchmark analyses rigorously focus on the $3,845$ validated points spanning the $2,739$ saturated HFC points and $1,106$ unsaturated haloolefin points. The remaining $599$ auxiliary records (Table~S5) comprise legacy chlorofluorocarbons (CFCs), hydrochlorofluorocarbons (HCFCs), and non-target refrigerants outside the defined chemical evaluation ladder.
+\end{enumerate}
+
+\subsection{Tri-Graph Molecular Representation and GNN Architecture}
+\label{subsec:trigraph_gnn}
+
+\subsubsection{Disjoint Tri-Graph Formulation}
+Because the liquid phase comprises dissociated ions in dynamic solvation equilibrium with dissolved gas molecules, concatenating the molecular components into a single merged graph would introduce non-physical covalent edges across unbonded species. We therefore formulate a \textbf{disjoint tri-graph representation} $\mathcal{T} = (\mathcal{G}_{\rm cat}, \mathcal{G}_{\rm ani}, \mathcal{G}_{\rm sol})$ following component-wise principles in fluid mixture modeling~\cite{Chu2024_AEGNN,Wu2018_MoleculeNet,Schwaller2024_3DGeom}. Each molecular entity $m \in \{\text{cat}, \text{ani}, \text{sol}\}$ is converted from Canonical SMILES into an attributed molecular graph $\mathcal{G}_m = (\mathcal{V}_m, \mathcal{E}_m)$ using RDKit:
+\begin{itemize}
+    \item \textbf{Atom Node Features ($\mathbf{v}_i \in \mathbb{Z}^{7}$)}: atomic number ($119$ bins), hybridization state ($\text{sp}, \text{sp}^2, \text{sp}^3, \text{sp}^3\text{d}, \text{sp}^3\text{d}^2$, $8$ bins), aromaticity indicator ($2$ bins), degree of connectivity ($7$ bins), formal charge ($3$ bins), Pauling electronegativity bucket ($8$ bins), and covalent radius bucket ($8$ bins). Each feature is projected via an independent lookup table into a shared embedding space ($d_{\rm emb} = 300$). Atoms also receive an entity identity embedding ($3$ classes: cation, anion, solute).
+    \item \textbf{Chemical Bond Features ($\mathbf{e}_{ij} \in \mathbb{Z}^{3}$)}: bond type (global connection, single, double, triple, aromatic; $5$ categories), ring membership flag ($2$ categories), and aromaticity flag ($2$ categories), each embedded to $d_{\rm emb} = 300$ (systematically extended to $\mathbb{Z}^4$ in Section~\ref{subsec:stereo_boundary} for directional stereochemical interventions).
+    \item \textbf{Virtual Global Token}: The three subgraphs are assembled into a combined tri-graph representation, to which a single virtual Global Token node is appended and bidirectionally connected to all constituent atoms across the ternary mixture. The Global Token bypasses atom-level categorical embeddings and is parameterized by a dedicated learnable vector $\mathbf{h}_{\rm global} \in \mathbb{R}^{300}$.
+\end{itemize}
+
+\subsubsection{Network Architecture}
+The computational architecture combines a multi-head relational Graph Attention Network v2 (GATv2) topological encoder with edge-attribute conditioning and a Multi-Layer Perceptron (MLP) thermodynamic conditioning network.
+
+\begin{enumerate}
+    \item \textbf{Topological Message Passing}: 
+    For each graph $\mathcal{G}_m$, node states are iteratively updated across $L = 3$ relational GATv2Conv layers with hidden channel dimensions $300 \to 512 \to 1024 \to 512$. At layer $l \in \{1, \dots, L\}$, multi-head attention coefficients $\alpha_{ij}^{(k)}$ between neighboring nodes $i$ and $j \in \mathcal{N}(i)$ are computed with edge conditioning ($\text{edge\_dim} = 300$):
+    \begin{equation}
+        \alpha_{ij}^{(k)} = \frac{\exp\left(\text{LeakyReLU}\left(\mathbf{a}_k^T \left[\mathbf{W}_k \mathbf{h}_i^{(l-1)} \,\|\, \mathbf{W}_k \mathbf{h}_j^{(l-1)} \,\|\, \mathbf{W}_e \mathbf{e}_{ij}\right]\right)\right)}{\sum_{u \in \mathcal{N}(i)} \exp\left(\text{LeakyReLU}\left(\mathbf{a}_k^T \left[\mathbf{W}_k \mathbf{h}_i^{(l-1)} \,\|\, \mathbf{W}_k \mathbf{h}_u^{(l-1)} \,\|\, \mathbf{W}_e \mathbf{e}_{iu}\right]\right)\right)}
+    \end{equation}
+    where $\mathbf{W}_k$ projects node representations, $\mathbf{W}_e$ projects edge embeddings, and $\|$ denotes vector concatenation. Head projections are averaged ($K=4$, \texttt{concat=False}), followed by ReLU activation and dropout ($p_{\rm drop} = 0.2$).
+
+    \item \textbf{Global Token Pooling}: 
+    Rather than performing unweighted spatial mean pooling across divergent ionic sizes, the ternary mixture topological state $\mathbf{h}_{\rm topo} \in \mathbb{R}^{512}$ is extracted directly from the updated virtual Global Token node at the output of the final GATv2 layer ($L=3$).
+
+    \item \textbf{Thermodynamic Fusion and Readout}: 
+    The extracted topological representation $\mathbf{h}_{\rm topo} \in \mathbb{R}^{512}$ is concatenated with the standardized thermodynamic conditioning vector $\mathbf{z} \in \mathbb{R}^{d_{\rm cond}}$ ($d_{\rm cond} = 9$ for $M_0$, $12$ for $M_{\rm reduced}$). The merged vector is processed through a 3-layer regression head with hidden dimensions $[1024, 512, 1]$, normalization, and dropout ($0.4, 0.3$) to predict the liquid-phase equilibrium mole fraction $\hat{x}_1$.
+\end{enumerate}
+
+\subsection{Thermodynamic Coordinate Grounding and Feature Hierarchy}
+\label{subsec:thermo_hierarchy}
+
+To decouple the inductive bias of physical regularizers from purely topological graph representation learning, we establish two distinct thermodynamic feature conditioning regimes:
+
+\begin{enumerate}
+    \item \textbf{Pure Topological Baseline ($M_0$)}: 
+    The conditioning vector $\mathbf{z}_{M_0} \in \mathbb{R}^{9}$ contains only unscaled ambient operating variables and basic molecular summary descriptors:
+    \begin{equation}
+        \mathbf{z}_{M_0} = \left[T, P, q_{\rm ref}, \text{LogP}_{\rm ref}, \text{MW}_{\rm ani}, q_{\rm cat}, \text{TPSA}_{\rm cat}, \text{MW}_{\rm ref}, \text{MW}_{\rm cat}\right]
+    \end{equation}
+    Under $M_0$, the model receives no prior knowledge of thermodynamic scaling and must infer phase boundaries directly from unscaled ambient inputs.
+
+    \item \textbf{Reduced Thermodynamic Coordinate Model ($M_{\rm reduced}$)}: 
+    Grounding the regression model in the \textbf{van der Waals Theorem of Corresponding States}~\cite{Pitzer1955_Acentric,Prausnitz1998_FluidPhase,Kocis2020_PINN_Thermo}, macroscopic phase behavior collapses onto universal dimensionless curves when scaled by vapor--liquid critical parameters ($T_c, P_c$) and the Pitzer acentric factor ($\omega$):
+    \begin{equation}
+        T_r = \frac{T}{T_c}, \quad P_r = \frac{P}{P_c}, \quad \omega = -\log_{10}\left(\frac{P^{\rm sat}(T_r = 0.7)}{P_c}\right) - 1.0
+    \end{equation}
+    The conditioning vector $\mathbf{z}_{M_{\rm red}} \in \mathbb{R}^{12}$ directly incorporates these dimensionless coordinates:
+    \begin{equation}
+        \mathbf{z}_{M_{\rm red}} = \left[\mathbf{z}_{M_0} \setminus \{T, P\}, T_r, P_r, \omega\right]
+    \end{equation}
+    Critical constants ($T_c, P_c, \omega$) are derived from authoritative NIST experimental databases.
+\end{enumerate}
+
+\subsection{Chemical Generalization Ladder and Evaluation Protocols}
+\label{subsec:generalization_ladder}
+
+To interrogate generalization limits across isolated failure modes, we designed a five-tier \textbf{Chemical Generalization Ladder}~\cite{Choudhary2024_OODBenchmark,Wu2018_MoleculeNet}:
+
+\begin{itemize}
+    \item \textbf{Axis M1: Solute Identity Extrapolation (Leave-One-Refrigerant-Out, LORO)}: 
+    Evaluates generalization to completely unseen gas solutes within the training family. In each fold $k \in \{1, \dots, 12\}$, all observations containing the $k$-th pure HFC refrigerant are withheld from training ($N_{\rm test} = 1,403$ cumulative points; $N=2,739$ in the full orthogonal partition), ensuring zero solute cross-leakage.
+    
+    \item \textbf{Axis B1: High-Redundancy Anion Matrix Shift (Fam-2 Fluorosulfonates)}: 
+    Withholds all $N=513$ test instances containing bulky fluorosulfonate anions ($\text{OTf}^-$, $\text{TFES}^-$, $\text{HFPS}^-$, $\text{TPES}^-$, $\text{PFBS}^-$, $\text{TTES}^-$, $\text{FS}^-$) from the training partition ($N=2,003$).
+    
+    \item \textbf{Axis B2: Low-Redundancy Inorganic Fluoride Shift (Fam-3 Inorganic Fluorides)}: 
+    Withholds all $N=598$ test instances containing compact, highly symmetric inorganic anions ($\text{BF}_4^-$, $\text{PF}_6^-$) from training ($N=1,927$), testing transfer across coordination geometry transitions.
+    
+    \item \textbf{Axis L2: Compositional Recombination Shift (Unseen Ionic Pairs)}: 
+    Withholds $N=374$ test instances across four common ionic pairs: $[\text{emim}][\text{BF}_4]$, $[\text{emim}][\text{OTf}]$, $[\text{bmim}][\text{OTf}]$, and $[\text{hmim}][\text{BF}_4]$. While all constituent cations and anions appear extensively in the training set ($N=2,129$), their pairwise combinations are never observed during training.
+    
+    \item \textbf{Axis HFO/HCFO: Cross-Chemical-Family Zero-Shot Transfer}: 
+    Evaluates zero-shot transfer from saturated HFCs to unsaturated haloolefins containing carbon--carbon double bonds ($\text{C}=\text{C}$) and chlorine substituents ($N=1,106$).
+\end{itemize}
+
+\subsection{Model Training, Optimization, and Anti-Leakage Guardrails}
+\label{subsec:training_protocol}
+
+\subsubsection{Robust Huber Loss Function}
+To mitigate sensitivity to experimental measurement noise across diverse laboratories~\cite{Sarmiento2021_Consistency}, models were trained using the Huber loss with delta parameter $\delta = 0.05$:
+\begin{equation}
+    \mathcal{L}_{\rm Huber}(y, \hat{y}) = \begin{cases} 
+        \frac{1}{2} (y - \hat{y})^2, & \text{for } |y - \hat{y}| \le \delta \\ 
+        \delta \cdot \left(|y - \hat{y}| - \frac{1}{2}\delta\right), & \text{otherwise} 
+    \end{cases}
+\end{equation}
+
+\subsubsection{Optimization and Regularization}
+\begin{itemize}
+    \item \textbf{Optimizer}: Adam with initial learning rate $\eta_0 = 1.0 \times 10^{-3}$ and weight decay $\lambda = 1.0 \times 10^{-6}$.
+    \item \textbf{Learning Rate Schedule}: Cosine Annealing decay without restarts over $100$ epochs down to $\eta_{\rm min} = 1.0 \times 10^{-5}$.
+    \item \textbf{Early Stopping}: Monitored on validation loss with a patience of $15$ epochs, restoring weights from the best historical checkpoint.
+    \item \textbf{Multi-Seed Replication}: All axes were evaluated across $5$ independent random seeds: $\mathcal{S} = \{42, 43, 44, 45, 46\}$.
+    \item \textbf{Train-Only Scaler Fitting}: Normalization scalers ($\boldsymbol{\mu}_{\rm train}, \boldsymbol{\sigma}_{\rm train}$) were strictly fit on the training partition of each split fold and serialized to \texttt{scalers.pkl}, eliminating data leakage.
+\end{itemize}
+
+\subsection{Epistemic Uncertainty Quantification and Selective Prediction}
+\label{subsec:uq_framework}
+
+We formulate an automated uncertainty quantification and selective prediction framework based on deep ensemble disagreement~\cite{Lakshminarayanan2017_DeepEnsembles,Geifman2017_SelectiveNet}. For a test instance $\mathbf{x}_i$, the ensemble mean prediction $\bar{y}_i$ and disagreement proxy $\sigma_i$ across $M = 5$ seeds are:
+\begin{equation}
+    \bar{y}_i = \frac{1}{M} \sum_{m=1}^M \hat{y}_i^{(m)}, \quad \sigma_i = \sqrt{\frac{1}{M-1} \sum_{m=1}^M \left(\hat{y}_i^{(m)} - \bar{y}_i\right)^2}
+\end{equation}
+The rank association between $\sigma_i$ and absolute prediction error $e_i = |y_i - \bar{y}_i|$ is evaluated via the Spearman rank correlation coefficient:
+\begin{equation}
+    \rho = 1 - \frac{6 \sum_{i=1}^N d_i^2}{N(N^2 - 1)}
+\end{equation}
+Selective prediction profiles are constructed by ranking queries in ascending order of $\sigma_i$ and computing the retained risk at retention rates $\kappa \in [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]$ following the risk-coverage framework of Geifman \& El-Yaniv~\cite{Geifman2017_SelectiveNet}:
+\begin{equation}
+    \mathcal{R}(\kappa) = \frac{1}{\lfloor \kappa N \rfloor} \sum_{i \in \mathcal{D}_{\kappa}} \left|y_i - \bar{y}_i\right|
+\end{equation}
+
+\subsection{Representation-Support Boundary and Stereochemical Diagnostics}
+\label{subsec:stereo_boundary}
+
+\subsubsection{Mathematical Degeneracy in 2D Topological Graphs}
+In conventional 2D molecular graph representations, geometric isomerism is lost. For the cis/trans isomers $(Z)\text{-1,1,1,4,4,4-hexafluoro-2-butene}$ ($\text{R1336mzz(Z)}$) and $(E)\text{-1,1,1,4,4,4-hexafluoro-2-butene}$ ($\text{R1336mzz(E)}$):
+\begin{equation}
+    \mathcal{G}_{\text{R1336mzz(E)}} \equiv \mathcal{G}_{\text{R1336mzz(Z)}} \implies \mathbf{h}_{\rm topo}^{(E)} = \mathbf{h}_{\rm topo}^{(Z)}
+\end{equation}
+Consequently, topological GNN encoders cannot distinguish between the stereoisomers~\cite{Morehead2024_GCPNet,Adams2024_GeomComplete}.
+
+\subsubsection{Diagnostic Representation Intervention vs. Distribution Support Boundary}
+To determine whether this bottleneck can be resolved via targeted inductive intervention, edge features were expanded to $\mathbb{R}^4$ with directional stereochemistry tags and a dedicated embedding layer $\mathbf{E}_{\rm stereo}$. 
+
+However, because the training corpus consists exclusively of saturated HFC refrigerants and contains no chemically encoded non-zero stereochemical bond states ($N_{\text{stereo state 1-5}}^{\text{chemical bonds}} = 0$), the task gradient for non-zero stereochemical categories is identically zero during training:
+\begin{equation}
+    \nabla_{\mathbf{E}[k]} \mathcal{L}_{\rm train} \equiv \mathbf{0} \quad \forall k \ge 1
+\end{equation}
+This establishes a fundamental theoretical principle: \textit{architectural expressivity is strictly bounded by training data distribution support; introducing unconstrained geometric embeddings in the absence of corresponding training examples yields degenerate inductive transfer.}

@@ -39,12 +39,17 @@ class IL_GAT_v6(torch.nn.Module):
         nn.init.xavier_uniform_(self.x_embedding7.weight.data)
 
         # [Round 2 物理增强] 化学键 Embedding 初始化
+        self.edge_dim = args.get('edge_dim', 3)
         self.edge_embedding1 = nn.Embedding(num_bond_type, self.emb_dim)
         self.edge_embedding2 = nn.Embedding(num_bond_isInRing, self.emb_dim)
         self.edge_embedding3 = nn.Embedding(num_bond_isAromatic, self.emb_dim)
         nn.init.xavier_uniform_(self.edge_embedding1.weight.data)
         nn.init.xavier_uniform_(self.edge_embedding2.weight.data)
         nn.init.xavier_uniform_(self.edge_embedding3.weight.data)
+        if self.edge_dim >= 4:
+            # 0: None, 1: Any, 2: Z, 3: E, 4: Cis, 5: Trans
+            self.edge_embedding4 = nn.Embedding(6, self.emb_dim)
+            nn.init.xavier_uniform_(self.edge_embedding4.weight.data)
 
         # [修复 1] 增加 Molecule Type Embedding (0: Cation, 1: Anion, 2: Refrigerant)
         self.mol_embedding = nn.Embedding(3, self.emb_dim)
@@ -209,6 +214,8 @@ class IL_GAT_v6(torch.nn.Module):
         edge_emb = self.edge_embedding1(data_i.edge_attr[:, 0]) + \
                    self.edge_embedding2(data_i.edge_attr[:, 1]) + \
                    self.edge_embedding3(data_i.edge_attr[:, 2])
+        if self.edge_dim >= 4 and data_i.edge_attr.size(1) >= 4:
+            edge_emb = edge_emb + self.edge_embedding4(data_i.edge_attr[:, 3])
 
         x, _ = self.l1(x, edge_index, edge_attr=edge_emb, return_attention_weights=True)
         x = self.act(x)

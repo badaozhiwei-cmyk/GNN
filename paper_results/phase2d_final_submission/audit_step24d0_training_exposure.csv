@@ -1,0 +1,29 @@
+Audit Axis,Parameter / Metric,Value,Scientific Mechanism & Interpretation
+Topology Decomposition,Real Covalent Bonds (State 0),143610,100.0% of training covalent bonds are saturated non-stereo
+Topology Decomposition,"Real Covalent Bonds (State 1, Any)",0,Zero training exposure in HFC universe
+Topology Decomposition,"Real Covalent Bonds (State 2, Z)",0,Zero training exposure in HFC universe
+Topology Decomposition,"Real Covalent Bonds (State 3, E)",0,Zero training exposure in HFC universe
+Topology Decomposition,"Real Covalent Bonds (State 4, Cis)",0,Zero training exposure in HFC universe
+Topology Decomposition,"Real Covalent Bonds (State 5, Trans)",0,Zero training exposure in HFC universe
+Topology Decomposition,Virtual Global Edges (State 0),154234,"Star-graph pooling edges; padded with [0,0,0,0]"
+Topology Decomposition,Total Combined Graph Edges,297844,143610 real + 154234 virtual
+Task Data Gradient,Row 0 ||∇_loss W||_2,2.95452036e-08,Active data gradient
+Task Data Gradient,Row 1 ||∇_loss W||_2,0.00000000e+00,Strictly 0.0 (No supervisory signal)
+Task Data Gradient,Row 2 ||∇_loss W||_2,0.00000000e+00,Strictly 0.0 (No supervisory signal)
+Task Data Gradient,Row 3 ||∇_loss W||_2,0.00000000e+00,Strictly 0.0 (No supervisory signal)
+Task Data Gradient,Row 4 ||∇_loss W||_2,0.00000000e+00,Strictly 0.0 (No supervisory signal)
+Task Data Gradient,Row 5 ||∇_loss W||_2,0.00000000e+00,Strictly 0.0 (No supervisory signal)
+Param Update (wd=0),Row 0 ||ΔW||_2,2.36070366e-03,Updated by task loss
+Param Update (wd=0),Row 1 ||ΔW||_2,0.00000000e+00,Exactly 0.0 (Unchanged)
+Param Update (wd=0),Row 2 ||ΔW||_2,0.00000000e+00,Exactly 0.0 (Unchanged)
+Param Update (wd=0),Row 3 ||ΔW||_2,0.00000000e+00,Exactly 0.0 (Unchanged)
+Param Update (wd=0),Row 4 ||ΔW||_2,0.00000000e+00,Exactly 0.0 (Unchanged)
+Param Update (wd=0),Row 5 ||ΔW||_2,0.00000000e+00,Exactly 0.0 (Unchanged)
+Param Drift (wd=1e-6),Row 0 ||ΔW||_2,1.39310239e-02,Task loss + decay
+Param Drift (wd=1e-6),Row 1 ||ΔW||_2,1.42217446e-02,Pure Adam L2 weight decay drift (Task ∇ = 0)
+Param Drift (wd=1e-6),Row 2 ||ΔW||_2,1.43849514e-02,Pure Adam L2 weight decay drift (Task ∇ = 0)
+Param Drift (wd=1e-6),Row 3 ||ΔW||_2,1.42096281e-02,Pure Adam L2 weight decay drift (Task ∇ = 0)
+Param Drift (wd=1e-6),Row 4 ||ΔW||_2,1.45641053e-02,Pure Adam L2 weight decay drift (Task ∇ = 0)
+Param Drift (wd=1e-6),Row 5 ||ΔW||_2,1.42597472e-02,Pure Adam L2 weight decay drift (Task ∇ = 0)
+Architectural Path,E Sensitivity ||∂y/∂E(3)||_2,1.20331322e-06,Differential attention sensitivity confirmed
+Architectural Path,Z Sensitivity ||∂y/∂E(2)||_2,1.17374600e-06,Differential attention sensitivity confirmed

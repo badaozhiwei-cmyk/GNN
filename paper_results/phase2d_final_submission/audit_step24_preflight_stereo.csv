@@ -1,0 +1,6 @@
+Stage ID,Check Description,Status,Detail
+P1_SMILES_STEREO_INTEGRITY,P1 SMILES STEREO INTEGRITY,PASS,RDKit detected STEREOE (3) for trans and STEREOZ (2) for cis.
+P2_BASELINE_DEGENERACY_VERIFIED,P2 BASELINE DEGENERACY VERIFIED,PASS,Baseline featurizer produces mathematically identical graphs for R1336mzz(E) and R1336mzz(Z).
+P3_STEREO_DISTINCTION_VERIFIED,P3 STEREO DISTINCTION VERIFIED,PASS,Stereo-aware featurizer resolves E/Z via bond stereo dimension with max diff 1.
+P4_ISOLATED_DIFF_REPORT,P4 ISOLATED DIFF REPORT,PASS,"Except for the 4th bond stereo dimension, all atom/bond features and graph topologies are 100% identical."
+P5_BATCH_PIPELINE_PRESERVATION,P5 BATCH PIPELINE PRESERVATION,PASS,"Stereo information survives tri-graph combination, global-node addition, PyG Batch collation, and yields distinct forward model activations."

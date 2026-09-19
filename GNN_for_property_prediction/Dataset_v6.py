@@ -71,29 +71,35 @@ def combine_Graph(Graph_list):
     return combined_Graph
 
 
-def add_global(graph):
-    node = torch.tensor([0, 0, 0, 0, 0, 0, 0]).reshape(1, -1)
+def add_global(graph, atom_dim=None, edge_dim=None):
+    if atom_dim is None:
+        atom_dim = graph.x.size(1)
+    if edge_dim is None:
+        edge_dim = graph.edge_attr.size(1)
+
+    node = torch.zeros((1, atom_dim), dtype=torch.long)
     x = torch.cat([graph.x, node], dim=0)
     num_node = x.shape[0] - 1
     new_node = x.shape[0] - 1
     start = []
     end = []
     attr = []
+    zero_edge = [0] * edge_dim
     for i in range(num_node):
         start.append(i)
         end.append(new_node)
-        attr.append([0, 0, 0])
+        attr.append(zero_edge)
     if args_global['bi_direction'] == True:
         for i in range(num_node):
             start.append(new_node)
             end.append(i)
-            attr.append([0, 0, 0])
+            attr.append(zero_edge)
 
-    start = torch.tensor(start).reshape(1, -1)
-    end = torch.tensor(end).reshape(1, -1)
+    start = torch.tensor(start, dtype=torch.long).reshape(1, -1)
+    end = torch.tensor(end, dtype=torch.long).reshape(1, -1)
     new_edge = torch.cat([start, end], dim=0)
     edge_index = torch.cat([graph.edge_index, new_edge], dim=1)
-    attr = torch.tensor(attr)
+    attr = torch.tensor(attr, dtype=torch.long)
     edge_attr = torch.cat([graph.edge_attr, attr], dim=0)
 
     if hasattr(graph, 'mol_type'):
@@ -242,12 +248,19 @@ class IL_set_v6(torch.utils.data.Dataset):
     def mol2graph(self, mol):
         x = torch.tensor(mol[0], dtype=torch.long)
         edge_index = torch.tensor(mol[1], dtype=torch.long)
+        target_edge_dim = self.args.get('edge_dim', 3)
 
         if len(mol[2]) == 0:
             edge_index = torch.tensor([[0], [0]], dtype=torch.long)
-            edge_attr = torch.zeros((1, 3), dtype=torch.long)
+            edge_attr = torch.zeros((1, target_edge_dim), dtype=torch.long)
         else:
-            edge_attr = torch.tensor(mol[2], dtype=torch.long)
+            raw_attr = torch.tensor(mol[2], dtype=torch.long)
+            if target_edge_dim == 4 and raw_attr.size(1) == 3:
+                # Saturated HFC data: pad 4th stereo dimension with 0 (STEREONONE)
+                zero_col = torch.zeros((raw_attr.size(0), 1), dtype=torch.long)
+                edge_attr = torch.cat([raw_attr, zero_col], dim=1)
+            else:
+                edge_attr = raw_attr
 
         Graph = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
         return Graph

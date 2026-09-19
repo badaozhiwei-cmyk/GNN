@@ -349,6 +349,25 @@ def main():
             'spearman_rho_sigma_err': float(rho_val),
         })
 
+        sub_hfo_only = df_mode_pred[df_mode_pred['chemical_class'] == 'HFO']
+        if len(sub_hfo_only) > 0:
+            m_hfo = compute_metrics(sub_hfo_only['true_x1'].values, sub_hfo_only['pred_mu'].values)
+            r_hfo = float(pearsonr(sub_hfo_only['pred_sigma'], sub_hfo_only['abs_error'])[0]) if len(sub_hfo_only) > 2 else 0.0
+            rho_hfo = float(spearmanr(sub_hfo_only['pred_sigma'], sub_hfo_only['abs_error'])[0]) if len(sub_hfo_only) > 2 else 0.0
+            summary_metrics.append({
+                'model_source': args.model_source,
+                'descriptor_mode': md,
+                'scope': 'HFO_Only_Universe',
+                'chemical_class': 'HFO',
+                'N': len(sub_hfo_only),
+                'MAE': m_hfo['mae_clip'],
+                'RMSE': m_hfo['rmse_clip'],
+                'R2': m_hfo['r2_clip'],
+                'mean_sigma': float(sub_hfo_only['pred_sigma'].mean()),
+                'pearson_r_sigma_err': r_hfo,
+                'spearman_rho_sigma_err': rho_hfo,
+            })
+
         if len(sub_1336_all) > 0:
             summary_metrics.append({
                 'model_source': args.model_source,

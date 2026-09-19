@@ -1,0 +1,305 @@
+{
+  "metadata": {
+    "title": "Phase II-D Final Cross-Axis Frozen Benchmark",
+    "timestamp": "2026-09-19",
+    "description": "Authoritative source-of-truth metrics for paper results assembly. All figures and tables must align strictly with this record.",
+    "protocol_rules": {
+      "hfc_all_training_scope": "trained within complete HFC universe (N=2739) with 90/10 internal train/val split (2465 train / 274 val)",
+      "uncertainty_wording": "error-uncertainty rank association strengthened; not calibration percentage",
+      "r1233zd_error_unit": "absolute mole-fraction error (0.0193), not percentage",
+      "r1336mzz_stereochemistry": "graph featurization does not explicitly encode stereochemistry (G_E = G_Z); distinguished indirectly via thermodynamic scalar branch",
+      "cavity_penalty": "mechanistic hypothesis, not proven empirical fact"
+    }
+  },
+  "universe_summary": {
+    "HFC_universe_total": 2739,
+    "HFO_universe_total": 1106,
+    "HFC_all_train_size": 2465,
+    "HFC_all_val_size": 274
+  },
+  "cross_axis_5seed_mean": [
+    {
+      "axis": "M1",
+      "held_out": "12 HFC refrigerants (LORO)",
+      "N_test": 1403,
+      "M0_MAE": 0.1049,
+      "Mred_MAE": 0.0666,
+      "delta_MAE_pct": -36.51096282173498,
+      "M0_R2": -0.4158,
+      "Mred_R2": 0.3824,
+      "metric_basis": "5-seed mean; macro across 12 held-out refrigerants"
+    },
+    {
+      "axis": "B1",
+      "held_out": "Fam-2 fluorosulfonate anions",
+      "N_test": 513,
+      "M0_MAE": 0.0304,
+      "Mred_MAE": 0.0302,
+      "delta_MAE_pct": -0.6578947368421013,
+      "M0_R2": 0.9265,
+      "Mred_R2": 0.9285,
+      "metric_basis": "5-seed mean; pooled test points"
+    },
+    {
+      "axis": "B2",
+      "held_out": "Fam-3 BF4/PF6 anions",
+      "N_test": 598,
+      "M0_MAE": 0.0534,
+      "Mred_MAE": 0.0483,
+      "delta_MAE_pct": -9.550561797752808,
+      "M0_R2": 0.7931,
+      "Mred_R2": 0.8333,
+      "metric_basis": "5-seed mean; pooled test points"
+    },
+    {
+      "axis": "L2",
+      "held_out": "4 unseen cation–anion recombinations",
+      "N_test": 374,
+      "M0_MAE": 0.0333785828240315,
+      "Mred_MAE": 0.0293050968882572,
+      "delta_MAE_pct": -12.20389121146706,
+      "M0_R2": 0.8878362694841855,
+      "Mred_R2": 0.9126362465699024,
+      "metric_basis": "5-seed mean; pooled test points"
+    },
+    {
+      "axis": "HFO/HCFO",
+      "held_out": "1106 unsaturated refrigerant points",
+      "N_test": 1106,
+      "M0_MAE": 0.0468038743142722,
+      "Mred_MAE": 0.0325873712002242,
+      "delta_MAE_pct": -30.37462885783561,
+      "M0_R2": 0.491960458781798,
+      "Mred_R2": 0.6925834421161337,
+      "metric_basis": "5-seed mean; pooled test points"
+    }
+  ],
+  "cross_axis_ensemble_uq": [
+    {
+      "axis": "M1",
+      "N_test": 1403,
+      "M0_ensemble_MAE": 0.094,
+      "Mred_ensemble_MAE": 0.0613,
+      "M0_mean_sigma": null,
+      "Mred_mean_sigma": null,
+      "M0_rho_sigma_error": 0.1028,
+      "Mred_rho_sigma_error": 0.3058,
+      "risk50_Mred": 0.272,
+      "sigma_change_pct": null,
+      "note": "M1 mean sigma not available in current frozen UQ summary"
+    },
+    {
+      "axis": "B1",
+      "N_test": 513,
+      "M0_ensemble_MAE": 0.0287,
+      "Mred_ensemble_MAE": 0.0292,
+      "M0_mean_sigma": 0.0116,
+      "Mred_mean_sigma": 0.0092,
+      "M0_rho_sigma_error": 0.2891,
+      "Mred_rho_sigma_error": 0.5062,
+      "risk50_Mred": 0.525,
+      "sigma_change_pct": -20.68965517241379,
+      "note": "Frozen Phase II-C UQ"
+    },
+    {
+      "axis": "B2",
+      "N_test": 598,
+      "M0_ensemble_MAE": 0.0518,
+      "Mred_ensemble_MAE": 0.0476,
+      "M0_mean_sigma": 0.0183,
+      "Mred_mean_sigma": 0.011,
+      "M0_rho_sigma_error": 0.4761,
+      "Mred_rho_sigma_error": 0.6101,
+      "risk50_Mred": 0.512,
+      "sigma_change_pct": -39.89071038251367,
+      "note": "Frozen Phase II-C UQ"
+    },
+    {
+      "axis": "L2",
+      "N_test": 374,
+      "M0_ensemble_MAE": 0.0298137312,
+      "Mred_ensemble_MAE": 0.0270892942,
+      "M0_mean_sigma": 0.0186395105,
+      "Mred_mean_sigma": 0.0142479905,
+      "M0_rho_sigma_error": 0.3506162206,
+      "Mred_rho_sigma_error": 0.3084066465,
+      "risk50_Mred": 0.2582004676,
+      "sigma_change_pct": -23.56027536238144,
+      "note": "Recomputed from Phase II-D source-of-truth"
+    },
+    {
+      "axis": "HFO/HCFO",
+      "N_test": 1106,
+      "M0_ensemble_MAE": 0.0374241263,
+      "Mred_ensemble_MAE": 0.0300247296,
+      "M0_mean_sigma": 0.0345047447,
+      "Mred_mean_sigma": 0.0144015521,
+      "M0_rho_sigma_error": 0.3406813822,
+      "Mred_rho_sigma_error": 0.4925930398,
+      "risk50_Mred": 0.3443748588,
+      "sigma_change_pct": -58.26211083370224,
+      "note": "Recomputed from Phase II-D source-of-truth"
+    }
+  ],
+  "l2_pair_level": [
+    {
+      "pair": "BMIM__OTF",
+      "M0_N": 50.0,
+      "Mred_N": 50.0,
+      "M0_MAE": 0.0437429295182227,
+      "Mred_MAE": 0.0406727683097123,
+      "M0_RMSE": 0.0620855460617362,
+      "Mred_RMSE": 0.0596752584543183,
+      "M0_R2": 0.8666727443136821,
+      "Mred_R2": 0.8768238723678404,
+      "M0_mean_sigma": 0.0117482573587798,
+      "Mred_mean_sigma": 0.0120954974739761,
+      "M0_rho": 0.455078031212485,
+      "Mred_rho": 0.2271788715486194,
+      "delta_MAE_M0_minus_Mred": 0.0030701612085103,
+      "delta_MAE_pct": 7.018645624160572
+    },
+    {
+      "pair": "EMIM__BF4",
+      "M0_N": 93.0,
+      "Mred_N": 93.0,
+      "M0_MAE": 0.0264439002881126,
+      "Mred_MAE": 0.0207355633057573,
+      "M0_RMSE": 0.03249909381365,
+      "Mred_RMSE": 0.0255194012744652,
+      "M0_R2": 0.9436195792413568,
+      "Mred_R2": 0.9652362377241877,
+      "M0_mean_sigma": 0.0253741700476025,
+      "Mred_mean_sigma": 0.0152896524203436,
+      "M0_rho": 0.629450031332995,
+      "Mred_rho": 0.4374384530452686,
+      "delta_MAE_M0_minus_Mred": 0.0057083369823553,
+      "delta_MAE_pct": 21.586592447262408
+    },
+    {
+      "pair": "EMIM__OTF",
+      "M0_N": 114.0,
+      "Mred_N": 114.0,
+      "M0_MAE": 0.0293878857953179,
+      "Mred_MAE": 0.0274084643893792,
+      "M0_RMSE": 0.0478778668403151,
+      "Mred_RMSE": 0.0445374436018142,
+      "M0_R2": 0.8657283493575382,
+      "Mred_R2": 0.8838109198101016,
+      "M0_mean_sigma": 0.0170866391557223,
+      "Mred_mean_sigma": 0.0128535004678689,
+      "M0_rho": -0.0823191105890929,
+      "Mred_rho": 0.3011725157449222,
+      "delta_MAE_M0_minus_Mred": 0.0019794214059386,
+      "delta_MAE_pct": 6.735501218852541
+    },
+    {
+      "pair": "HMIM__BF4",
+      "M0_N": 117.0,
+      "Mred_N": 117.0,
+      "M0_MAE": 0.0269545921180237,
+      "Mred_MAE": 0.0260238057575546,
+      "M0_RMSE": 0.0387289626321925,
+      "Mred_RMSE": 0.0384907178975995,
+      "M0_R2": 0.8946612888646411,
+      "Mred_R2": 0.8959533039460673,
+      "M0_mean_sigma": 0.0177443538259474,
+      "Mred_mean_sigma": 0.0156986055281207,
+      "M0_rho": 0.5822655816811281,
+      "Mred_rho": 0.2241604100166344,
+      "delta_MAE_M0_minus_Mred": 0.0009307863604691,
+      "delta_MAE_pct": 3.4531643305659463
+    }
+  ],
+  "l2_paired_statistics": {
+    "mean_delta_mae": 0.002724,
+    "bootstrap_95_ci": [
+      0.001515,
+      0.003915
+    ],
+    "win_rate": 0.599,
+    "wilcoxon_one_sided_p": 5.18e-06
+  },
+  "unsaturated_species_breakdown": [
+    {
+      "species": "R1234yf",
+      "chemical_class": "HFO",
+      "N": 685,
+      "M0_MAE": 0.0320252342558228,
+      "Mred_MAE": 0.0250071097314178,
+      "MAE_change": 0.0070181245244049,
+      "MAE_change_pct": 21.91435812254497,
+      "M0_R2": 0.7240448617780828,
+      "Mred_R2": 0.8017407311087031,
+      "M0_sigma": 0.0301443697767584,
+      "Mred_sigma": 0.0134347376770522,
+      "Mred_rho_sigma_error": 0.4848633202251868
+    },
+    {
+      "species": "R1234ze(E)",
+      "chemical_class": "HFO",
+      "N": 308,
+      "M0_MAE": 0.0390797014924999,
+      "Mred_MAE": 0.0302808491781256,
+      "MAE_change": 0.0087988523143742,
+      "MAE_change_pct": 22.51514719492656,
+      "M0_R2": 0.543265703564519,
+      "Mred_R2": 0.761435996232406,
+      "M0_sigma": 0.0479940581898353,
+      "Mred_sigma": 0.0158015570028259,
+      "Mred_rho_sigma_error": 0.5332372001674048
+    },
+    {
+      "species": "R1233zd(E)",
+      "chemical_class": "HCFO",
+      "N": 90,
+      "M0_MAE": 0.0297404381450679,
+      "Mred_MAE": 0.0192700625323586,
+      "MAE_change": 0.0104703756127092,
+      "MAE_change_pct": 35.20585527905428,
+      "M0_R2": -0.4074091049990378,
+      "Mred_R2": 0.2307118840297987,
+      "M0_sigma": 0.0171937802427764,
+      "Mred_sigma": 0.0164910479584557,
+      "Mred_rho_sigma_error": 0.6303082685105157
+    },
+    {
+      "species": "R1336mzz(E)",
+      "chemical_class": "HFO",
+      "N": 11,
+      "M0_MAE": 0.1196454053954644,
+      "Mred_MAE": 0.2884813180403276,
+      "MAE_change": -0.1688359126448632,
+      "MAE_change_pct": -141.11357814937332,
+      "M0_R2": -9.066611048506314,
+      "Mred_R2": -53.428129041766496,
+      "M0_sigma": 0.0773998316449295,
+      "Mred_sigma": 0.0213324343480883,
+      "Mred_rho_sigma_error": 0.0818181818181818
+    },
+    {
+      "species": "R1336mzz(Z)",
+      "chemical_class": "HFO",
+      "N": 12,
+      "M0_MAE": 0.2853759429057438,
+      "Mred_MAE": 0.1536149289409319,
+      "MAE_change": 0.1317610139648119,
+      "MAE_change_pct": 46.171030614283765,
+      "M0_R2": -3.308491368187881,
+      "Mred_R2": -0.6738525179137944,
+      "M0_sigma": 0.0276955040763997,
+      "Mred_sigma": 0.0116325544459493,
+      "Mred_rho_sigma_error": -0.1118881118881118
+    }
+  ],
+  "hfo_only_sensitivity_N1016": {
+    "N": 1016,
+    "M0_MAE": 0.0381,
+    "Mred_MAE": 0.03098,
+    "delta_MAE_pct": -18.69,
+    "M0_R2": 0.62241,
+    "Mred_R2": 0.70845,
+    "M0_sigma": 0.03604,
+    "Mred_sigma": 0.01422
+  }
+}

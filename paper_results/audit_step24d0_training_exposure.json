@@ -1,0 +1,95 @@
+{
+  "chem_bond_counts": {
+    "0": 143610,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0
+  },
+  "virtual_edge_counts": {
+    "0": 154234,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0
+  },
+  "total_edge_counts": {
+    "0": 297844,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0
+  },
+  "chem_zero_exposure_confirmed": true,
+  "task_gradient_norms": {
+    "0": 2.9545203616976323e-08,
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.0,
+    "4": 0.0,
+    "5": 0.0
+  },
+  "data_gradient_isolated_to_row0": true,
+  "pure_update_norms_wd0": {
+    "0": 0.002360703656449914,
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.0,
+    "4": 0.0,
+    "5": 0.0
+  },
+  "production_update_norms_wd1e6": {
+    "0": 0.013931023888289928,
+    "1": 0.014221744611859322,
+    "2": 0.014384951442480087,
+    "3": 0.014209628105163574,
+    "4": 0.014564105309545994,
+    "5": 0.014259747229516506
+  },
+  "drift_details": {
+    "0": {
+      "state": "None",
+      "delta_norm": 0.013931023888289928,
+      "task_grad_norm": 2.9545203616976323e-08,
+      "mechanism": "DATA LOSS + WEIGHT DECAY COMPOSITE"
+    },
+    "1": {
+      "state": "Any",
+      "delta_norm": 0.014221744611859322,
+      "task_grad_norm": 0.0,
+      "mechanism": "PURE OPTIMIZER REGULARIZATION DRIFT (Task ∇ = 0)"
+    },
+    "2": {
+      "state": "Z",
+      "delta_norm": 0.014384951442480087,
+      "task_grad_norm": 0.0,
+      "mechanism": "PURE OPTIMIZER REGULARIZATION DRIFT (Task ∇ = 0)"
+    },
+    "3": {
+      "state": "E",
+      "delta_norm": 0.014209628105163574,
+      "task_grad_norm": 0.0,
+      "mechanism": "PURE OPTIMIZER REGULARIZATION DRIFT (Task ∇ = 0)"
+    },
+    "4": {
+      "state": "Cis",
+      "delta_norm": 0.014564105309545994,
+      "task_grad_norm": 0.0,
+      "mechanism": "PURE OPTIMIZER REGULARIZATION DRIFT (Task ∇ = 0)"
+    },
+    "5": {
+      "state": "Trans",
+      "delta_norm": 0.014259747229516506,
+      "task_grad_norm": 0.0,
+      "mechanism": "PURE OPTIMIZER REGULARIZATION DRIFT (Task ∇ = 0)"
+    }
+  },
+  "sensitivity_e_row3": 1.2033132179567474e-06,
+  "sensitivity_z_row2": 1.1737459999494604e-06,
+  "sens_path_exists": true,
+  "verdict": "METHODOLOGICAL_BOUNDARY_CONFIRMED: Under exclusively saturated training universe (HFC_all), rows 1..5 of edge_embedding4 receive exactly 0.0 task-loss data gradient (∇_loss W = 0). When weight decay > 0, parameter drift ||ΔW|| is entirely driven by L2 shrinkage towards zero, providing zero inductive bias for stereochemical discrimination. Architectural capacity exists (||∂y/∂E|| > 0), but empirical training support is mathematically absent.",
+  "timestamp": "2026-09-19T21:19:44.542712"
+}

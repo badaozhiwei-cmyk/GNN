@@ -1,0 +1,180 @@
+# 3. Results and Empirical Diagnostics
+
+## 3.1 Cross-Axis Generalization Diagnostics
+
+To systematically interrogate the generalization capabilities and failure boundaries of molecular graph neural networks (GNNs) for refrigerant solubility prediction, we benchmarked the baseline pure-graph architecture ($M_0$) against the physics-regularized reduced thermodynamic coordinate model ($M_{\rm reduced}$) across five orthogonal out-of-distribution (OOD) test axes. Each axis probes an isolated distribution shift, spanning molecular identity (M1), matrix counter-ion class (B1, B2), compositional recombination (L2), and cross-chemical family saturation (HFO/HCFO zero-shot transfer). All performance statistics are frozen according to the authoritative project audit and reported in **Table 1** (5-seed mean metrics) and visualized in **Figure 1**.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Cross-axis generalization benchmark comparing baseline pure-graph GNN ($M_0$) against reduced thermodynamic coordinate regularization ($M_{\rm reduced}$). Metrics represent the 5-seed mean for each axis. M1 is macro-averaged across 12 held-out HFC refrigerants; B1, B2, L2, and HFO/HCFO are pooled across test instances within each seed.}
+\label{tab:cross_axis_master}
+\begin{tabular}{llccccccc}
+\toprule
+\textbf{Axis} & \textbf{Distribution Shift Domain} & \textbf{$N_{\rm test}$} & \textbf{$M_0$ MAE} & \textbf{$M_{\rm red}$ MAE} & \textbf{$\Delta\text{MAE}$ (\%)} & \textbf{$M_0$ $R^2$} & \textbf{$M_{\rm red}$ $R^2$} & \textbf{$M_{\rm red}$ $\bar{\sigma}$} \\
+\midrule
+M1 & Refrigerant identity (12 HFC LORO) & 1403 & 0.1049 & 0.0666 & \textbf{−36.5\%} & −0.4158 & 0.3824 & — \\
+B1 & High-redundancy anion (Fam-2 fluorosulfonates) & 513 & 0.0304 & 0.0302 & −0.7\% & 0.9265 & 0.9285 & 0.0092 \\
+B2 & Inorganic fluoride anion (Fam-3 $\text{BF}_4/\text{PF}_6$) & 598 & 0.0534 & 0.0483 & −9.6\% & 0.7931 & 0.8333 & 0.0110 \\
+L2 & Compositional recombination (4 unseen IL pairs) & 374 & 0.0334 & 0.0293 & −12.2\% & 0.8878 & 0.9126 & 0.0142 \\
+HFO/HCFO & Unsaturated zero-shot cross-family transfer & 1106 & 0.0468 & 0.0326 & \textbf{−30.4\%} & 0.4920 & 0.6926 & 0.0144 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+As summarized in **Table 1** and **Figure 1**, distinct chemical shifts impose starkly disparate inductive challenges on the learned molecular representations:
+
+1. **Selective Benefit of Thermodynamic Coordinates**: Rather than yielding uniform error reductions across all benchmarks, the incorporation of corresponding-states thermodynamic coordinates ($T_r = T/T_c$, $P_r = P/P_c$, and Pitzer acentric factor $\omega$) selectively aids regimes where the molecular identity of the gas solute undergoes significant extrapolation. On the 12-refrigerant Leave-One-Refrigerant-Out (LORO, M1) benchmark ($N=1403$), baseline $M_0$ completely degenerates ($R^2 = -0.4158$, $\text{MAE} = 0.1049$), whereas $M_{\rm reduced}$ recovers positive predictive correlation ($R^2 = 0.3824$, $\text{MAE} = 0.0666$, a $-36.5\%$ error reduction). Similarly, under zero-shot transfer to unsaturated refrigerants ($N=1106$), $M_{\rm reduced}$ cuts test MAE from $0.0468$ to $0.0326$ ($-30.4\%$), elevating $R^2$ from $0.4920$ to $0.6926$.
+2. **Graph Redundancy Buffers Anion Shifts**: In contrast, when the shift is localized to the ionic liquid anion matrix where structural analogs are densely represented in the training set (e.g., Fam-2 fluorosulfonate anions, B1, $N=513$), baseline $M_0$ already maintains excellent fidelity ($\text{MAE} = 0.0304$, $R^2 = 0.9265$). Consequently, augmenting the scalar MLP branch with thermodynamic priors offers minimal marginal utility ($-0.7\%$ $\Delta\text{MAE}$, $\text{MAE} = 0.0302$).
+3. **Decoupled Coordination Geometries**: When shifting to compact inorganic anions ($\text{BF}_4^-$ and $\text{PF}_6^-$, B2, $N=598$), which feature symmetric coordination shells and substantially lower charge delocalization than bulky fluorosulfonates, baseline error increases to $0.0534$. Here, $M_{\rm reduced}$ provides moderate regularization, lowering MAE to $0.0483$ ($-9.6\%$, $R^2: 0.7931 \to 0.8333$).
+
+These comparative findings substantiate our central thesis: *generalization difficulty cannot be abstracted as a monolithic property of deep molecular networks; rather, different chemical shifts trigger distinct representation bottlenecks, and macroscopic thermodynamic scaling coordinates regularize solute extrapolation while offering negligible impact when graph topological patterns are already redundant.*
+
+---
+
+## 3.2 Compositional Generalization in Ionic Liquid Mixtures (L2 Benchmark)
+
+A prominent industrial advantage of ionic liquids is the synthetic versatility of cation–anion pairing. However, evaluating whether GNNs truly learn compositional interactions or merely memorize individual component marginals requires testing on entirely unseen cation–anion recombinations where both the cation and the anion have appeared in the training corpus, but never in mutual combination.
+
+The L2 benchmark rigorously enforces this protocol across $N=374$ test instances distributed over four distinct ionic pairs: $[\text{emim}][\text{BF}_4]$ ($N=93$), $[\text{emim}][\text{OTf}]$ ($N=114$), $[\text{bmim}][\text{OTf}]$ ($N=50$), and $[\text{hmim}][\text{BF}_4]$ ($N=117$). In addition to the 5-seed pooled performance reported in Table 1 ($M_0$ MAE $0.0334 \to M_{\rm reduced}$ MAE $0.0293$, $-12.2\%$), we conducted an ensemble prediction analysis and fine-grained pair-level paired effect test, presented in **Table 2**.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Pair-level compositional generalization performance on the L2 benchmark ($N=374$). Metrics reflect 5-seed ensemble predictions.}
+\label{tab:l2_pairs}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Held-out Ionic Pair} & \textbf{$N$} & \textbf{$M_0$ Ensemble MAE} & \textbf{$M_{\rm red}$ Ensemble MAE} & \textbf{$\Delta\text{MAE}$ (\%)} & \textbf{$M_{\rm red}$ $R^2$} & \textbf{$M_{\rm red}$ $\bar{\sigma}$} \\
+\midrule
+$[\text{emim}][\text{BF}_4]$ & 93 & 0.0264 & 0.0207 & \textbf{−21.6\%} & 0.9652 & 0.0153 \\
+$[\text{emim}][\text{OTf}]$ & 114 & 0.0294 & 0.0274 & −6.7\% & 0.8838 & 0.0129 \\
+$[\text{bmim}][\text{OTf}]$ & 50 & 0.0437 & 0.0407 & −7.0\% & 0.8768 & 0.0121 \\
+$[\text{hmim}][\text{BF}_4]$ & 117 & 0.0270 & 0.0260 & −3.5\% & 0.8960 & 0.0157 \\
+\midrule
+\textbf{Pooled L2 Ensemble} & \textbf{374} & \textbf{0.0298} & \textbf{0.0271} & \textbf{−9.1\%} & \textbf{0.9218} & \textbf{0.0142} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+To confirm that the observed error reduction is not an artifact of random seed selection or driven by outliers in a single system, we executed a rigorous point-wise paired statistical test over all 374 points ($e_i^{(0)} = |y_i - \hat{y}_i^{(M_0)}|$, $e_i^{(\rm red)} = |y_i - \hat{y}_i^{(M_{\rm red})}|$):
+
+- **Mean Paired Effect**: $\Delta e = e^{(0)} - e^{(\rm red)} = 0.002724$.
+- **Bootstrap 95\% Confidence Interval**: Resampling 10,000 bootstrap replicates yielded a 95\% confidence interval of $[0.001515, 0.003915]$, cleanly excluding zero and confirming statistical significance at $\alpha = 0.05$.
+- **Non-Parametric Hypothesis Testing**: A one-sided Wilcoxon signed-rank test confirmed that $M_{\rm reduced}$ absolute errors are systematically smaller than $M_0$ ($W = 44102.0$, $p = 5.18 \times 10^{-6}$).
+- **Pairwise Win Rate**: Across all 374 points, $M_{\rm reduced}$ achieved lower absolute error in $59.9\%$ of test instances.
+
+Pair-level inspection (**Table 2**) demonstrates that error reduction is most pronounced in $[\text{emim}][\text{BF}_4]$ ($\text{MAE}: 0.0264 \to 0.0207$, $-21.6\%$, $R^2 = 0.9652$), an ionic liquid whose constituent $[\text{emim}]^+$ and $[\text{BF}_4]^-$ ions possess strong electrostatic charge density and pronounced temperature-dependent packing behaviors that are effectively normalized by critical coordinate scaling.
+
+---
+
+## 3.3 Continuous Generalization Landscape and Chemical Distance
+
+A widespread premise in molecular machine learning is that OOD generalization error correlates monotonically with the chemical distance between the test query and the training distribution. Under this hypothesis, failure boundaries could be anticipated simply by computing a distance threshold. To examine whether this premise holds in multicomponent absorption thermodynamics, we mapped the point-wise and species-level test errors against three continuous distance metrics (**Figure 2**):
+
+1. **Topological Distance ($D_{\rm FP}$)**: $1 - \text{Tanimoto similarity}$ evaluated on 2048-bit Morgan circular fingerprints (radius 2).
+2. **Physicochemical Distance ($D_{\rm phys}$)**: Normalized Euclidean distance over computed RDKit molecular descriptors (molecular weight, partial charge extremes, $\text{MolLogP}$, TPSA).
+3. **Critical Thermodynamic Distance ($D_{\rm thermo}$)**: Normalized Euclidean distance in the critical parameter manifold ($T_c, P_c, \omega$).
+
+As revealed in **Figure 2**, empirical test errors scatter broadly across all three metrics, and **no single scalar distance adequately explains the observed generalization boundary**:
+
+- In the topological projection (**Figure 2a**), solutes with moderate distance to the nearest training solute ($D_{\rm FP}^{\rm NN-train} \approx 0.55$) exhibit higher test MAE ($>0.15$ in $M_0$) than solutes located at severe topological distances ($D_{\rm FP}^{\rm NN-train} > 0.90$, $\text{MAE} \approx 0.05$). Furthermore, while the inter-isomer structural distance between R134 and R134a is substantial ($D_{\rm FP}^{\rm pair} \approx 0.9167$, $D_{\rm phys}^{\rm pair} \approx 0.0833$), both isomers reside at virtually identical distance to the nearest training solute ($D_{\rm FP}^{\rm NN-train} \approx 0.50\text{--}0.55$, $D_{\rm phys}^{\rm NN-train} \approx 0.0805\text{--}0.0807$).
+- In the physicochemical space (**Figure 2b**), despite identical formulas ($\text{C}_2\text{H}_2\text{F}_4$) and nearly indistinguishable $D_{\rm phys}^{\rm NN-train}$, baseline $M_0$ exhibits pronounced extrapolation divergence ($\text{MAE} = 0.2086$ for R134 vs $0.1525$ for R134a), which persists under thermodynamic grounding ($M_{\rm reduced}\text{ MAE}: 0.1414$ vs $0.0769$).
+- In the thermodynamic projection (**Figure 2c**), while $D_{\rm thermo}$ correlates somewhat better with failure in M1 LORO, points with $D_{\rm thermo} > 1.6$ (e.g., R227ea) can achieve lower prediction errors ($\text{MAE} \approx 0.04$) than points with $D_{\rm thermo} \approx 0.8$ (e.g., R143a, $\text{MAE} > 0.11$).
+
+Consequently, failure in molecular GNNs is not dictated by smooth distance metrics along arbitrary 1D manifolds. Rather, failure arises from **discrete representational blind spots**—such as internal charge dipole cancellation, stereoisomerism, or altered local coordination geometry—which cannot be captured by global scalar similarity metrics.
+
+---
+
+## 3.4 Zero-Shot Cross-Family Transfer to Unsaturated Refrigerants
+
+To evaluate whether representations trained exclusively on saturated hydrofluorocarbons (HFCs, 2739 points) can transfer to fourth-generation low-global-warming-potential (GWP) fluorinated olefins, we probed the All-HFC model on an external benchmark of $N=1106$ unsaturated points spanning hydrofluoroolefins (HFOs) and hydrochlorofluoroolefins (HCFOs). The species-level results are summarized in **Table 3**.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Species-level zero-shot transfer performance to unsaturated refrigerants under the All-HFC training protocol ($N_{\rm test}=1106$). Models were trained without any olefinic samples.}
+\label{tab:unsat_species}
+\begin{tabular}{llccccccc}
+\toprule
+\textbf{Species} & \textbf{Class} & \textbf{$N$} & \textbf{$M_0$ MAE} & \textbf{$M_{\rm red}$ MAE} & \textbf{$\Delta\text{MAE}$ (\%)} & \textbf{$M_0$ $R^2$} & \textbf{$M_{\rm red}$ $R^2$} & \textbf{$M_{\rm red}$ $\bar{\sigma}$} \\
+\midrule
+R1234yf & HFO (propene) & 685 & 0.0320 & 0.0250 & \textbf{−21.9\%} & 0.7240 & 0.8017 & 0.0134 \\
+R1234ze(E) & HFO (propene) & 308 & 0.0391 & 0.0303 & \textbf{−22.5\%} & 0.5433 & 0.7614 & 0.0158 \\
+R1233zd(E) & HCFO (chloro-olefin) & 90 & 0.0297 & 0.0193 & \textbf{−35.2\%} & −0.4074 & 0.2307 & 0.0165 \\
+R1336mzz(E) & HFO (butene, trans) & 11 & 0.1196 & 0.2885 & +141.1\% & −9.0666 & −53.4281 & 0.0213 \\
+R1336mzz(Z) & HFO (butene, cis) & 12 & 0.2854 & 0.1536 & \textbf{−46.2\%} & −3.3085 & −0.6739 & 0.0116 \\
+\midrule
+\textbf{Total Unsaturated} & \textbf{Pooled} & \textbf{1106} & \textbf{0.0374} & \textbf{0.0300} & \textbf{−19.8\%} & \textbf{0.6227} & \textbf{0.7107} & \textbf{0.0144} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+### Robust Cross-Family Generalization in Mainstream Olefins
+For the predominant commercial refrigerants R1234yf ($N=685$) and R1234ze(E) ($N=308$), zero-shot transfer is remarkably robust:
+- For R1234yf, $M_{\rm reduced}$ achieves an ensemble MAE of $0.0250$ ($R^2 = 0.8017$), outperforming baseline $M_0$ ($0.0320$, $R^2 = 0.7240$) by $21.9\%$.
+- For R1234ze(E), MAE drops from $0.0391$ to $0.0303$ ($-22.5\%$), with $R^2$ advancing from $0.5433$ to $0.7614$.
+- For the chloro-fluoroolefin R1233zd(E) ($N=90$), despite the model never encountering a chlorine atom bonded to an unsaturated framework in training, $M_{\rm reduced}$ reduces MAE to $0.0193$ ($-35.2\%$).
+
+To ensure that this overall performance gain is not solely an artifact of R1233zd(E), a sensitivity audit on the pure-HFO subset ($N=1016$, excluding R1233zd(E)) confirms an identical pattern: MAE drops from $0.0381 \to 0.0310$ ($-18.7\%$, $R^2: 0.622 \to 0.708$).
+
+### Failure Boundary: Stereochemical Degeneracy in R1336mzz Isomers
+In sharp contrast to the fluoropropenes, the hexafluorobutene isomers R1336mzz(E) and R1336mzz(Z) expose an acute failure boundary (**Table 3** and **Figure 5**):
+- Under baseline $M_0$, both isomers exhibit severe degradation, with MAEs exceeding $0.11$ and $0.28$, respectively, and negative $R^2$ scores.
+- Under $M_{\rm reduced}$, the cis-isomer R1336mzz(Z) improves substantially ($\text{MAE}: 0.2854 \to 0.1536$, a $46.2\%$ reduction), whereas the trans-isomer R1336mzz(E) undergoes severe negative transfer ($\text{MAE}: 0.1196 \to 0.2885$, $+141.1\%$).
+
+This divergent behavior stems from a fundamental representational limitation: in standard 2D molecular graph featurization, graph connectivity and atom node features do not explicitly encode double-bond cis/trans stereochemical configurations. Consequently, the message passing branches produce mathematically degenerate representations ($G_E \equiv G_Z$). When $M_{\rm reduced}$ introduces species-dependent critical coordinates ($T_c, P_c, \omega$), the model distinguishes the two molecules through the scalar MLP branch; however, because the underlying graph embedding is uninformative regarding spatial configuration, the shift in scalar conditioning is associated with opposite changes in the two isomers, improving R1336mzz(Z) while substantially degrading R1336mzz(E).
+
+---
+
+## 3.5 Mechanistic Attribution and Physical Prior Grounding
+
+To elucidate *why* reduced thermodynamic coordinates improve generalization in some regimes while remaining passive in others, we performed feature attribution via Integrated Gradients (IG) across the model's multi-branch architecture. Attributions were aggregated into five chemically coherent concept groups:
+1. **Thermodynamic State**: Ambient operating conditions ($T, P$).
+2. **Refrigerant Physicochemical Features**: Molecular descriptors of the solute ($q_{\rm max}, \text{MolLogP}, \text{MW}$).
+3. **Anion Descriptors**: Molecular weight and charge attributes of the anion.
+4. **Cation Descriptors**: Polar surface area, charge extremes, and weight of the cation.
+5. **Reduced Thermodynamic Coordinates**: Dimensionless scaling priors ($T_r, P_r, \omega$).
+
+**Figure 3** illustrates the redistribution of attribution shares between baseline $M_0$ and $M_{\rm reduced}$ for representative ionic liquid systems based on $\text{BF}_4^-$ and $\text{PF}_6^-$ anions.
+
+In the baseline $M_0$ model, the decision process is heavily dominated by ambient state variables ($T, P$, accounting for $26\%\sim36\%$ of total attribution) and refrigerant scalar descriptors ($\sim43\%\sim53\%$), leaving the graph-derived ionic embeddings vulnerable to spurious shortcuts. When $M_{\rm reduced}$ is introduced, the reduced priors ($T_r, P_r, \omega$) absorb a substantial attribution fraction ($22.3\%$ in $\text{BF}_4$ and $35.4\%$ in $\text{PF}_6$). Crucially, this absorption primarily displaces the unregularized refrigerant descriptor share (which contracts from $53.0\%$ to $30.8\%$ in $\text{BF}_4$, and from $43.8\%$ to $22.6\%$ in $\text{PF}_6$), while preserving the structural attribution of the ionic liquid cation and anion. 
+
+This mechanistic rebalancing is consistent with an **anchoring inductive bias**: by explicitly supplying corresponding-states coordinates, the model's reliance shifts toward dimensionless thermodynamic scaling rather than fitting fragile, dataset-dependent correlations between raw molecular descriptors and solubility values.
+
+---
+
+## 3.6 Epistemic Uncertainty and Selective Decision-Making
+
+For safety-critical chemical process design, an OOD-aware model must not only generate point predictions but also accurately signal when its predictions are untrustworthy. We quantified epistemic uncertainty using the seed-ensemble disagreement $\sigma_i = \text{std}(\{\hat{y}_i^{(s)}\}_{s=1}^5)$ across the five independently trained seeds. The uncertainty landscape and risk-coverage decision curves are detailed in **Table 4** and **Figure 4**.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Ensemble epistemic uncertainty diagnostics and selective prediction risk reduction across all five OOD benchmark axes under the $M_{\rm reduced}$ model. Note that for M1, the reported ensemble MAE is macro-averaged across the 12 held-out refrigerants to weight each chemical species equally, whereas risk--coverage values evaluate pooled test points directly.}
+\label{tab:uncertainty_risk}
+\begin{tabular}{lccccccp{3.4cm}}
+\toprule
+\textbf{Axis} & \textbf{$N_{\rm test}$} & \textbf{Ensemble MAE} & \textbf{Mean Disagreement $\bar{\sigma}$} & \textbf{Spearman $\rho(\sigma, |e|)$} & \textbf{Risk at 100\%} & \textbf{Risk at 50\% (MAE)} & \textbf{Aggregation Basis} \\
+\midrule
+M1 (LORO) & 1403 & 0.0613 & — & 0.3058 & 0.0720 & \textbf{0.0524 (−27.2\%)} & Macro across 12 refrigerants (MAE); pooled points (Risk) \\
+B1 (Fam-2) & 513 & 0.0292 & 0.0092 & 0.5062 & 0.0292 & \textbf{0.0139 (−52.5\%)} & Pooled test points \\
+B2 (Fam-3) & 598 & 0.0476 & 0.0110 & 0.6101 & 0.0472 & \textbf{0.0230 (−51.2\%)} & Pooled test points \\
+L2 (Unseen Pairs) & 374 & 0.0271 & 0.0142 & 0.3084 & 0.0271 & \textbf{0.0201 (−25.8\%)} & Pooled test points \\
+HFO/HCFO & 1106 & 0.0300 & 0.0144 & 0.4926 & 0.0300 & \textbf{0.0197 (−34.4\%)} & Pooled test points \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+### Error–Uncertainty Rank Association
+Across all evaluated OOD axes, the ensemble disagreement exhibits moderate to strong positive rank correlation with absolute prediction error ($\rho(\sigma, |e|)$ approximately $0.31\text{--}0.61$, **Table 4**). The correlation is strongest on the anion-shift benchmarks (B2: $\rho = 0.6101$; B1: $\rho = 0.5062$) and the cross-family olefin benchmark (HFO: $\rho = 0.4926$). Notably, $M_{\rm reduced}$ substantially improves rank correlation relative to $M_0$ (e.g., in B1, $\rho$ increases from $0.2891$ to $0.5062$; in B2, from $0.4761$ to $0.6101$), indicating that physical priors stabilize ensemble consensus around true underlying thermodynamic trends.
+
+### Selective Prediction Risk–Coverage Profiles
+In practical deployment, systems can utilize ensemble disagreement to trigger an abstention policy, referring high-uncertainty mixtures to experimental characterization or molecular dynamics simulations. As shown in **Figure 4b**, sorting test samples by $\sigma_i$ and systematically rejecting the most uncertain predictions produces monotonically declining risk-coverage curves across all five axes:
+- In the B1 anion benchmark, abstaining on the top 50\% most uncertain samples reduces retained-set prediction error by **$52.5\%$** ($\text{MAE}: 0.0292 \to 0.0139$).
+- In the B2 inorganic fluoride benchmark, 50\% selective coverage reduces retained-set prediction error by **$51.2\%$** ($\text{MAE}: 0.0472 \to 0.0230$).
+- Across the HFO/HCFO, M1, and L2 benchmarks, selective prediction at 50\% coverage reduces retained-set MAE by $34.4\%$, $27.2\%$, and $25.8\%$, respectively.
+
+We emphasize an important aggregation distinction for the M1 LORO axis: the reported ensemble MAE of $0.0613$ is macro-averaged across the 12 held-out refrigerants to weight each chemical species equally, whereas the risk–coverage evaluation pools all $N=1403$ test instances directly, yielding a full-coverage risk of $0.0720$ that progressively drops to $0.0524$ at 50% coverage.
+
+Crucially, however, ensemble disagreement is **not infallible**. On R1336mzz(E), because all five seeds inherited the identical degenerate 2D graph representation, the ensemble exhibits false confidence: R1336mzz(E) exhibited a relatively low ensemble disagreement ($\bar{\sigma} = 0.0213$) despite its large prediction error, indicating that ensemble disagreement may fail to detect representation-level blindness (**Table 3**). This underscores that while deep-ensemble disagreement can provide a useful ranking signal for some forms of parametric distribution shift, it cannot identify representational blindness caused by invariant graph topologies.

@@ -1,0 +1,8 @@
+Audit ID,Check Name,Status,Detail
+AUDIT_A_LORO_LEAKAGE,LORO Held-out Refrigerant Isolation,PASS,All 12 LORO splits confirmed zero held-out refrigerant leakage in train/val.
+AUDIT_B_SMILES_CONSISTENCY,SMILES Entity Mapping Consistency,PASS,"Every cation (17), anion (23), and refrigerant (26) maps to a strictly unique SMILES string."
+AUDIT_C_CANONICAL_DUPLICATES,Canonical SMILES Disguised Duplicate Verification,PASS,No disguised duplicates found: distinct named entities map to distinct molecular structures.
+AUDIT_D_DESCRIPTOR_PROVENANCE,Descriptor Provenance & Target Leakage Audit,PASS,"Verified: Tc, Pc, omega are pure-component thermodynamic constants retrieved from authoritative EOS (NIST WebBook, Lemmon & Akasaka). They are 100% decoupled from solvent identity, split configuration, and experimental solubility x1."
+AUDIT_E_STATE_OVERLAP,Cross-Split Thermodynamic State Point Isolation,PASS,"Verified: Exactly 0 identical state-point 5-tuples (cation, anion, refrigerant, T, P) overlap between train and test across all OOD splits."
+AUDIT_F_L2_COMPOSITION,L2 Compositional Recombination Strict Audit,PASS,"Verified: All 4 held-out pairs (total N=374) are strictly train-free (0 in train). All constituent cations (17 unique) and anions (23 unique) appear in training with alternate partners, confirming a genuine compositional OOD split."
+AUDIT_G_HFO_ISOLATION,HFO/HCFO Cross-Family Zero-Shot Isolation,PASS,"Verified: All N=1106 HFO/HCFO points belong to 5 unsaturated species (R1234yf, R1234ze(E), R1233zd(E), R1336mzz(E), R1336mzz(Z)). Exactly 0 unsaturated refrigerants or C=C olefinic bonds exist in the HFC training corpus (N=2465). Zero overlap confirmed."

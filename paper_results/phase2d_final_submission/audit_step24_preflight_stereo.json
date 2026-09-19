@@ -1,0 +1,107 @@
+{
+  "audit_timestamp": "2026-09-19T20:42:54.903332",
+  "all_stages_passed": true,
+  "summary": {
+    "P1_SMILES_STEREO_INTEGRITY": "PASS",
+    "P2_BASELINE_DEGENERACY_VERIFIED": "PASS",
+    "P3_STEREO_DISTINCTION_VERIFIED": "PASS",
+    "P4_ISOLATED_DIFF_REPORT": "PASS",
+    "P5_BATCH_PIPELINE_PRESERVATION": "PASS"
+  },
+  "stages": [
+    {
+      "stage": "P1_SMILES_STEREO_INTEGRITY",
+      "status": "PASS",
+      "detail": "RDKit detected STEREOE (3) for trans and STEREOZ (2) for cis.",
+      "metrics": {
+        "E_stereo": [
+          3
+        ],
+        "Z_stereo": [
+          2
+        ]
+      }
+    },
+    {
+      "stage": "P2_BASELINE_DEGENERACY_VERIFIED",
+      "status": "PASS",
+      "detail": "Baseline featurizer produces mathematically identical graphs for R1336mzz(E) and R1336mzz(Z).",
+      "metrics": {
+        "diff_x": 0.0,
+        "diff_e": 0.0,
+        "diff_a": 0.0
+      }
+    },
+    {
+      "stage": "P3_STEREO_DISTINCTION_VERIFIED",
+      "status": "PASS",
+      "detail": "Stereo-aware featurizer resolves E/Z via bond stereo dimension with max diff 1.",
+      "metrics": {
+        "max_bond_diff": 1.0,
+        "E_bonds": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          3,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "Z_bonds": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          2,
+          2,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "stage": "P4_ISOLATED_DIFF_REPORT",
+      "status": "PASS",
+      "detail": "Except for the 4th bond stereo dimension, all atom/bond features and graph topologies are 100% identical.",
+      "metrics": {
+        "non_stereo_atom_diff": 0.0,
+        "non_stereo_bond_diff": 0.0,
+        "edge_index_diff": 0.0,
+        "differing_edges": 2
+      }
+    },
+    {
+      "stage": "P5_BATCH_PIPELINE_PRESERVATION",
+      "status": "PASS",
+      "detail": "Stereo information survives tri-graph combination, global-node addition, PyG Batch collation, and yields distinct forward model activations.",
+      "metrics": {
+        "batch_edge_attr_diff": 1.0,
+        "edge_emb_diff": 2.902324676513672,
+        "model_output_diff": 0.0024685263633728027,
+        "tri_graph_nodes": 34,
+        "tri_graph_edges": 128
+      }
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+\begin{table}[htbp]
+\centering
+\small
+\caption{Cross-axis diagnostic performance using a consistent five-seed mean within each axis. The M1 values are macro-averaged over held-out refrigerants; B1, B2, L2 and HFO/HCFO values are pooled over test points within each seed.}
+\label{tab:cross_axis_performance}
+\begin{tabular}{lllllllll}
+\toprule
+OOD axis & Held-out object & N & $M 0$ MAE & $M {red}$ MAE & $\Delta$MAE (\%) & $M 0$ $R^2$ & $M {red}$ $R^2$ & Metric basis \\
+\midrule
+M1 & 12 HFC refrigerants (LORO) & 1403 & 0.1049 & 0.0666 & -36.5110 & -0.4158 & 0.3824 & 5-seed mean; macro across 12 held-out refrigerants \\
+B1 & Fam-2 fluorosulfonate anions & 513 & 0.0304 & 0.0302 & -0.6579 & 0.9265 & 0.9285 & 5-seed mean; pooled test points \\
+B2 & Fam-3 BF4/PF6 anions & 598 & 0.0534 & 0.0483 & -9.5506 & 0.7931 & 0.8333 & 5-seed mean; pooled test points \\
+L2 & 4 unseen cation–anion recombinations & 374 & 0.0334 & 0.0293 & -12.2039 & 0.8878 & 0.9126 & 5-seed mean; pooled test points \\
+HFO/HCFO & 1106 unsaturated refrigerant points & 1106 & 0.0468 & 0.0326 & -30.3746 & 0.4920 & 0.6926 & 5-seed mean; pooled test points \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Ensemble uncertainty diagnostics across OOD axes. $\sigma$ denotes the seed-ensemble epistemic uncertainty proxy; risk reduction is evaluated at 50\% coverage.}
+\label{tab:cross_axis_uq}
+\begin{tabular}{lllllllll}
+\toprule
+OOD axis & N & $M 0$ MAE & $M {red}$ MAE & $M 0$ $\bar\sigma$ & $M {red}$ $\bar\sigma$ & $M 0$ $\rho {\sigma,e}$ & $M {red}$ $\rho {\sigma,e}$ & 50\% risk reduction \\
+\midrule
+M1 & 1403 & 0.0940 & 0.0613 &  &  & 0.1028 & 0.3058 & 0.2720 \\
+B1 & 513 & 0.0287 & 0.0292 & 0.0116 & 0.0092 & 0.2891 & 0.5062 & 0.5250 \\
+B2 & 598 & 0.0518 & 0.0476 & 0.0183 & 0.0110 & 0.4761 & 0.6101 & 0.5120 \\
+L2 & 374 & 0.0298 & 0.0271 & 0.0186 & 0.0142 & 0.3506 & 0.3084 & 0.2582 \\
+HFO/HCFO & 1106 & 0.0374 & 0.0300 & 0.0345 & 0.0144 & 0.3407 & 0.4926 & 0.3444 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Species-level zero-shot transfer to unsaturated refrigerants under the All-HFC training protocol.}
+\label{tab:unsat_species}
+\begin{tabular}{lllllllllll}
+\toprule
+Species & Class & N & $M 0$ MAE & $M {red}$ MAE & MAE change (\%) & $M 0$ $R^2$ & $M {red}$ $R^2$ & $M 0$ $\bar\sigma$ & $M {red}$ $\bar\sigma$ & $M {red}$ $\rho {\sigma,e}$ \\
+\midrule
+R1234yf & HFO & 685 & 0.0320 & 0.0250 & 21.9144 & 0.7240 & 0.8017 & 0.0301 & 0.0134 & 0.4849 \\
+R1234ze(E) & HFO & 308 & 0.0391 & 0.0303 & 22.5151 & 0.5433 & 0.7614 & 0.0480 & 0.0158 & 0.5332 \\
+R1233zd(E) & HCFO & 90 & 0.0297 & 0.0193 & 35.2059 & -0.4074 & 0.2307 & 0.0172 & 0.0165 & 0.6303 \\
+R1336mzz(E) & HFO & 11 & 0.1196 & 0.2885 & -141.1136 & -9.0666 & -53.4281 & 0.0774 & 0.0213 & 0.0818 \\
+R1336mzz(Z) & HFO & 12 & 0.2854 & 0.1536 & 46.1710 & -3.3085 & -0.6739 & 0.0277 & 0.0116 & -0.1119 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Pair-level L2 compositional recombination results for the four held-out cation--anion pairs.}
+\label{tab:l2_pairs}
+\begin{tabular}{lllllllll}
+\toprule
+Held-out pair & N & $M 0$ MAE & $M {red}$ MAE & MAE reduction (\%) & $M 0$ $R^2$ & $M {red}$ $R^2$ & $M 0$ $\bar\sigma$ & $M {red}$ $\bar\sigma$ \\
+\midrule
+BMIM__OTF & 50.0000 & 0.0437 & 0.0407 & 7.0186 & 0.8667 & 0.8768 & 0.0117 & 0.0121 \\
+EMIM__BF4 & 93.0000 & 0.0264 & 0.0207 & 21.5866 & 0.9436 & 0.9652 & 0.0254 & 0.0153 \\
+EMIM__OTF & 114.0000 & 0.0294 & 0.0274 & 6.7355 & 0.8657 & 0.8838 & 0.0171 & 0.0129 \\
+HMIM__BF4 & 117.0000 & 0.0270 & 0.0260 & 3.4532 & 0.8947 & 0.8960 & 0.0177 & 0.0157 \\
+\bottomrule
+\end{tabular}
+\end{table}

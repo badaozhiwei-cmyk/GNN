@@ -1,0 +1,6 @@
+axis,held_out,N_test,M0_MAE,Mred_MAE,delta_MAE_pct,M0_R2,Mred_R2,metric_basis,M0_mean_sigma,Mred_mean_sigma,Mred_rho_sigma_error,risk50
+M1,12 HFC refrigerants (LORO),1403,0.094,0.0613,-34.78723404255319,-0.2399,0.5005,Ensemble macro over 12 refrigerants (M1),,,0.3058,0.272
+B1,Fam-2 fluorosulfonate anions,513,0.0287,0.0292,1.7421602787456463,0.9265,0.9285,MAE: ensemble pooled; R²: 5-seed mean,0.0116,0.0092,0.5062,0.525
+B2,Fam-3 BF4/PF6 anions,598,0.0518,0.0476,-8.108108108108098,0.7931,0.8333,MAE: ensemble pooled; R²: 5-seed mean,0.0183,0.011,0.6101,0.512
+L2,4 unseen cation–anion recombinations,374,0.029814,0.027089,-9.140001341651578,0.910787,0.92178,Ensemble pooled over 374 test points,0.01864,0.014248,0.3084066465,0.2582004676
+HFO/HCFO,1106 unsaturated refrigerant points,1106,0.0374241,0.0300247,-19.771751358082092,0.622693,0.710704,Ensemble pooled over 1106 points,0.034505,0.014402,0.492593,0.3443748588

@@ -1,0 +1,2 @@
+N,mean_delta_MAE_M0_minus_Mred,relative_improvement_pct,bootstrap_CI95_low,bootstrap_CI95_high,win_rate_pct,wilcoxon_W,wilcoxon_p
+374,0.0027244370166750187,9.138195418279981,0.0015148537663274718,0.003915189783609306,59.893048128342244,44288.0,5.177116811776513e-06

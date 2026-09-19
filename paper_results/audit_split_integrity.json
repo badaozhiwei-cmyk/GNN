@@ -1,0 +1,300 @@
+{
+  "audit_timestamp": "2026-09-20T00:00:41.842719",
+  "summary": {
+    "total_audits": 7,
+    "PASS": 7,
+    "FAIL": 0,
+    "WARNING": 0
+  },
+  "audits": [
+    {
+      "audit_id": "AUDIT_A_LORO_LEAKAGE",
+      "name": "LORO Held-out Refrigerant Isolation",
+      "status": "PASS",
+      "detail": "All 12 LORO splits confirmed zero held-out refrigerant leakage in train/val.",
+      "metrics": {
+        "splits_tested": 12,
+        "leaked_splits": 0
+      }
+    },
+    {
+      "audit_id": "AUDIT_B_SMILES_CONSISTENCY",
+      "name": "SMILES Entity Mapping Consistency",
+      "status": "PASS",
+      "detail": "Every cation (17), anion (23), and refrigerant (26) maps to a strictly unique SMILES string.",
+      "metrics": {
+        "n_cations": 17,
+        "n_anions": 23,
+        "n_refrigerants": 26
+      }
+    },
+    {
+      "audit_id": "AUDIT_C_CANONICAL_DUPLICATES",
+      "name": "Canonical SMILES Disguised Duplicate Verification",
+      "status": "PASS",
+      "detail": "No disguised duplicates found: distinct named entities map to distinct molecular structures.",
+      "metrics": {
+        "canonicalized_refrigerants": 26,
+        "canonicalized_anions": 23
+      }
+    },
+    {
+      "audit_id": "AUDIT_D_DESCRIPTOR_PROVENANCE",
+      "name": "Descriptor Provenance & Target Leakage Audit",
+      "status": "PASS",
+      "detail": "Verified: Tc, Pc, omega are pure-component thermodynamic constants retrieved from authoritative EOS (NIST WebBook, Lemmon & Akasaka). They are 100% decoupled from solvent identity, split configuration, and experimental solubility x1.",
+      "metrics": {
+        "total_substances_audited": 17,
+        "provenance_entries": [
+          {
+            "refrigerant": "R23",
+            "class": "HFC",
+            "Tc_K": 299.29,
+            "Pc_MPa": 4.832,
+            "omega": 0.263,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R32",
+            "class": "HFC",
+            "Tc_K": 351.26,
+            "Pc_MPa": 5.782,
+            "omega": 0.277,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R41",
+            "class": "HFC",
+            "Tc_K": 317.28,
+            "Pc_MPa": 5.897,
+            "omega": 0.201,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R125",
+            "class": "HFC",
+            "Tc_K": 339.17,
+            "Pc_MPa": 3.618,
+            "omega": 0.305,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R134A",
+            "class": "HFC",
+            "Tc_K": 374.21,
+            "Pc_MPa": 4.059,
+            "omega": 0.327,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R134",
+            "class": "HFC",
+            "Tc_K": 391.75,
+            "Pc_MPa": 4.641,
+            "omega": 0.312,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R143A",
+            "class": "HFC",
+            "Tc_K": 345.86,
+            "Pc_MPa": 3.761,
+            "omega": 0.262,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R152A",
+            "class": "HFC",
+            "Tc_K": 386.41,
+            "Pc_MPa": 4.517,
+            "omega": 0.275,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R161",
+            "class": "HFC",
+            "Tc_K": 375.25,
+            "Pc_MPa": 5.091,
+            "omega": 0.217,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R227EA",
+            "class": "HFC",
+            "Tc_K": 374.9,
+            "Pc_MPa": 2.925,
+            "omega": 0.357,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R236FA",
+            "class": "HFC",
+            "Tc_K": 398.07,
+            "Pc_MPa": 3.2,
+            "omega": 0.377,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R245FA",
+            "class": "HFC",
+            "Tc_K": 427.16,
+            "Pc_MPa": 3.651,
+            "omega": 0.378,
+            "literature_eos_source": "NIST Chemistry WebBook / REFPROP 10.0",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R1234YF",
+            "class": "HFO/HCFO",
+            "Tc_K": 367.85,
+            "Pc_MPa": 3.382,
+            "omega": 0.276,
+            "literature_eos_source": "Akasaka & Lemmon (2013) / CoolProp",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R1234ZE(E)",
+            "class": "HFO/HCFO",
+            "Tc_K": 382.51,
+            "Pc_MPa": 3.635,
+            "omega": 0.313,
+            "literature_eos_source": "Akasaka (2011) / CoolProp",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R1233ZD(E)",
+            "class": "HFO/HCFO",
+            "Tc_K": 438.86,
+            "Pc_MPa": 3.5828,
+            "omega": 0.304,
+            "literature_eos_source": "Mondal et al. (2015) / CoolProp",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R1336MZZ(E)",
+            "class": "HFO/HCFO",
+            "Tc_K": 403.53,
+            "Pc_MPa": 2.779,
+            "omega": 0.4128,
+            "literature_eos_source": "Shen et al. (2018) / NIST REFPROP",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          },
+          {
+            "refrigerant": "R1336MZZ(Z)",
+            "class": "HFO/HCFO",
+            "Tc_K": 444.5,
+            "Pc_MPa": 2.9037,
+            "omega": 0.386,
+            "literature_eos_source": "Tanaka et al. (2016) / NIST REFPROP",
+            "target_leakage_risk": "STRICTLY_ZERO (pure-component constant, independent of solvent and x1)"
+          }
+        ]
+      }
+    },
+    {
+      "audit_id": "AUDIT_E_STATE_OVERLAP",
+      "name": "Cross-Split Thermodynamic State Point Isolation",
+      "status": "PASS",
+      "detail": "Verified: Exactly 0 identical state-point 5-tuples (cation, anion, refrigerant, T, P) overlap between train and test across all OOD splits.",
+      "metrics": {
+        "B1_Fam2": {
+          "train_points": 2003,
+          "val_points": 223,
+          "test_points": 513,
+          "train_unique_states": 1991,
+          "test_unique_states": 513,
+          "train_test_overlap_states": 0,
+          "val_test_overlap_states": 0
+        },
+        "B2_Fam3": {
+          "train_points": 1927,
+          "val_points": 214,
+          "test_points": 598,
+          "train_unique_states": 1916,
+          "test_unique_states": 598,
+          "train_test_overlap_states": 0,
+          "val_test_overlap_states": 0
+        },
+        "L2_Composition": {
+          "train_points": 2129,
+          "val_points": 236,
+          "test_points": 374,
+          "train_unique_states": 2117,
+          "test_unique_states": 374,
+          "train_test_overlap_states": 0,
+          "val_test_overlap_states": 0
+        },
+        "HFC_all": {
+          "train_points": 2465,
+          "val_points": 274,
+          "test_points": 0,
+          "train_unique_states": 2457,
+          "test_unique_states": 0,
+          "train_test_overlap_states": 0,
+          "val_test_overlap_states": 0
+        }
+      }
+    },
+    {
+      "audit_id": "AUDIT_F_L2_COMPOSITION",
+      "name": "L2 Compositional Recombination Strict Audit",
+      "status": "PASS",
+      "detail": "Verified: All 4 held-out pairs (total N=374) are strictly train-free (0 in train). All constituent cations (17 unique) and anions (23 unique) appear in training with alternate partners, confirming a genuine compositional OOD split.",
+      "metrics": {
+        "heldout_pair_counts": {
+          "EMIM__BF4": 93,
+          "EMIM__OTF": 114,
+          "BMIM__OTF": 50,
+          "HMIM__BF4": 117
+        },
+        "total_test_N": 374,
+        "leaked_pairs_in_train": 0,
+        "all_cations_present_in_train": true,
+        "all_anions_present_in_train": true
+      }
+    },
+    {
+      "audit_id": "AUDIT_G_HFO_ISOLATION",
+      "name": "HFO/HCFO Cross-Family Zero-Shot Isolation",
+      "status": "PASS",
+      "detail": "Verified: All N=1106 HFO/HCFO points belong to 5 unsaturated species (R1234yf, R1234ze(E), R1233zd(E), R1336mzz(E), R1336mzz(Z)). Exactly 0 unsaturated refrigerants or C=C olefinic bonds exist in the HFC training corpus (N=2465). Zero overlap confirmed.",
+      "metrics": {
+        "hfo_test_points": 1106,
+        "hfo_species": [
+          "R1233ZD(E)",
+          "R1234YF",
+          "R1234ZE(E)",
+          "R1336MZZ(E)",
+          "R1336MZZ(Z)"
+        ],
+        "hfc_train_refrigerants": [
+          "R125",
+          "R134",
+          "R134A",
+          "R143A",
+          "R152A",
+          "R161",
+          "R227EA",
+          "R23",
+          "R236FA",
+          "R245FA",
+          "R32",
+          "R41"
+        ],
+        "refrigerant_overlap": [],
+        "hfc_train_has_olefins": false
+      }
+    }
+  ]
+}

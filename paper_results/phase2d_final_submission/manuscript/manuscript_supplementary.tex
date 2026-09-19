@@ -1,0 +1,187 @@
+\section*{Supplementary Information: Cross-Axis Generalization Boundaries of Molecular Graph Neural Networks for Multicomponent Refrigerant Solubility}
+\label{sec:si}
+
+\subsection*{Section S1. Data Provenance, Curation, and Strict Split Definitions}
+
+\subsubsection*{S1.1 Dataset Compilation and Sourcing}
+The experimental data utilized in this study comprise two authoritative collections of vapor--liquid equilibrium solubility measurements ($x_1$, mole fraction of refrigerant in ionic liquid):
+\begin{enumerate}
+    \item \textbf{Saturated Hydrofluorocarbon (HFC) Dataset ($N=2739$)}: Collected from published literature across 12 distinct HFC refrigerant solutes (R32, R125, R134a, R152a, R23, R134, R161, R143a, R245fa, R236fa, R227ea, R41) paired with 86 unique room-temperature ionic liquids comprising diverse imidazolium, pyridinium, pyrrolidinium, phosphonium, and ammonium cations with fluorinated and non-fluorinated anions.
+    \item \textbf{Unsaturated Hydrofluoroolefin/Hydrochlorofluoroolefin (HFO/HCFO) Dataset ($N=1106$)}: Compiled from recent experimental literature for fourth-generation low-global-warming-potential (GWP) working fluids (R1234yf, R1234ze(E), R1233zd(E), R1336mzz(E), R1336mzz(Z)) across an overlapping suite of ionic liquids.
+\end{enumerate}
+
+\subsubsection*{S1.2 Authoritative Sample Size and Metric Integrity Audit}
+To ensure absolute mathematical consistency and preclude ambiguities in sample counts, all test point counts were formally audited and frozen via \texttt{step14\_final\_cross\_axis\_freeze\_audit.py}:
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Authoritative sample sizes, shift domains, and evaluation bases across the five OOD benchmark axes.}
+\label{tab:si_sample_audit}
+\begin{tabular}{llcl}
+\toprule
+\textbf{OOD Benchmark Axis} & \textbf{Primary Shift Target} & \textbf{Authoritative Test $N$} & \textbf{Aggregation Basis} \\
+\midrule
+\textbf{M1 LORO} & Refrigerant Identity & \textbf{1403} & 5-seed mean; macro across 12 refrigerants \\
+\textbf{B1 Anion OOD} & Anion Matrix (Fam-2) & \textbf{513} & 5-seed mean; pooled test points \\
+\textbf{B2 Anion OOD} & Anion Matrix (Fam-3) & \textbf{598} & 5-seed mean; pooled test points \\
+\textbf{L2 Compositional} & Unseen Cation--Anion Pairs & \textbf{374} & 5-seed mean; pooled test points \\
+\textbf{HFO/HCFO Zero-Shot} & Saturation / Cross-Family & \textbf{1106} & 5-seed mean; pooled test points \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection*{S1.3 Thermodynamic Consistency and Sample Integrity}
+Every entry in both datasets underwent automated physical validation:
+\begin{itemize}
+    \item \textbf{Thermodynamic State Duplicates and Literature Provenance}: The comprehensive data lineage audit (Step 21) identified 13 identical thermodynamic state combinations ($(T, P, \text{solute}, \text{IL})$) originating from independent published experimental literature sources. In accordance with physical data retention best practices, these measurements were verified to have consistent, non-conflicting solubility targets and were deliberately retained as distinct experimental records reflecting inter-laboratory measurement reproducibility rather than being silently discarded or deduplicated; all sample-level identifiers remained strictly unique, with exactly 0 cross-split leakage.
+    \item \textbf{Algebraic Verification}: Reduced state variables were verified to satisfy $T_r = T / T_c$ and $P_r = P / P_c$ using the compiled critical-property data ($T_c, P_c, \omega$) employed for the reduced coordinate calculations. Operating ranges span $T \in [283.15, 363.15]\text{ K}$ and $P \in [0.01, 2.50]\text{ MPa}$.
+    \item \textbf{Absence of Data Leakage}: In all five OOD split configurations, training, validation, and test subsets were strictly partitioned at the molecular entity level before data standardization scalers were fitted.
+\end{itemize}
+
+\subsubsection*{S1.4 Critical Thermodynamic Property Provenance for Unsaturated Solutes}
+The macroscopic thermodynamic parameters ($T_c, P_c, \omega$) utilized in the reduced coordinate calculations ($M_{\mathrm{reduced}}$) for the external unsaturated (HFO/HCFO) evaluation benchmark were obtained from internationally recognized reference equations of state (NIST REFPROP database and literature formulations), summarized in Table~\ref{tab:si_hfo_critical}.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Critical thermodynamic constants and equation-of-state literature sources for the unsaturated (HFO/HCFO) evaluation set.}
+\label{tab:si_hfo_critical}
+\begin{tabular}{llcccl}
+\toprule
+\textbf{Refrigerant} & \textbf{CAS No.} & \textbf{$T_c$ (K)} & \textbf{$P_c$ (MPa)} & \textbf{$\omega$} & \textbf{Source / Reference Equation} \\
+\midrule
+\textbf{R1234yf} & 754-12-1 & 367.85 & 3.3820 & 0.2760 & Lemmon \& Akasaka, \textit{J. Chem. Eng. Data} (2014) \\
+\textbf{R1234ze(E)} & 29118-24-9 & 382.51 & 3.6350 & 0.3130 & Akasaka, \textit{Int. J. Refrig.} (2011) \\
+\textbf{R1233zd(E)} & 102687-65-0 & 438.86 & 3.5828 & 0.3040 & Mondéjar et al., \textit{J. Chem. Eng. Data} (2015) \\
+\textbf{R1336mzz(E)} & 66711-86-2 & 403.53 & 2.7790 & 0.4128 & Akasaka et al., \textit{J. Chem. Eng. Data} (2018) \\
+\textbf{R1336mzz(Z)} & 692-49-9 & 444.50 & 2.9037 & 0.3860 & Tanaka et al., \textit{Int. J. Refrig.} (2016) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{Section S2. Molecular Featurization and Neural Network Architecture}
+
+\subsubsection*{S2.1 Tri-Graph Representation}
+Each absorption mixture is represented as three distinct molecular graphs:
+\begin{equation}
+\mathcal{M} = \{\mathcal{G}_{\mathrm{cation}}, \mathcal{G}_{\mathrm{anion}}, \mathcal{G}_{\mathrm{refrigerant}}\}
+\end{equation}
+For each graph $\mathcal{G} = (\mathcal{V}, \mathcal{E})$, atom node features are encoded via $7$ discrete categorical lookup tables into a shared embedding space ($d_{\rm emb} = 300$):
+\begin{enumerate}
+    \item Atomic number ($119$ bins)
+    \item Hybridization state ($\text{sp}, \text{sp}^2, \text{sp}^3, \text{sp}^3\text{d}, \text{sp}^3\text{d}^2$; $8$ bins)
+    \item Aromaticity indicator ($2$ bins)
+    \item Degree of connectivity ($7$ bins)
+    \item Formal charge ($3$ bins)
+    \item Pauling electronegativity bucket ($8$ bins)
+    \item Covalent radius bucket ($8$ bins)
+\end{enumerate}
+In addition, each atom receives a component identity embedding ($3$ classes: cation, anion, solute). The three component subgraphs are assembled into a combined tri-graph representation, to which a single virtual Global Token node is appended and bidirectionally connected to all constituent atoms across the ternary mixture, parameterized by an independent learnable vector $\mathbf{h}_{\rm global} \in \mathbb{R}^{300}$.
+
+Chemical bond edge features are mapped via $3$ categorical lookup tables into $d_{\rm emb} = 300$:
+\begin{enumerate}
+    \item Bond type (global connection, single, double, triple, aromatic; $5$ categories)
+    \item Ring membership flag ($2$ categories)
+    \item Aromaticity flag ($2$ categories)
+\end{enumerate}
+In the stereochemical diagnostic ablation (Section~\ref{subsec:stereo_boundary}), edge features are expanded to $4$ dimensions by incorporating a $6$-category directional stereochemistry tag (None, Any, Z, E, Cis, Trans).
+
+\subsubsection*{S2.2 Scalar Condition Feature Schemas}
+The scalar conditioning branch feeds into the fusion MLP alongside the pooled graph representations:
+\begin{itemize}
+    \item \textbf{Baseline $M_0$ (9-dimensional scalar vector)}: Operating temperature $T$ (K), operating pressure $P$ (MPa), refrigerant maximum partial charge $q_{\mathrm{max}}^{\mathrm{ref}}$, refrigerant partition coefficient $\text{MolLogP}^{\mathrm{ref}}$, anion molecular weight $\text{MW}^{\mathrm{ani}}$, cation maximum partial charge $q_{\mathrm{max}}^{\mathrm{cat}}$, cation polar surface area $\text{TPSA}^{\mathrm{cat}}$, refrigerant molecular weight $\text{MW}^{\mathrm{ref}}$, cation molecular weight $\text{MW}^{\mathrm{cat}}$.
+    \item \textbf{Intervention $M_{\mathrm{reduced}}$ (12-dimensional scalar vector)}: Augments $M_0$ with three corresponding-states scaling coordinates: reduced temperature $T_r = T / T_c$, reduced pressure $P_r = P / P_c$, and Pitzer acentric factor $\omega$.
+\end{itemize}
+
+\subsubsection*{S2.3 Architecture and Hyperparameters}
+\begin{itemize}
+    \item \textbf{Graph Encoder}: 3-layer relational Graph Attention Network v2 (GATv2Conv) with edge-attribute conditioning ($\text{edge\_dim} = 300$). Channel dimensions progress as $300 \to 512 \to 1024 \to 512$, with $K = 4$ attention heads, \texttt{concat=False}, ReLU activation, and dropout probability $p_{\rm drop} = 0.2$.
+    \item \textbf{Readout Pooling}: The topological representation $\mathbf{h}_{\rm topo} \in \mathbb{R}^{512}$ is extracted directly from the updated virtual Global Token node at the final layer ($L=3$).
+    \item \textbf{Fusion MLP}: Combines $\mathbf{h}_{\rm topo}$ with standardized scalar condition vector $\mathbf{z} \in \mathbb{R}^{d_{\rm cond}}$ ($d_{\rm cond} = 9$ for $M_0$, $12$ for $M_{\rm reduced}$):
+    \begin{equation}
+        \text{MLP}: \mathbb{R}^{512 + d_{\rm cond}} \xrightarrow{\text{Linear}(1024)} \text{Norm} \xrightarrow{\text{ReLU}} \text{Dropout}(0.4) \xrightarrow{\text{Linear}(512)} \text{Norm} \xrightarrow{\text{ReLU}} \text{Dropout}(0.3) \xrightarrow{\text{Linear}(1)} \hat{x}_1
+    \end{equation}
+    \item \textbf{Training Protocol}: Adam optimizer, initial learning rate $\eta_0 = 1.0 \times 10^{-3}$ with Cosine Annealing decay down to $\eta_{\rm min} = 1.0 \times 10^{-5}$, weight decay $\lambda = 1.0 \times 10^{-6}$, mini-batch size of $32$, and robust Huber loss with threshold $\delta = 0.05$. Models were trained for $100$ epochs with early stopping patience of $15$ epochs on validation loss. Five independent seeds ($\mathcal{S} = \{42, 43, 44, 45, 46\}$) were executed for each configuration. Normalization scalers ($\boldsymbol{\mu}_{\rm train}, \boldsymbol{\sigma}_{\rm train}$) were fit strictly on the training partition of each fold.
+\end{itemize}
+
+\subsection*{Section S3. Statistical Robustness and Sensitivity Analyses}
+
+\subsubsection*{S3.1 L2 Paired Bootstrap and Permutation Testing}
+To verify the hypothesis that $M_{\mathrm{reduced}}$ provides a statistically significant error reduction on unseen cation--anion mixtures (L2 benchmark, $N=374$), we conducted non-parametric resampling:
+\begin{itemize}
+    \item \textbf{Pointwise Paired Difference}: $\Delta e_i = |y_i - \hat{y}_i^{(M_0)}| - |y_i - \hat{y}_i^{(M_{\mathrm{red}})}|$.
+    \item \textbf{Bootstrap Protocol}: $B = 10,000$ resamples with replacement over the 374 points.
+    \item \textbf{Empirical Statistics}: Mean $= 0.002724$, Standard Error $= 0.000612$, 95\% Studentized Confidence Interval $= [0.001515, 0.003915]$, Wilcoxon signed-rank test (one-sided) $W = 44102.0$ ($p = 5.18 \times 10^{-6}$), Pairwise win rate $= 59.89\%$.
+\end{itemize}
+
+\subsubsection*{S3.2 Sensitivity to HCFO Exclusion in Cross-Family Transfer}
+The external unsaturated dataset includes 90 points for the hydrochlorofluoroolefin R1233zd(E). Because chlorine is absent from all training HFCs, we tested whether the observed cross-family gain was driven by R1233zd(E):
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Sensitivity of unsaturated zero-shot transfer to the exclusion of chloro-fluoroolefin R1233zd(E).}
+\label{tab:si_hcfo_sensitivity}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Dataset Scope} & \textbf{$N$} & \textbf{$M_0$ Ensemble MAE} & \textbf{$M_{\mathrm{red}}$ Ensemble MAE} & \textbf{$\Delta\text{MAE}$ (\%)} & \textbf{$M_0$ $R^2$} & \textbf{$M_{\mathrm{red}}$ $R^2$} \\
+\midrule
+\textbf{All Unsaturated} (HFO + HCFO) & 1106 & 0.0374 & 0.0300 & −19.8\% & 0.6227 & 0.7107 \\
+\textbf{Pure HFO Only} (Excl. R1233zd(E)) & 1016 & 0.0381 & 0.0310 & \textbf{−18.7\%} & 0.6224 & 0.7085 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{Section S4. Comprehensive Benchmark Compendium}
+
+\subsubsection*{S4.1 Leave-One-Refrigerant-Out (M1 LORO) Detailed Species Performance}
+Table~\ref{tab:si_m1_loro_details} provides the complete breakdown across all 12 held-out HFC refrigerants under baseline $M_0$ and intervention $M_{\mathrm{reduced}}$ (5-seed ensemble).
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Complete per-refrigerant breakdown for the Leave-One-Refrigerant-Out (M1 LORO) benchmark.}
+\label{tab:si_m1_loro_details}
+\begin{tabular}{llccccccc}
+\toprule
+\textbf{Refrigerant} & \textbf{Formula} & \textbf{$N$} & \textbf{$T_c$ (K)} & \textbf{$P_c$ (MPa)} & \textbf{$\omega$} & \textbf{$M_0$ MAE} & \textbf{$M_{\mathrm{red}}$ MAE} & \textbf{$\Delta\text{MAE}$ (\%)} \\
+\midrule
+\textbf{R134a} & $\text{CH}_2\text{FCF}_3$ & 288 & 374.21 & 4.06 & 0.327 & 0.1525 & 0.0769 & \textbf{−49.6\%} \\
+\textbf{R32} & $\text{CH}_2\text{F}_2$ & 287 & 351.26 & 5.78 & 0.277 & 0.0952 & 0.1036 & +8.8\% \\
+\textbf{R125} & $\text{CHF}_2\text{CF}_3$ & 170 & 339.17 & 3.62 & 0.305 & 0.1094 & 0.0369 & \textbf{−66.3\%} \\
+\textbf{R152a} & $\text{CH}_3\text{CHF}_2$ & 98 & 386.41 & 4.52 & 0.279 & 0.1006 & 0.0561 & \textbf{−44.2\%} \\
+\textbf{R23} & $\text{CHF}_3$ & 97 & 299.29 & 4.83 & 0.264 & 0.0928 & 0.0434 & \textbf{−53.2\%} \\
+\textbf{R134} & $\text{CHF}_2\text{CHF}_2$ & 92 & 391.73 & 4.60 & 0.297 & 0.2086 & 0.1414 & \textbf{−32.2\%} \\
+\textbf{R161} & $\text{CH}_3\text{CH}_2\text{F}$ & 84 & 375.25 & 5.01 & 0.218 & 0.0850 & 0.0681 & −19.9\% \\
+\textbf{R143a} & $\text{CH}_3\text{CF}_3$ & 83 & 345.86 & 3.76 & 0.261 & 0.1156 & 0.0646 & \textbf{−44.1\%} \\
+\textbf{R245fa} & $\text{CHF}_2\text{CH}_2\text{CF}_3$ & 55 & 427.16 & 3.65 & 0.378 & 0.0764 & 0.0852 & +11.5\% \\
+\textbf{R236fa} & $\text{CF}_3\text{CH}_2\text{CF}_3$ & 55 & 398.07 & 3.20 & 0.376 & 0.1173 & 0.0304 & \textbf{−74.1\%} \\
+\textbf{R227ea} & $\text{CF}_3\text{CHFCF}_3$ & 55 & 374.90 & 2.93 & 0.357 & 0.0602 & 0.0267 & \textbf{−55.6\%} \\
+\textbf{R41} & $\text{CH}_3\text{F}$ & 39 & 317.28 & 5.90 & 0.200 & 0.0403 & 0.0528 & +31.0\% \\
+\midrule
+\textbf{Macro Average} & — & \textbf{1403} & — & — & — & \textbf{0.1049} & \textbf{0.0666} & \textbf{−36.5\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection*{S4.2 Risk--Coverage Abatement Trajectories Across All Five Axes}
+Table~\ref{tab:si_risk_coverage} reports the selective prediction risk (MAE) as a function of sample coverage when retaining points with lowest seed-ensemble disagreement $\sigma_i$.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Selective prediction risk (MAE) as a function of coverage percentage across all five benchmark axes.}
+\label{tab:si_risk_coverage}
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Axis} & \textbf{100\% Coverage} & \textbf{90\% Coverage} & \textbf{80\% Coverage} & \textbf{70\% Coverage} & \textbf{60\% Coverage} & \textbf{50\% Coverage} & \textbf{Total Risk Reduction} \\
+\midrule
+\textbf{M1 LORO} & 0.0720 & 0.0663 & 0.0634 & 0.0618 & 0.0579 & \textbf{0.0524} & \textbf{−27.2\%} \\
+\textbf{B1 Anion} & 0.0292 & 0.0255 & 0.0219 & 0.0185 & 0.0163 & \textbf{0.0139} & \textbf{−52.5\%} \\
+\textbf{B2 Anion} & 0.0472 & 0.0416 & 0.0362 & 0.0334 & 0.0282 & \textbf{0.0230} & \textbf{−51.2\%} \\
+\textbf{L2 Composition} & 0.0271 & 0.0256 & 0.0243 & 0.0246 & 0.0230 & \textbf{0.0201} & \textbf{−25.8\%} \\
+\textbf{HFO/HCFO} & 0.0300 & 0.0264 & 0.0244 & 0.0231 & 0.0219 & \textbf{0.0197} & \textbf{−34.4\%} \\
+\bottomrule
+\end{tabular}
+\end{table}

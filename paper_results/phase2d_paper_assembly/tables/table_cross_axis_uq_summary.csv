@@ -1,0 +1,6 @@
+axis,N_test,M0_ensemble_MAE,Mred_ensemble_MAE,M0_mean_sigma,Mred_mean_sigma,M0_rho_sigma_error,Mred_rho_sigma_error,risk50_Mred,sigma_change_pct,note
+M1,1403,0.094,0.0613,,,0.1028,0.3058,0.272,,M1 mean sigma not available in current frozen UQ summary
+B1,513,0.0287,0.0292,0.0116,0.0092,0.2891,0.5062,0.525,-20.68965517241379,Frozen Phase II-C UQ
+B2,598,0.0518,0.0476,0.0183,0.011,0.4761,0.6101,0.512,-39.89071038251367,Frozen Phase II-C UQ
+L2,374,0.0298137312,0.0270892942,0.0186395105,0.0142479905,0.3506162206,0.3084066465,0.2582004676,-23.560275362381436,Recomputed from Phase II-D source-of-truth
+HFO/HCFO,1106,0.0374241263,0.0300247296,0.0345047447,0.0144015521,0.3406813822,0.4925930398,0.3443748588,-58.26211083370224,Recomputed from Phase II-D source-of-truth

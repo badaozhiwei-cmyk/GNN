@@ -1,0 +1,62 @@
+{
+  "audit_timestamp": "2026-09-19T20:59:45.130619",
+  "all_gates_passed": true,
+  "summary": {
+    "G1_DATA_REPRESENTATION_LOCK": "PASS",
+    "G2_ISOLATED_FEATURE_INTERVENTION": "PASS",
+    "G3_PARAMETRIC_MODEL_PIPELINE": "PASS",
+    "G4_CHECKPOINT_SERIALIZATION": "PASS",
+    "G5_SEED_DETERMINISM": "PASS"
+  },
+  "gates": [
+    {
+      "gate": "G1_DATA_REPRESENTATION_LOCK",
+      "status": "PASS",
+      "detail": "Raw source SMILES are distinct; RDKit resolves STEREOE (3) vs STEREOZ (2).",
+      "metrics": {
+        "source_E": "FC(F)(F)/C=C/C(F)(F)F",
+        "source_Z": "FC(F)(F)/C=C\\C(F)(F)F",
+        "stereo_E": [
+          3
+        ],
+        "stereo_Z": [
+          2
+        ]
+      }
+    },
+    {
+      "gate": "G2_ISOLATED_FEATURE_INTERVENTION",
+      "status": "PASS",
+      "detail": "Baseline graph is mathematically degenerate; stereo graph isolates difference strictly to 4th bond dimension.",
+      "metrics": {
+        "base_degenerate": true,
+        "diff_stereo": 1.0
+      }
+    },
+    {
+      "gate": "G3_PARAMETRIC_MODEL_PIPELINE",
+      "status": "PASS",
+      "detail": "IL_GAT_v6 with edge_dim=4 natively preserves stereo distinctions through all 3 attention convolutions and MLP head to produce distinct scalar predictions.",
+      "metrics": {
+        "diff_m0": 5.4016709327697754e-08,
+        "diff_mred": 3.5390257835388184e-08
+      }
+    },
+    {
+      "gate": "G4_CHECKPOINT_SERIALIZATION",
+      "status": "PASS",
+      "detail": "Model checkpoint serialization and deserialization preserves parameters with 0.0 numerical drift.",
+      "metrics": {
+        "reload_diff": 0.0
+      }
+    },
+    {
+      "gate": "G5_SEED_DETERMINISM",
+      "status": "PASS",
+      "detail": "Repeated initialization with fixed seed yields bitwise identical model predictions.",
+      "metrics": {
+        "seed_diff": 0.0
+      }
+    }
+  ]
+}
