@@ -414,14 +414,15 @@ def evaluate_feature_masking_faithfulness(
     data_i: Data,
     cond: torch.Tensor,
     top_atom_indices: List[int],
+    component_atom_indices: Optional[List[int]] = None,
     n_random_trials: int = 100,
     seed: int = 42,
 ) -> Dict[str, float]:
     """
     对连续节点嵌入层执行 Post-Embedding Node-Feature Masking:
     1. 将 top-k 原子对应嵌入置零 H[top_k] = 0 -> 获取预测偏差 delta_y_top
-    2. 随机抽取同等数量的正常原子进行 100 次置零 -> 获取平均随机偏差 delta_y_rand
-    3. 响应比率 R_faith = delta_y_top / delta_y_rand
+    2. 在同一组分 (Component-Matched) 内部抽取同等数量原子置零 -> delta_y_rand_comp
+    3. 在全分子图内部抽取同等数量原子置零 -> delta_y_rand_glob
     """
     model.eval()
     device = h_target.device
@@ -435,32 +436,58 @@ def evaluate_feature_masking_faithfulness(
         y_orig, _ = forward_from_embeddings(model, h_target, edge_emb_target, data_i, cond)
         y_orig_val = y_orig.item()
 
-        # Top-k group masking
+        # 1. Top-k group masking
         h_masked_top = h_target.clone()
         h_masked_top[top_atom_indices, :] = 0.0
         y_masked_top, _ = forward_from_embeddings(model, h_masked_top, edge_emb_target, data_i, cond)
         delta_y_top = abs(y_orig_val - y_masked_top.item())
 
-        # Random k-atom masking
-        random_deltas = []
+        # 2. Component-matched random baseline masking
+        if component_atom_indices is not None and len(component_atom_indices) > 0:
+            comp_pool = [a for a in component_atom_indices if a not in top_atom_indices]
+            if len(comp_pool) < k:
+                comp_pool = component_atom_indices
+        else:
+            comp_pool = normal_indices
+
+        comp_deltas = []
+        for _ in range(n_random_trials):
+            if k >= len(comp_pool):
+                sampled_comp = comp_pool
+            else:
+                sampled_comp = rng.choice(comp_pool, size=k, replace=False)
+            h_masked_comp = h_target.clone()
+            h_masked_comp[sampled_comp, :] = 0.0
+            y_masked_c, _ = forward_from_embeddings(model, h_masked_comp, edge_emb_target, data_i, cond)
+            comp_deltas.append(abs(y_orig_val - y_masked_c.item()))
+
+        mean_delta_rand_comp = float(np.mean(comp_deltas))
+        r_faith_comp = delta_y_top / max(mean_delta_rand_comp, 1e-8)
+
+        # 3. Global random baseline masking (保留对比)
+        global_deltas = []
         for _ in range(n_random_trials):
             if k >= len(normal_indices):
-                sampled = normal_indices
+                sampled_glob = normal_indices
             else:
-                sampled = rng.choice(normal_indices, size=k, replace=False)
-            h_masked_rand = h_target.clone()
-            h_masked_rand[sampled, :] = 0.0
-            y_masked_rand, _ = forward_from_embeddings(model, h_masked_rand, edge_emb_target, data_i, cond)
-            random_deltas.append(abs(y_orig_val - y_masked_rand.item()))
+                sampled_glob = rng.choice(normal_indices, size=k, replace=False)
+            h_masked_g = h_target.clone()
+            h_masked_g[sampled_glob, :] = 0.0
+            y_masked_g, _ = forward_from_embeddings(model, h_masked_g, edge_emb_target, data_i, cond)
+            global_deltas.append(abs(y_orig_val - y_masked_g.item()))
 
-        mean_delta_rand = float(np.mean(random_deltas))
-        r_faith = delta_y_top / max(mean_delta_rand, 1e-8)
+        mean_delta_rand_glob = float(np.mean(global_deltas))
+        r_faith_glob = delta_y_top / max(mean_delta_rand_glob, 1e-8)
 
     return {
         "delta_y_top": delta_y_top,
-        "mean_delta_rand": mean_delta_rand,
-        "std_delta_rand": float(np.std(random_deltas)),
-        "r_faith": r_faith,
+        "mean_delta_rand": mean_delta_rand_comp,
+        "std_delta_rand": float(np.std(comp_deltas)),
+        "r_faith": r_faith_comp,
+        "mean_delta_rand_comp": mean_delta_rand_comp,
+        "r_faith_comp": r_faith_comp,
+        "mean_delta_rand_glob": mean_delta_rand_glob,
+        "r_faith_glob": r_faith_glob,
         "top_k_atoms": k,
     }
 
@@ -978,8 +1005,16 @@ def run_manifest_attribution(
                     "group_rank": rank_idx,
                 })
 
-            # 特征遮蔽保真度测试 (Top-1 Group)
+            # 特征遮蔽保真度测试 (Top-1 Group - Component-Matched)
             top_key, top_gm = sorted_groups[0]
+            top_comp = top_gm["component"]
+            if top_comp == "Cation":
+                comp_atoms = list(range(0, n_cat))
+            elif top_comp == "Anion":
+                comp_atoms = list(range(n_cat, n_cat + n_ani))
+            else:
+                comp_atoms = list(range(n_cat + n_ani, n_cat + n_ani + n_ref))
+
             faith_res = evaluate_feature_masking_faithfulness(
                 model=model,
                 h_target=ig_res["h_target"],
@@ -987,6 +1022,7 @@ def run_manifest_attribution(
                 data_i=comb_g,
                 cond=target_cond,
                 top_atom_indices=top_gm["atoms"],
+                component_atom_indices=comp_atoms,
                 n_random_trials=n_random_trials,
                 seed=seed,
             )
@@ -996,11 +1032,15 @@ def run_manifest_attribution(
                 "sample_id": sample_id,
                 "seed": seed,
                 "top_group_name": top_key,
+                "top_group_component": top_comp,
                 "top_k_atoms": faith_res["top_k_atoms"],
                 "delta_y_top": faith_res["delta_y_top"],
-                "delta_y_rand_mean": faith_res["mean_delta_rand"],
-                "delta_y_rand_std": faith_res["std_delta_rand"],
-                "r_faith": faith_res["r_faith"],
+                "delta_y_rand_mean": faith_res["mean_delta_rand_comp"],
+                "delta_y_rand_comp_mean": faith_res["mean_delta_rand_comp"],
+                "delta_y_rand_glob_mean": faith_res["mean_delta_rand_glob"],
+                "r_faith": faith_res["r_faith_comp"],
+                "r_faith_comp": faith_res["r_faith_comp"],
+                "r_faith_glob": faith_res["r_faith_glob"],
                 "y_orig": ig_res["pred_raw"],
                 "y_base": ig_res["pred_base"],
                 "comp_rel_err": ig_res["comp_rel_err"],

@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "title": "Phase III-F: Step 25 Graph & Substructure Attribution Provenance",
+    "timestamp": "2026-09-20 12:12:36",
+    "git_commit": "87df3a4897521d71a20aa6a8ffd840671d33b7ab",
+    "device": "cuda",
+    "riemann_steps": 25,
+    "faithfulness_trials": 30,
+    "n_samples": 43,
+    "total_evaluations": 215,
+    "seeds_evaluated": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ]
+  },
+  "input_hashes": {
+    "case_selection_manifest_sha256": "2d3cf21114ce46041e2d22f0959bad93576569050bf0d85becf0b0f8b658a1a2",
+    "hfc_data_sha256": "a408c2832352d69799d1c0a8b7151dd7535fe2edf34d171992b9385b1bd3e6bb",
+    "full_data_sha256": "78d09146287951a23665db9d4ff2c3af931fd449ad0ae39680b6cba70354d695",
+    "final_freeze_sha256": "5d255baac965522126f43c2ad6236804015da8ccf201dbd08c0be9df89eb0873",
+    "table1_sha256": "ffac80122c0f8c5a6b53ac1a6109d9b3580030540b3ed8d9ec992c4406271718"
+  },
+  "output_hashes": {
+    "graph_attribution_atoms_bonds_sha256": "6c6c338bf5750df7c2779db451e527894cb5f8369a67fa491dc129b0045dcb12",
+    "graph_attribution_groups_sha256": "45768b902913a645fd00aaf8f5c0585aa3eefc981240082e991f10a33f1f6b06",
+    "graph_attribution_faithfulness_sha256": "835a707f1d4d2b6cca255217c0e5913ec3b10571568bcf1e1ded615602dbd1ee",
+    "graph_attribution_stability_sha256": "65f2fdd4232d70e211704999525fe15d0a2dbd66323da99ba1b6ba9aaba556e1"
+  },
+  "case_summary": {
+    "Case4_R1336mzz_Stereo": 23,
+    "Case2_R134_vs_R134a": 8,
+    "Case3_BF4_vs_PF6": 8,
+    "Case1_R1234yf": 4
+  }
+}

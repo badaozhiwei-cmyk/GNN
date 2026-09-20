@@ -1,0 +1,13 @@
+{
+  "smi_E": "FC(F)(F)/C=C/C(F)(F)F",
+  "smi_Z": "FC(F)(F)\\C=C/C(F)(F)F",
+  "node_features_identical": true,
+  "edge_index_identical": true,
+  "edge_attr_3d_identical": true,
+  "edge_attr_full_identical": true,
+  "initial_node_embedding_H_identical": true,
+  "initial_edge_embedding_E_identical": true,
+  "max_abs_H_difference": 0.0,
+  "max_abs_E_difference": 0.0,
+  "conclusion": "Under 2D production graph representation (edge_dim=3), R1336mzz(E) and R1336mzz(Z) are 100% representation-identical before message passing (H_E == H_Z, E_E == E_Z)."
+}

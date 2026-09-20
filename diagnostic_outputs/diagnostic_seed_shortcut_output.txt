@@ -1,0 +1,36 @@
+﻿================================================================================
+DIAGNOSTIC: HFC_all_M0 (Path: C:\Users\霸道志伟\Desktop\GNN\Refrigerant-Solubility-GNN\results_hfc_all\HFC_all_M0)
+================================================================================
+Seed 42:
+  Head Weight Norm -> Graph(512d): 4.4358 | Cond(9d): 3.6278 | Ratio(G/C): 1.2227
+  GNN Layers Norm  -> L1: 0.0000 | L3: 0.0000 | global_token: 0.0078
+Seed 43:
+  Head Weight Norm -> Graph(512d): 7.3206 | Cond(9d): 3.1086 | Ratio(G/C): 2.3550
+  GNN Layers Norm  -> L1: 0.0000 | L3: 0.0000 | global_token: 0.0505
+Seed 44:
+  Head Weight Norm -> Graph(512d): 5.8909 | Cond(9d): 3.9638 | Ratio(G/C): 1.4862
+  GNN Layers Norm  -> L1: 0.0000 | L3: 0.0000 | global_token: 0.0660
+Seed 45:
+  Head Weight Norm -> Graph(512d): 5.5085 | Cond(9d): 3.7746 | Ratio(G/C): 1.4594
+  GNN Layers Norm  -> L1: 0.0000 | L3: 0.0000 | global_token: 0.8478
+Seed 46:
+  Head Weight Norm -> Graph(512d): 6.0174 | Cond(9d): 3.9272 | Ratio(G/C): 1.5323
+  GNN Layers Norm  -> L1: 0.0000 | L3: 0.0000 | global_token: 0.0000
+================================================================================
+DIAGNOSTIC: B2_M0 (Path: C:\Users\霸道志伟\Desktop\GNN\Refrigerant-Solubility-GNN\results_split_B\B2_M0)
+================================================================================
+Seed 42:
+  Head Weight Norm -> Graph(512d): 5.4453 | Cond(9d): 3.5084 | Ratio(G/C): 1.5521
+  GNN Layers Norm  -> L1: 0.0000 | L3: 0.0000 | global_token: 0.0007
+Seed 43:
+  Head Weight Norm -> Graph(512d): 5.1932 | Cond(9d): 3.5084 | Ratio(G/C): 1.4802
+  GNN Layers Norm  -> L1: 0.0000 | L3: 0.0000 | global_token: 0.0046
+Seed 44:
+  Head Weight Norm -> Graph(512d): 9.9700 | Cond(9d): 2.8157 | Ratio(G/C): 3.5409
+  GNN Layers Norm  -> L1: 0.0000 | L3: 0.0000 | global_token: 0.1231
+Seed 45:
+  Head Weight Norm -> Graph(512d): 10.6378 | Cond(9d): 2.8516 | Ratio(G/C): 3.7305
+  GNN Layers Norm  -> L1: 0.0000 | L3: 0.0000 | global_token: 0.0126
+Seed 46:
+  Head Weight Norm -> Graph(512d): 7.6968 | Cond(9d): 3.3303 | Ratio(G/C): 2.3112
+  GNN Layers Norm  -> L1: 0.0000 | L3: 0.0000 | global_token: 0.0000

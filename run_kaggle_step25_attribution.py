@@ -78,10 +78,14 @@ if res.returncode != 0:
 
 print(f"\n✅ [SUCCESS] 全量归因与 Gate A~E 核验成功！总耗时: {t_elapsed:.1f} 秒")
 
-# 4. 自动打包产物为轻量 zip
+# 4. 自动执行 Step 25 Integrity Audit v2 (张量等价性证明 + SMARTS覆盖率 + 客观分层)
+print("\n>>> [STEP 4/4] 正在执行 Step 25 Integrity Audit v2 深度审计与打包...")
+subprocess.run([sys.executable, "research_pipeline/audit_step25_v2.py"], check=True)
+
+# 5. 打包结果文件
 out_zip = ROOT / "step25_attribution_results.zip"
 res_dir = ROOT / "results_attribution"
-print(f"\n>>> 正在打包结果文件至 {out_zip.name}...")
+print(f"\n>>> 正在打包核心结果文件至 {out_zip.name}...")
 
 target_files = [
     "case_selection_manifest.csv",
@@ -101,8 +105,11 @@ with zipfile.ZipFile(out_zip, "w", zipfile.ZIP_DEFLATED) as zf:
         else:
             print(f"  ! WARNING: Missing {p}")
 
-zip_size_kb = out_zip.stat().st_size / 1024
+debug_zip = ROOT / "step25_debug_package.zip"
 print("=" * 80)
-print(f"🎉 打包完成: {out_zip.name} ({zip_size_kb:.1f} KB)")
-print("👉 请在 Kaggle 界面右侧 Output 面板下载 step25_attribution_results.zip 并解压至本地仓库。")
+print(f"🎉 全部计算与审计打包完成！")
+print(f"👉 产出包 1: {out_zip.name} ({out_zip.stat().st_size / 1024:.1f} KB)")
+if debug_zip.exists():
+    print(f"👉 产出包 2: {debug_zip.name} ({debug_zip.stat().st_size / 1024:.1f} KB - 包含完整 v2 审计诊断与 metrics)")
+print("👉 请在 Kaggle 界面右侧 Output 面板下载产物。")
 print("=" * 80)
