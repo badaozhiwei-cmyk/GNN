@@ -107,10 +107,10 @@ The external unsaturated dataset includes 90 points for the hydrochlorofluoroole
 
 | Dataset Scope | $N$ | $M_0$ Ensemble MAE | $M_{\rm red}$ Ensemble MAE | $\Delta\text{MAE}$ (%) | $M_0$ $R^2$ | $M_{\rm red}$ $R^2$ |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **All Unsaturated** (HFO + HCFO) | 1106 | 0.0374 | 0.0300 | −19.8% | 0.6227 | 0.7107 |
-| **Pure HFO Only** (Excl. R1233zd(E)) | 1016 | 0.0381 | 0.0310 | \textbf{−18.7\%} | 0.6224 | 0.7085 |
+| **All Unsaturated** (HFO + HCFO) | 1106 | 0.0367 | 0.0302 | −17.6% | 0.6045 | 0.7384 |
+| **Pure HFO Only** (Excl. R1233zd(E)) | 1016 | 0.0374 | 0.0302 | \textbf{−19.4\%} | 0.6028 | 0.7410 |
 
-The performance advantage of $M_{\rm reduced}$ remains completely robust on the pure-HFO subset ($-18.7\%$ error reduction, $\Delta R^2 = +0.086$), supporting the robustness of thermodynamic coordinate regularization across purely fluorinated olefins.
+The performance advantage of $M_{\rm reduced}$ remains completely robust on the pure-HFO subset ($-19.4\%$ error reduction, $\Delta R^2 = +0.138$), supporting the robustness of thermodynamic coordinate regularization across purely fluorinated olefins.
 
 ---
 
@@ -144,4 +144,4 @@ Selective prediction risk (MAE) as a function of sample coverage when retaining 
 | **B1 Anion** | 0.0292 | 0.0255 | 0.0219 | 0.0185 | 0.0163 | \textbf{0.0139} | \textbf{−52.5\%} |
 | **B2 Anion** | 0.0472 | 0.0416 | 0.0362 | 0.0334 | 0.0282 | \textbf{0.0230} | \textbf{−51.2\%} |
 | **L2 Composition** | 0.0271 | 0.0256 | 0.0243 | 0.0246 | 0.0230 | \textbf{0.0201} | \textbf{−25.8\%} |
-| **HFO/HCFO** | 0.0300 | 0.0264 | 0.0244 | 0.0231 | 0.0219 | \textbf{0.0197} | \textbf{−34.4\%} |
+| **HFO/HCFO** | 0.0302 | 0.0230 | 0.0194 | 0.0177 | 0.0168 | \textbf{0.0161} | \textbf{−46.7\%} |

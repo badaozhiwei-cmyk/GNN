@@ -635,10 +635,10 @@ def audit_prose_claims(freeze, results):
         ("L3_R1336mzzE_sigma", "results_md",
          r"R1336mzz\(E\).*?sigma.*?0\.\d+|R1336mzz\(E\).*?disagreement.*?0\.\d+",
          f_spec.get("R1336mzz(E)", {}).get("Mred_sigma"),
-         "R1336mzz(E) ensemble σ = 0.0213"),
+         "R1336mzz(E) ensemble σ"),
         # HFO sensitivity ΔMAE% in SI
         ("L3_SI_HFOonly_pct", "si_md",
-         r"18\.\d.*?%|error reduction",
+         r"19\.\d.*?%|18\.\d.*?%|error reduction",
          f_sens.get("delta_MAE_pct"),
          "HFO-only ΔMAE percentage"),
         # M1 Ensemble MAE in Results UQ section

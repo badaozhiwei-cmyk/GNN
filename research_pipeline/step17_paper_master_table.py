@@ -46,68 +46,36 @@ print("  [✓] Cleaned non-standard NaN to valid null in FINAL_FREEZE.json.")
 
 # 2. 构造主表数据
 # 权威指标定义: 5-seed mean (M1: macro across 12 held-out; others: pooled test points)
-master_rows = [
-    {
-        "Axis": "M1",
-        "Held-out object": "12 HFC refrigerants (LORO)",
-        "N": 1403,
-        "M0 MAE": 0.1049,
-        "Mred MAE": 0.0666,
-        "delta_MAE": "-36.5%",
-        "M0 R2": -0.4158,
-        "Mred R2": 0.3824,
-        "Mred sigma": "—",
-        "Diagnostic": "Refrigerant-level heterogeneity"
-    },
-    {
-        "Axis": "B1",
-        "Held-out object": "Fam-2 fluorosulfonate anions",
-        "N": 513,
-        "M0 MAE": 0.0304,
-        "Mred MAE": 0.0302,
-        "delta_MAE": "-0.7%",
-        "M0 R2": 0.9265,
-        "Mred R2": 0.9285,
-        "Mred sigma": "0.0092",
-        "Diagnostic": "Limited descriptor benefit"
-    },
-    {
-        "Axis": "B2",
-        "Held-out object": "Fam-3 inorganic fluorides (BF4/PF6)",
-        "N": 598,
-        "M0 MAE": 0.0534,
-        "Mred MAE": 0.0483,
-        "delta_MAE": "-9.6%",
-        "M0 R2": 0.7931,
-        "Mred R2": 0.8333,
-        "Mred sigma": "0.0110",
-        "Diagnostic": "Family-specific recovery"
-    },
-    {
-        "Axis": "L2",
-        "Held-out object": "4 unseen IL ion pairs",
-        "N": 374,
-        "M0 MAE": 0.0334,
-        "Mred MAE": 0.0293,
-        "delta_MAE": "-12.2%",
-        "M0 R2": 0.8878,
-        "Mred R2": 0.9126,
-        "Mred sigma": "0.0142",
-        "Diagnostic": "Compositional interpolation"
-    },
-    {
-        "Axis": "HFO/HCFO",
-        "Held-out object": "1106 unsaturated refrigerant points",
-        "N": 1106,
-        "M0 MAE": 0.0468,
-        "Mred MAE": 0.0326,
-        "delta_MAE": "-30.4%",
-        "M0 R2": 0.4920,
-        "Mred R2": 0.6926,
-        "Mred sigma": "0.0144",
-        "Diagnostic": "Cross-family transfer with boundary cases"
-    }
+f_axes = {a["axis"]: a for a in freeze_data["cross_axis_5seed_mean"]}
+f_uq = {a["axis"]: a for a in freeze_data.get("cross_axis_ensemble_uq", [])}
+
+axis_metadata = [
+    ("M1", "12 HFC refrigerants (LORO)", "Refrigerant-level heterogeneity"),
+    ("B1", "Fam-2 fluorosulfonate anions", "Limited descriptor benefit"),
+    ("B2", "Fam-3 inorganic fluorides (BF4/PF6)", "Family-specific recovery"),
+    ("L2", "4 unseen IL ion pairs", "Compositional interpolation"),
+    ("HFO/HCFO", "1106 unsaturated refrigerant points", "Cross-family transfer with boundary cases"),
 ]
+
+master_rows = []
+for axis, held_out, diag in axis_metadata:
+    fa = f_axes[axis]
+    fu = f_uq.get(axis, {})
+    sig_val = fu.get("Mred_mean_sigma")
+    sig_str = f"{sig_val:.4f}" if sig_val is not None else "—"
+    delta_str = f"{fa['delta_MAE_pct']:.1f}%"
+    master_rows.append({
+        "Axis": axis,
+        "Held-out object": held_out,
+        "N": fa["N_test"],
+        "M0 MAE": round(fa["M0_MAE"], 4),
+        "Mred MAE": round(fa["Mred_MAE"], 4),
+        "delta_MAE": delta_str,
+        "M0 R2": round(fa["M0_R2"], 4),
+        "Mred R2": round(fa["Mred_R2"], 4),
+        "Mred sigma": sig_str,
+        "Diagnostic": diag
+    })
 
 df_master = pd.DataFrame(master_rows)
 

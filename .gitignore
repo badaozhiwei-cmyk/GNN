@@ -21,6 +21,10 @@ processed_tri_data/
 results/
 results_v5/
 results_ablation/
+results_hfc_all/
+results_hfc_all_stereo/
+results_split_L2/
+scratch/
 figure/
 figure_v5/
 checkpoints/

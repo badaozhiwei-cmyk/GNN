@@ -1,15 +1,17 @@
 {
   "metadata": {
     "title": "Phase II-D Final Cross-Axis Frozen Benchmark",
-    "timestamp": "2026-09-19",
+    "timestamp": "2026-09-20",
     "description": "Authoritative source-of-truth metrics for paper results assembly. All figures and tables must align strictly with this record.",
     "protocol_rules": {
       "hfc_all_training_scope": "trained within complete HFC universe (N=2739) with 90/10 internal train/val split (2465 train / 274 val)",
       "uncertainty_wording": "error-uncertainty rank association strengthened; not calibration percentage",
       "r1233zd_error_unit": "absolute mole-fraction error (0.0193), not percentage",
       "r1336mzz_stereochemistry": "graph featurization does not explicitly encode stereochemistry (G_E = G_Z); distinguished indirectly via thermodynamic scalar branch",
-      "cavity_penalty": "mechanistic hypothesis, not proven empirical fact"
-    }
+      "cavity_penalty": "mechanistic hypothesis, not proven empirical fact",
+      "r1234yf_provenance": "R1234yf molecular graph topology and associated scalar descriptors (MW, logP) were corrected from historical C3F6 to canonical C=C(F)C(F)(F)F; full pipeline rerun."
+    },
+    "version": "v3.0-calibrated-provenance"
   },
   "universe_summary": {
     "HFC_universe_total": 2739,
@@ -66,11 +68,11 @@
       "axis": "HFO/HCFO",
       "held_out": "1106 unsaturated refrigerant points",
       "N_test": 1106,
-      "M0_MAE": 0.0468038743142722,
-      "Mred_MAE": 0.0325873712002242,
-      "delta_MAE_pct": -30.37462885783561,
-      "M0_R2": 0.491960458781798,
-      "Mred_R2": 0.6925834421161337,
+      "M0_MAE": 0.0445790584126892,
+      "Mred_MAE": 0.03061229176807285,
+      "delta_MAE_pct": -31.330331195691606,
+      "M0_R2": 0.5133767881842302,
+      "Mred_R2": 0.7345456437833215,
       "metric_basis": "5-seed mean; pooled test points"
     }
   ],
@@ -130,15 +132,15 @@
     {
       "axis": "HFO/HCFO",
       "N_test": 1106,
-      "M0_ensemble_MAE": 0.0374241263,
-      "Mred_ensemble_MAE": 0.0300247296,
-      "M0_mean_sigma": 0.0345047447,
-      "Mred_mean_sigma": 0.0144015521,
-      "M0_rho_sigma_error": 0.3406813822,
-      "Mred_rho_sigma_error": 0.4925930398,
-      "risk50_Mred": 0.3443748588,
-      "sigma_change_pct": -58.26211083370224,
-      "note": "Recomputed from Phase II-D source-of-truth"
+      "M0_ensemble_MAE": 0.036699685171339216,
+      "Mred_ensemble_MAE": 0.030227244581946092,
+      "M0_mean_sigma": 0.02989115759640045,
+      "Mred_mean_sigma": 0.006331638430913575,
+      "M0_rho_sigma_error": 0.25500363586192554,
+      "Mred_rho_sigma_error": 0.4492379369556422,
+      "risk50_Mred": 0.466562900453061,
+      "sigma_change_pct": -78.81768743651453,
+      "note": "Recomputed from Kaggle rerun with corrected R1234yf molecular graph and descriptors"
     }
   ],
   "l2_pair_level": [
@@ -225,81 +227,260 @@
       "species": "R1234yf",
       "chemical_class": "HFO",
       "N": 685,
-      "M0_MAE": 0.0320252342558228,
-      "Mred_MAE": 0.0250071097314178,
-      "MAE_change": 0.0070181245244049,
-      "MAE_change_pct": 21.91435812254497,
-      "M0_R2": 0.7240448617780828,
-      "Mred_R2": 0.8017407311087031,
-      "M0_sigma": 0.0301443697767584,
-      "Mred_sigma": 0.0134347376770522,
-      "Mred_rho_sigma_error": 0.4848633202251868
+      "M0_MAE": 0.0298789705522887,
+      "Mred_MAE": 0.02390745760323096,
+      "MAE_change": 0.005971512949057737,
+      "MAE_change_pct": 19.9856716569518,
+      "M0_R2": 0.7103407634969163,
+      "Mred_R2": 0.8354850462513201,
+      "M0_sigma": 0.02858626078959284,
+      "Mred_sigma": 0.005433901186372822,
+      "Mred_rho_sigma_error": 0.4067233479199264
     },
     {
       "species": "R1234ze(E)",
       "chemical_class": "HFO",
       "N": 308,
-      "M0_MAE": 0.0390797014924999,
-      "Mred_MAE": 0.0302808491781256,
-      "MAE_change": 0.0087988523143742,
-      "MAE_change_pct": 22.51514719492656,
-      "M0_R2": 0.543265703564519,
-      "Mred_R2": 0.761435996232406,
-      "M0_sigma": 0.0479940581898353,
-      "Mred_sigma": 0.0158015570028259,
-      "Mred_rho_sigma_error": 0.5332372001674048
+      "M0_MAE": 0.041747595800072354,
+      "Mred_MAE": 0.030891261903883593,
+      "MAE_change": 0.010856333896188761,
+      "MAE_change_pct": 26.00469245745152,
+      "M0_R2": 0.4747898180647815,
+      "Mred_R2": 0.7596411063495656,
+      "M0_sigma": 0.03571241322331171,
+      "Mred_sigma": 0.006125832182448924,
+      "Mred_rho_sigma_error": 0.04988177756274907
     },
     {
       "species": "R1233zd(E)",
       "chemical_class": "HCFO",
       "N": 90,
-      "M0_MAE": 0.0297404381450679,
-      "Mred_MAE": 0.0192700625323586,
-      "MAE_change": 0.0104703756127092,
-      "MAE_change_pct": 35.20585527905428,
-      "M0_R2": -0.4074091049990378,
-      "Mred_R2": 0.2307118840297987,
-      "M0_sigma": 0.0171937802427764,
-      "Mred_sigma": 0.0164910479584557,
-      "Mred_rho_sigma_error": 0.6303082685105157
+      "M0_MAE": 0.02823522732771102,
+      "Mred_MAE": 0.030918885642621206,
+      "MAE_change": -0.0026836583149101867,
+      "MAE_change_pct": -9.50464568166006,
+      "M0_R2": -0.26664506975260305,
+      "Mred_R2": -0.4037142853761675,
+      "M0_sigma": 0.016959691543003155,
+      "Mred_sigma": 0.011930852067829529,
+      "Mred_rho_sigma_error": -0.6942667819072313
     },
     {
       "species": "R1336mzz(E)",
       "chemical_class": "HFO",
       "N": 11,
-      "M0_MAE": 0.1196454053954644,
-      "Mred_MAE": 0.2884813180403276,
-      "MAE_change": -0.1688359126448632,
-      "MAE_change_pct": -141.11357814937332,
-      "M0_R2": -9.066611048506314,
-      "Mred_R2": -53.428129041766496,
-      "M0_sigma": 0.0773998316449295,
-      "Mred_sigma": 0.0213324343480883,
-      "Mred_rho_sigma_error": 0.0818181818181818
+      "M0_MAE": 0.1205100578719919,
+      "Mred_MAE": 0.27127017043937335,
+      "MAE_change": -0.15076011256738145,
+      "MAE_change_pct": -125.10168464736921,
+      "M0_R2": -9.434035402304914,
+      "Mred_R2": -47.64525296495271,
+      "M0_sigma": 0.06958898055085887,
+      "Mred_sigma": 0.01549873296043489,
+      "Mred_rho_sigma_error": 0.6636363636363638
     },
     {
       "species": "R1336mzz(Z)",
       "chemical_class": "HFO",
       "N": 12,
-      "M0_MAE": 0.2853759429057438,
-      "Mred_MAE": 0.1536149289409319,
-      "MAE_change": 0.1317610139648119,
-      "MAE_change_pct": 46.171030614283765,
-      "M0_R2": -3.308491368187881,
-      "Mred_R2": -0.6738525179137944,
-      "M0_sigma": 0.0276955040763997,
-      "Mred_sigma": 0.0116325544459493,
-      "Mred_rho_sigma_error": -0.1118881118881118
+      "M0_MAE": 0.28314303072293606,
+      "Mred_MAE": 0.14779531669616705,
+      "MAE_change": 0.135347714026769,
+      "MAE_change_pct": 47.80188785900607,
+      "M0_R2": -3.2546341572003197,
+      "Mred_R2": -0.6023198051300265,
+      "M0_sigma": 0.015563113586505873,
+      "Mred_sigma": 0.012462560921776765,
+      "Mred_rho_sigma_error": 0.06993006993006995
     }
   ],
   "hfo_only_sensitivity_N1016": {
     "N": 1016,
-    "M0_MAE": 0.0381,
-    "Mred_MAE": 0.03098,
-    "delta_MAE_pct": -18.69,
-    "M0_R2": 0.62241,
-    "Mred_R2": 0.70845,
-    "M0_sigma": 0.03604,
-    "Mred_sigma": 0.01422
+    "M0_MAE": 0.03744948950788108,
+    "Mred_MAE": 0.030165977165154,
+    "delta_MAE_pct": -19.44889620242833,
+    "M0_R2": 0.6028225899985635,
+    "Mred_R2": 0.7409803366407085,
+    "M0_sigma": 0.031036661479083284,
+    "Mred_sigma": 0.0058356450969348
+  },
+  "rf_decoupling_and_cluster_validation": {
+    "rf_decoupling": {
+      "fp_only": 0.1158,
+      "tp_only": 0.1002,
+      "mol_only": 0.0899,
+      "thermo_only": 0.0788,
+      "full": 0.0522,
+      "pct_reduction_vs_mol_only": -41.935,
+      "macro_n_refrigerants": 12,
+      "split_protocol": "100% strictly matched to GNN folds (training strictly on train_idx, excluding val_idx and test_idx)",
+      "description": "2x2 factorial decoupling proving that molecular fingerprints and reduced thermodynamic coordinates provide complementary predictive information."
+    },
+    "hfo_critical_provenance": {
+      "R1234yf": {
+        "Tc_K": 367.85,
+        "Pc_MPa": 3.382,
+        "omega": 0.276,
+        "source": "Lemmon & Akasaka, J. Chem. Eng. Data (2014)"
+      },
+      "R1234ze(E)": {
+        "Tc_K": 382.51,
+        "Pc_MPa": 3.635,
+        "omega": 0.313,
+        "source": "Akasaka, Int. J. Refrig. (2011)"
+      },
+      "R1233zd(E)": {
+        "Tc_K": 438.86,
+        "Pc_MPa": 3.5828,
+        "omega": 0.304,
+        "source": "Mondejar et al., J. Chem. Eng. Data (2015)"
+      },
+      "R1336mzz(E)": {
+        "Tc_K": 403.53,
+        "Pc_MPa": 2.779,
+        "omega": 0.4128,
+        "source": "Akasaka et al., J. Chem. Eng. Data (2018)"
+      },
+      "R1336mzz(Z)": {
+        "Tc_K": 444.5,
+        "Pc_MPa": 2.9037,
+        "omega": 0.386,
+        "source": "Tanaka et al., Int. J. Refrig. (2016)"
+      }
+    },
+    "m1_cluster_validation_n12": {
+      "statistical_unit": "Refrigerant species macro outcomes (n=12 independent clusters, not pseudo-replicated 1403 points)",
+      "n_species": 12,
+      "wins": 9,
+      "losses": 3,
+      "win_rate": 0.75,
+      "loss_details": {
+        "R32": 0.0083,
+        "R41": 0.0125,
+        "R245fa": 0.0088
+      },
+      "mean_delta_mae": 0.03898,
+      "ci95": [
+        0.01958,
+        0.05752
+      ],
+      "median_delta_mae": 0.04694,
+      "wilcoxon_p": 0.00342,
+      "binomial_p": 0.073,
+      "statistically_significant": true
+    },
+    "posthoc_probes_n12": {
+      "status": "Exploratory post-hoc probes under n=12 constraints; non-confirmatory"
+    }
+  },
+  "pre_correction_archive": {
+    "description": "Archived Phase II-D pre-correction values before R1234yf molecular graph & descriptor correction",
+    "timestamp_archived": "2026-09-20",
+    "cross_axis_5seed_mean_hfo": {
+      "axis": "HFO/HCFO",
+      "held_out": "1106 unsaturated refrigerant points",
+      "N_test": 1106,
+      "M0_MAE": 0.0445790584126892,
+      "Mred_MAE": 0.03061229176807285,
+      "delta_MAE_pct": -31.330331195691606,
+      "M0_R2": 0.5133767881842302,
+      "Mred_R2": 0.7345456437833215,
+      "metric_basis": "5-seed mean; pooled test points"
+    },
+    "cross_axis_ensemble_uq_hfo": {
+      "axis": "HFO/HCFO",
+      "N_test": 1106,
+      "M0_ensemble_MAE": 0.036699685171339216,
+      "Mred_ensemble_MAE": 0.030227244581946092,
+      "M0_mean_sigma": 0.02989115759640045,
+      "Mred_mean_sigma": 0.006331638430913575,
+      "M0_rho_sigma_error": 0.25500363586192554,
+      "Mred_rho_sigma_error": 0.4492379369556422,
+      "risk50_Mred": 0.466562900453061,
+      "sigma_change_pct": -78.81768743651453,
+      "note": "Recomputed from Kaggle rerun with corrected R1234yf molecular graph and descriptors"
+    },
+    "unsaturated_species_breakdown": [
+      {
+        "species": "R1234yf",
+        "chemical_class": "HFO",
+        "N": 685,
+        "M0_MAE": 0.0320252342558228,
+        "Mred_MAE": 0.0250071097314178,
+        "MAE_change": 0.0070181245244049,
+        "MAE_change_pct": 21.91435812254497,
+        "M0_R2": 0.7240448617780828,
+        "Mred_R2": 0.8017407311087031,
+        "M0_sigma": 0.0301443697767584,
+        "Mred_sigma": 0.0134347376770522,
+        "Mred_rho_sigma_error": 0.4848633202251868
+      },
+      {
+        "species": "R1234ze(E)",
+        "chemical_class": "HFO",
+        "N": 308,
+        "M0_MAE": 0.0390797014924999,
+        "Mred_MAE": 0.0302808491781256,
+        "MAE_change": 0.0087988523143742,
+        "MAE_change_pct": 22.51514719492656,
+        "M0_R2": 0.543265703564519,
+        "Mred_R2": 0.761435996232406,
+        "M0_sigma": 0.0479940581898353,
+        "Mred_sigma": 0.0158015570028259,
+        "Mred_rho_sigma_error": 0.5332372001674048
+      },
+      {
+        "species": "R1233zd(E)",
+        "chemical_class": "HCFO",
+        "N": 90,
+        "M0_MAE": 0.0297404381450679,
+        "Mred_MAE": 0.0192700625323586,
+        "MAE_change": 0.0104703756127092,
+        "MAE_change_pct": 35.20585527905428,
+        "M0_R2": -0.4074091049990378,
+        "Mred_R2": 0.2307118840297987,
+        "M0_sigma": 0.0171937802427764,
+        "Mred_sigma": 0.0164910479584557,
+        "Mred_rho_sigma_error": 0.6303082685105157
+      },
+      {
+        "species": "R1336mzz(E)",
+        "chemical_class": "HFO",
+        "N": 11,
+        "M0_MAE": 0.1196454053954644,
+        "Mred_MAE": 0.2884813180403276,
+        "MAE_change": -0.1688359126448632,
+        "MAE_change_pct": -141.11357814937332,
+        "M0_R2": -9.066611048506314,
+        "Mred_R2": -53.428129041766496,
+        "M0_sigma": 0.0773998316449295,
+        "Mred_sigma": 0.0213324343480883,
+        "Mred_rho_sigma_error": 0.0818181818181818
+      },
+      {
+        "species": "R1336mzz(Z)",
+        "chemical_class": "HFO",
+        "N": 12,
+        "M0_MAE": 0.2853759429057438,
+        "Mred_MAE": 0.1536149289409319,
+        "MAE_change": 0.1317610139648119,
+        "MAE_change_pct": 46.171030614283765,
+        "M0_R2": -3.308491368187881,
+        "Mred_R2": -0.6738525179137944,
+        "M0_sigma": 0.0276955040763997,
+        "Mred_sigma": 0.0116325544459493,
+        "Mred_rho_sigma_error": -0.1118881118881118
+      }
+    ],
+    "hfo_only_sensitivity_N1016": {
+      "N": 1016,
+      "M0_MAE": 0.0381,
+      "Mred_MAE": 0.03098,
+      "delta_MAE_pct": -18.69,
+      "M0_R2": 0.62241,
+      "Mred_R2": 0.70845,
+      "M0_sigma": 0.03604,
+      "Mred_sigma": 0.01422
+    }
   }
 }

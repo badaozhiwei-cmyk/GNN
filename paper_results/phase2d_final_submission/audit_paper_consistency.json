@@ -1,5 +1,5 @@
 {
-  "audit_timestamp": "2026-09-20T00:00:17.309713",
+  "audit_timestamp": "2026-09-20T12:38:40.075235",
   "total_checks": 147,
   "summary": {
     "PASS": 147,
@@ -331,60 +331,60 @@
       "layer": "L1",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0468038743142722,
-      "found": 0.0468,
+      "canonical": 0.0445790584126892,
+      "found": 0.0446,
       "location": "CSV row «HFO/HCFO», col «M0 MAE»",
-      "detail": "Precision 4d: round(0.046803874, 4) = 0.0468 vs displayed 0.0468  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.044579058, 4) = 0.0446 vs displayed 0.0446  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L1_HFO/HCFO_Mred_MAE",
       "layer": "L1",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0325873712002242,
-      "found": 0.0326,
+      "canonical": 0.03061229176807285,
+      "found": 0.0306,
       "location": "CSV row «HFO/HCFO», col «Mred MAE»",
-      "detail": "Precision 4d: round(0.032587371, 4) = 0.0326 vs displayed 0.0326  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.030612292, 4) = 0.0306 vs displayed 0.0306  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L1_HFO/HCFO_M0_R2",
       "layer": "L1",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.491960458781798,
-      "found": 0.492,
+      "canonical": 0.5133767881842302,
+      "found": 0.5134,
       "location": "CSV row «HFO/HCFO», col «M0 R2»",
-      "detail": "Precision 3d: round(0.49196046, 3) = 0.492 vs displayed 0.492  (diff=0.00e+00, thr=6.00e-04)"
+      "detail": "Precision 4d: round(0.51337679, 4) = 0.5134 vs displayed 0.5134  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L1_HFO/HCFO_Mred_R2",
       "layer": "L1",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.6925834421161337,
-      "found": 0.6926,
+      "canonical": 0.7345456437833215,
+      "found": 0.7345,
       "location": "CSV row «HFO/HCFO», col «Mred R2»",
-      "detail": "Precision 4d: round(0.69258344, 4) = 0.6926 vs displayed 0.6926  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.73454564, 4) = 0.7345 vs displayed 0.7345  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L1_HFO/HCFO_Mred_mean_sigma",
       "layer": "L1",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0144015521,
-      "found": 0.0144,
+      "canonical": 0.006331638430913575,
+      "found": 0.0063,
       "location": "CSV row «HFO/HCFO», col «Mred sigma»",
-      "detail": "Precision 4d: round(0.014401552, 4) = 0.0144 vs displayed 0.0144  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.0063316384, 4) = 0.0063 vs displayed 0.0063  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L1_HFO/HCFO_delta_MAE_pct",
       "layer": "L1",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": -30.37462885783561,
-      "found": -30.4,
+      "canonical": -31.330331195691606,
+      "found": -31.3,
       "location": "CSV row «HFO/HCFO», col «delta_MAE»",
-      "detail": "Precision 1d: round(-30.374629, 1) = -30.4 vs displayed -30.4  (diff=0.00e+00, thr=6.00e-02)"
+      "detail": "Precision 1d: round(-31.330331, 1) = -31.3 vs displayed -31.3  (diff=0.00e+00, thr=6.00e-02)"
     },
     {
       "check_id": "L2_T1_M1_N_test",
@@ -601,40 +601,40 @@
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0468038743142722,
-      "found": 0.0468,
+      "canonical": 0.0445790584126892,
+      "found": 0.0446,
       "location": "Results Table 1, HFO/HCFO",
-      "detail": "Precision 4d: round(0.046803874, 4) = 0.0468 vs displayed 0.0468  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.044579058, 4) = 0.0446 vs displayed 0.0446  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T1_HFO/HCFO_Mred_MAE",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0325873712002242,
-      "found": 0.0326,
+      "canonical": 0.03061229176807285,
+      "found": 0.0306,
       "location": "Results Table 1, HFO/HCFO",
-      "detail": "Precision 4d: round(0.032587371, 4) = 0.0326 vs displayed 0.0326  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.030612292, 4) = 0.0306 vs displayed 0.0306  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T1_HFO/HCFO_M0_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.491960458781798,
-      "found": 0.492,
+      "canonical": 0.5133767881842302,
+      "found": 0.5134,
       "location": "Results Table 1, HFO/HCFO",
-      "detail": "Precision 3d: round(0.49196046, 3) = 0.492 vs displayed 0.492  (diff=0.00e+00, thr=6.00e-04)"
+      "detail": "Precision 4d: round(0.51337679, 4) = 0.5134 vs displayed 0.5134  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T1_HFO/HCFO_Mred_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.6925834421161337,
-      "found": 0.6926,
+      "canonical": 0.7345456437833215,
+      "found": 0.7345,
       "location": "Results Table 1, HFO/HCFO",
-      "detail": "Precision 4d: round(0.69258344, 4) = 0.6926 vs displayed 0.6926  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.73454564, 4) = 0.7345 vs displayed 0.7345  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T2_EMIM__BF4_M0_MAE",
@@ -831,40 +831,40 @@
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0320252342558228,
-      "found": 0.032,
+      "canonical": 0.0298789705522887,
+      "found": 0.0299,
       "location": "Results Table 3, R1234yf",
-      "detail": "Precision 3d: round(0.032025234, 3) = 0.032 vs displayed 0.032  (diff=0.00e+00, thr=6.00e-04)"
+      "detail": "Precision 4d: round(0.029878971, 4) = 0.0299 vs displayed 0.0299  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1234yf_Mred_MAE",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0250071097314178,
-      "found": 0.025,
+      "canonical": 0.02390745760323096,
+      "found": 0.0239,
       "location": "Results Table 3, R1234yf",
-      "detail": "Precision 3d: round(0.02500711, 3) = 0.025 vs displayed 0.025  (diff=0.00e+00, thr=6.00e-04)"
+      "detail": "Precision 4d: round(0.023907458, 4) = 0.0239 vs displayed 0.0239  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1234yf_M0_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.7240448617780828,
-      "found": 0.724,
+      "canonical": 0.7103407634969163,
+      "found": 0.7103,
       "location": "Results Table 3, R1234yf",
-      "detail": "Precision 3d: round(0.72404486, 3) = 0.724 vs displayed 0.724  (diff=0.00e+00, thr=6.00e-04)"
+      "detail": "Precision 4d: round(0.71034076, 4) = 0.7103 vs displayed 0.7103  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1234yf_Mred_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.8017407311087031,
-      "found": 0.8017,
+      "canonical": 0.8354850462513201,
+      "found": 0.8355,
       "location": "Results Table 3, R1234yf",
-      "detail": "Precision 4d: round(0.80174073, 4) = 0.8017 vs displayed 0.8017  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.83548505, 4) = 0.8355 vs displayed 0.8355  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1234ze(E)_N",
@@ -881,40 +881,40 @@
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0390797014924999,
-      "found": 0.0391,
+      "canonical": 0.041747595800072354,
+      "found": 0.0417,
       "location": "Results Table 3, R1234ze(E)",
-      "detail": "Precision 4d: round(0.039079701, 4) = 0.0391 vs displayed 0.0391  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.041747596, 4) = 0.0417 vs displayed 0.0417  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1234ze(E)_Mred_MAE",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0302808491781256,
-      "found": 0.0303,
+      "canonical": 0.030891261903883593,
+      "found": 0.0309,
       "location": "Results Table 3, R1234ze(E)",
-      "detail": "Precision 4d: round(0.030280849, 4) = 0.0303 vs displayed 0.0303  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.030891262, 4) = 0.0309 vs displayed 0.0309  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1234ze(E)_M0_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.543265703564519,
-      "found": 0.5433,
+      "canonical": 0.4747898180647815,
+      "found": 0.4748,
       "location": "Results Table 3, R1234ze(E)",
-      "detail": "Precision 4d: round(0.5432657, 4) = 0.5433 vs displayed 0.5433  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.47478982, 4) = 0.4748 vs displayed 0.4748  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1234ze(E)_Mred_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.761435996232406,
-      "found": 0.7614,
+      "canonical": 0.7596411063495656,
+      "found": 0.7596,
       "location": "Results Table 3, R1234ze(E)",
-      "detail": "Precision 4d: round(0.761436, 4) = 0.7614 vs displayed 0.7614  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.75964111, 4) = 0.7596 vs displayed 0.7596  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1233zd(E)_N",
@@ -931,40 +931,40 @@
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0297404381450679,
-      "found": 0.0297,
+      "canonical": 0.02823522732771102,
+      "found": 0.0282,
       "location": "Results Table 3, R1233zd(E)",
-      "detail": "Precision 4d: round(0.029740438, 4) = 0.0297 vs displayed 0.0297  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.028235227, 4) = 0.0282 vs displayed 0.0282  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1233zd(E)_Mred_MAE",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0192700625323586,
-      "found": 0.0193,
+      "canonical": 0.030918885642621206,
+      "found": 0.0309,
       "location": "Results Table 3, R1233zd(E)",
-      "detail": "Precision 4d: round(0.019270063, 4) = 0.0193 vs displayed 0.0193  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.030918886, 4) = 0.0309 vs displayed 0.0309  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1233zd(E)_M0_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": -0.4074091049990378,
-      "found": -0.4074,
+      "canonical": -0.26664506975260305,
+      "found": -0.2666,
       "location": "Results Table 3, R1233zd(E)",
-      "detail": "Precision 4d: round(-0.4074091, 4) = -0.4074 vs displayed -0.4074  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(-0.26664507, 4) = -0.2666 vs displayed -0.2666  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1233zd(E)_Mred_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.2307118840297987,
-      "found": 0.2307,
+      "canonical": -0.4037142853761675,
+      "found": -0.4037,
       "location": "Results Table 3, R1233zd(E)",
-      "detail": "Precision 4d: round(0.23071188, 4) = 0.2307 vs displayed 0.2307  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(-0.40371429, 4) = -0.4037 vs displayed -0.4037  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1336mzz(E)_N",
@@ -981,40 +981,40 @@
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.1196454053954644,
-      "found": 0.1196,
+      "canonical": 0.1205100578719919,
+      "found": 0.1205,
       "location": "Results Table 3, R1336mzz(E)",
-      "detail": "Precision 4d: round(0.11964541, 4) = 0.1196 vs displayed 0.1196  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.12051006, 4) = 0.1205 vs displayed 0.1205  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1336mzz(E)_Mred_MAE",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.2884813180403276,
-      "found": 0.2885,
+      "canonical": 0.27127017043937335,
+      "found": 0.2713,
       "location": "Results Table 3, R1336mzz(E)",
-      "detail": "Precision 4d: round(0.28848132, 4) = 0.2885 vs displayed 0.2885  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.27127017, 4) = 0.2713 vs displayed 0.2713  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1336mzz(E)_M0_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": -9.066611048506314,
-      "found": -9.0666,
+      "canonical": -9.434035402304914,
+      "found": -9.434,
       "location": "Results Table 3, R1336mzz(E)",
-      "detail": "Precision 4d: round(-9.066611, 4) = -9.0666 vs displayed -9.0666  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 3d: round(-9.4340354, 3) = -9.434 vs displayed -9.434  (diff=0.00e+00, thr=6.00e-04)"
     },
     {
       "check_id": "L2_T3_R1336mzz(E)_Mred_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": -53.428129041766496,
-      "found": -53.4281,
+      "canonical": -47.64525296495271,
+      "found": -47.6453,
       "location": "Results Table 3, R1336mzz(E)",
-      "detail": "Precision 4d: round(-53.428129, 4) = -53.4281 vs displayed -53.4281  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(-47.645253, 4) = -47.6453 vs displayed -47.6453  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1336mzz(Z)_N",
@@ -1031,60 +1031,60 @@
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.2853759429057438,
-      "found": 0.2854,
+      "canonical": 0.28314303072293606,
+      "found": 0.2831,
       "location": "Results Table 3, R1336mzz(Z)",
-      "detail": "Precision 4d: round(0.28537594, 4) = 0.2854 vs displayed 0.2854  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.28314303, 4) = 0.2831 vs displayed 0.2831  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1336mzz(Z)_Mred_MAE",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.1536149289409319,
-      "found": 0.1536,
+      "canonical": 0.14779531669616705,
+      "found": 0.1478,
       "location": "Results Table 3, R1336mzz(Z)",
-      "detail": "Precision 4d: round(0.15361493, 4) = 0.1536 vs displayed 0.1536  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.14779532, 4) = 0.1478 vs displayed 0.1478  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1336mzz(Z)_M0_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": -3.308491368187881,
-      "found": -3.3085,
+      "canonical": -3.2546341572003197,
+      "found": -3.2546,
       "location": "Results Table 3, R1336mzz(Z)",
-      "detail": "Precision 4d: round(-3.3084914, 4) = -3.3085 vs displayed -3.3085  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(-3.2546342, 4) = -3.2546 vs displayed -3.2546  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_R1336mzz(Z)_Mred_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": -0.6738525179137944,
-      "found": -0.6739,
+      "canonical": -0.6023198051300265,
+      "found": -0.6023,
       "location": "Results Table 3, R1336mzz(Z)",
-      "detail": "Precision 4d: round(-0.67385252, 4) = -0.6739 vs displayed -0.6739  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(-0.60231981, 4) = -0.6023 vs displayed -0.6023  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_Total_M0_ensemble_MAE",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0374241263,
-      "found": 0.0374,
+      "canonical": 0.036699685171339216,
+      "found": 0.0367,
       "location": "Results Table 3, Total",
-      "detail": "Precision 4d: round(0.037424126, 4) = 0.0374 vs displayed 0.0374  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.036699685, 4) = 0.0367 vs displayed 0.0367  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T3_Total_Mred_ensemble_MAE",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0300247296,
-      "found": 0.03,
+      "canonical": 0.030227244581946092,
+      "found": 0.0302,
       "location": "Results Table 3, Total",
-      "detail": "Precision 2d: round(0.03002473, 2) = 0.03 vs displayed 0.03  (diff=0.00e+00, thr=6.00e-03)"
+      "detail": "Precision 4d: round(0.030227245, 4) = 0.0302 vs displayed 0.0302  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T4_M1_N_test",
@@ -1251,30 +1251,30 @@
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0300247296,
-      "found": 0.03,
+      "canonical": 0.030227244581946092,
+      "found": 0.0302,
       "location": "Results Table 4, HFO/HCFO",
-      "detail": "Precision 2d: round(0.03002473, 2) = 0.03 vs displayed 0.03  (diff=0.00e+00, thr=6.00e-03)"
+      "detail": "Precision 4d: round(0.030227245, 4) = 0.0302 vs displayed 0.0302  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T4_HFO/HCFO_Mred_rho_sigma_error",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.4925930398,
-      "found": 0.4926,
+      "canonical": 0.4492379369556422,
+      "found": 0.4492,
       "location": "Results Table 4, HFO/HCFO",
-      "detail": "Precision 4d: round(0.49259304, 4) = 0.4926 vs displayed 0.4926  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.44923794, 4) = 0.4492 vs displayed 0.4492  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_T4_HFO/HCFO_sigma",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0144015521,
-      "found": 0.0144,
+      "canonical": 0.006331638430913575,
+      "found": 0.0063,
       "location": "Results Table 4, HFO/HCFO, sigma col",
-      "detail": "Precision 4d: round(0.014401552, 4) = 0.0144 vs displayed 0.0144  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.0063316384, 4) = 0.0063 vs displayed 0.0063  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_SI_S12_M1_N",
@@ -1341,40 +1341,40 @@
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0381,
-      "found": 0.0381,
+      "canonical": 0.03744948950788108,
+      "found": 0.0374,
       "location": "SI S3.2 sensitivity, HFO-only",
-      "detail": "Precision 4d: round(0.0381, 4) = 0.0381 vs displayed 0.0381  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.03744949, 4) = 0.0374 vs displayed 0.0374  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_SI_S32_HFOonly_Mred_MAE",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.03098,
-      "found": 0.031,
+      "canonical": 0.030165977165154,
+      "found": 0.0302,
       "location": "SI S3.2 sensitivity, HFO-only",
-      "detail": "Precision 3d: round(0.03098, 3) = 0.031 vs displayed 0.031  (diff=0.00e+00, thr=6.00e-04)"
+      "detail": "Precision 4d: round(0.030165977, 4) = 0.0302 vs displayed 0.0302  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_SI_S32_HFOonly_M0_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.62241,
-      "found": 0.6224,
+      "canonical": 0.6028225899985635,
+      "found": 0.6028,
       "location": "SI S3.2 sensitivity, HFO-only",
-      "detail": "Precision 4d: round(0.62241, 4) = 0.6224 vs displayed 0.6224  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 4d: round(0.60282259, 4) = 0.6028 vs displayed 0.6028  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L2_SI_S32_HFOonly_Mred_R2",
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.70845,
-      "found": 0.7085,
+      "canonical": 0.7409803366407085,
+      "found": 0.741,
       "location": "SI S3.2 sensitivity, HFO-only",
-      "detail": "Precision 4d: round(0.70845, 4) = 0.7085 vs displayed 0.7085  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "Precision 3d: round(0.74098034, 3) = 0.741 vs displayed 0.741  (diff=0.00e+00, thr=6.00e-04)"
     },
     {
       "check_id": "L2_SI_S42_M1_risk50_reduction",
@@ -1421,10 +1421,10 @@
       "layer": "L2",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 34.437485880000004,
-      "found": 34.4,
+      "canonical": 46.6562900453061,
+      "found": 46.7,
       "location": "SI S4.2, HFO/HCFO, Total Risk Reduction",
-      "detail": "Precision 1d: round(34.437486, 1) = 34.4 vs displayed 34.4  (diff=0.00e+00, thr=6.00e-02)"
+      "detail": "Precision 1d: round(46.65629, 1) = 46.7 vs displayed 46.7  (diff=0.00e+00, thr=6.00e-02)"
     },
     {
       "check_id": "L3_L2_mean_delta",
@@ -1461,20 +1461,20 @@
       "layer": "L3",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": 0.0213324343480883,
-      "found": 0.0213,
+      "canonical": 0.01549873296043489,
+      "found": 0.0155,
       "location": "results_md",
-      "detail": "R1336mzz(E) ensemble σ = 0.0213: Precision 4d: round(0.021332434, 4) = 0.0213 vs displayed 0.0213  (diff=0.00e+00, thr=6.00e-05)"
+      "detail": "R1336mzz(E) ensemble σ: Precision 4d: round(0.015498733, 4) = 0.0155 vs displayed 0.0155  (diff=0.00e+00, thr=6.00e-05)"
     },
     {
       "check_id": "L3_SI_HFOonly_pct",
       "layer": "L3",
       "category": "quantitative",
       "status": "PASS",
-      "canonical": -18.69,
-      "found": -18.7,
+      "canonical": -19.44889620242833,
+      "found": -19.4,
       "location": "si_md",
-      "detail": "HFO-only ΔMAE percentage: Precision 1d: round(-18.69, 1) = -18.7 vs displayed -18.7  (diff=0.00e+00, thr=6.00e-02)"
+      "detail": "HFO-only ΔMAE percentage: Precision 1d: round(-19.448896, 1) = -19.4 vs displayed -19.4  (diff=0.00e+00, thr=6.00e-02)"
     },
     {
       "check_id": "L3_M1_ens_MAE",

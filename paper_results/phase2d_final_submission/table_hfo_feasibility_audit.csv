@@ -1,0 +1,3 @@
+HFO_refrigerant,n_samples,n_il_systems,T_min,T_max,P_min,P_max,cations_in_HFC,anions_in_HFC,n_IL_pairs_shared_with_HFC,source_sheets
+R1336MZZ(E),11,1,293.1,352.8,0.194,0.8,True,True,1,Table S4. VLE HFOs
+R1336MZZ(Z),12,1,293.1,352.8,0.05,0.41,True,True,1,Table S4. VLE HFOs

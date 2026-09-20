@@ -1,24 +1,18 @@
 """
-run_ablation.py — GNN 消融实验驱动器 (Unified V6 Schema)
-======================================================
-【目的】
-  在 HFC/HFO 家族上使用 LORO / Random 切分，系统对比 5 大描述符模式的 GNN 泛化性能。
-  量化拓扑信息、电子/体积描述符、临界参数及超分子结合能对跨物质外推的贡献。
+[LEGACY / ARCHIVED RUNNER]
+================================================================================
+WARNING: THIS SCRIPT IS RETIRED AND ARCHIVED AS OF PHASE III.
+DO NOT USE THIS SCRIPT FOR PRODUCTION RUNS OR OFFICIAL PAPER BENCHMARKS!
 
-【消融模型】
-  M0           : 9 维 (T, P + 7 个单分子基础物性)
-  Mphys        : 9 + 3 = 12 维 (M0 + ref_dipole, ref_polarizability, ref_volume)
-  Mthermo      : 9 + 3 = 12 维 (M0 + Tc, Pc, omega)
-  Mreduced     : 9 + 3 = 12 维 (M0 + Tr, Pr, omega)
-  Minteract    : 9 + 2 = 11 维 (M0 + deltaE_anion, deltaE_cation)
-  Mreduced_pure: 10 维 (7 个物性 + Tr, Pr, omega)
-  M_all        : 17 维 (全量描述符集合)
+Official production runners are strictly segregated in `research_pipeline/`:
+  - M1 LORO & HFC Production: research_pipeline/run_hfc_all_production.py
+  - B1/B2 Anion-Family OOD : research_pipeline/run_split_B_benchmark.py
+  - L2 Ion-Pair Composition: research_pipeline/run_split_L2_benchmark.py
+  - HFO Zero-Shot Probe    : research_pipeline/step16_hfo_zeroshot_probe.py
+  - Stereo Parity Audit    : research_pipeline/step24d0_training_exposure_audit.py
+================================================================================
 
-【用法示例】
-  # LORO 全模式消融运行 (推荐锁定 Complete-Case 公平宇宙)
-  python run_ablation.py --family HFC --mode loro --descriptor_mode M0 --seeds 3
-  python run_ablation.py --family HFC --mode loro --descriptor_mode Mphys --use_adaptive_gate --seeds 3
-  python run_ablation.py --family HFC --mode loro --descriptor_mode Minteract --complete_case_only --seeds 3
+run_ablation.py — GNN 消融实验历史驱动器 (Historical Reference Only)
 """
 import argparse
 import os

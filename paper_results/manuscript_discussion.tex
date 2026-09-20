@@ -24,7 +24,7 @@ Consequently, defining the operational boundaries of molecular AI systems requir
 The central empirical finding of this work is that physical feature augmentation does not operate as a universal remedy; rather, its efficacy is \textbf{strictly selective}, determined by whether the inductive bias aligns with the dominant physical bottleneck of the distribution shift (Figure~\ref{fig:figure1_ladder} and Figure~\ref{fig:figure5_boundary}).
 
 \subsubsection{The Anchoring Mechanism of Corresponding States}
-In the gas solute extrapolation benchmarks (M1 LORO, $-36.5\%$ MAE; HFO/HCFO zero-shot, $-30.4\%$ MAE), baseline $M_0$ fails because it attempts to learn the complex phase-equilibrium boundary directly from raw atom topologies and ambient operating variables ($T, P$). Because the training set contains only saturated HFCs spanning a narrow window of critical temperatures, the unregularized network conflates the molecular identity of the gas with its thermodynamic proximity to saturation.
+In the gas solute extrapolation benchmarks (M1 LORO, $-36.5\%$ MAE; HFO/HCFO zero-shot, $-31.3\%$ MAE), baseline $M_0$ fails because it attempts to learn the complex phase-equilibrium boundary directly from raw atom topologies and ambient operating variables ($T, P$). Because the training set contains only saturated HFCs spanning a narrow window of critical temperatures, the unregularized network conflates the molecular identity of the gas with its thermodynamic proximity to saturation.
 
 By replacing unscaled ambient variables with reduced thermodynamic coordinates ($T_r = T/T_c$, $P_r = P/P_c$, and Pitzer acentric factor $\omega$), $M_{\mathrm{reduced}}$ introduces the \textbf{van der Waals theorem of corresponding states} directly into the scalar feature stream. Under this scaling, all fluids at identical reduced conditions occupy equivalent states of thermodynamic intermolecular interaction. Our Integrated Gradients attribution analysis (Figure~\ref{fig:figure3_attribution}) indicates a substantial redistribution of model reliance, with the scalar branch allocating up to $35.4\%$ of its attribution weight to $(T_r, P_r, \omega)$. This observation is consistent with an anchoring effect, where dimensionless coordinates ground the prediction in corresponding-states thermodynamics rather than unregularized molecular descriptors.
 
@@ -42,7 +42,7 @@ The most instructive failure mode in our investigation is the divergent behavior
 \end{equation}
 Because the graph embeddings are mathematically indistinguishable, baseline $M_0$ must produce nearly identical predictions for both isomers under identical $T, P$ conditions.
 
-When $M_{\mathrm{reduced}}$ is introduced, the model gains access to distinct critical parameters ($T_c = 444.5\text{ K}, P_c = 2.90\text{ MPa}$ for Z; $T_c = 410.6\text{ K}, P_c = 2.76\text{ MPa}$ for E), allowing the scalar MLP branch to differentiate the two species. However, because the underlying graph representation contains no geometric information regarding the steric repulsion of the trans trifluoromethyl groups versus the compact dipole of the cis form, the scalar branch overcompensates: it improves predictions on R1336mzz(Z) ($\text{MAE}: 0.2854 \to 0.1536$, a $46.2\%$ reduction) while inducing severe negative transfer on R1336mzz(E) ($\text{MAE}: 0.1196 \to 0.2885$, a $+141.1\%$ error inflation).
+When $M_{\mathrm{reduced}}$ is introduced, the model gains access to distinct critical parameters ($T_c = 444.5\text{ K}, P_c = 2.90\text{ MPa}$ for Z; $T_c = 410.6\text{ K}, P_c = 2.76\text{ MPa}$ for E), allowing the scalar MLP branch to differentiate the two species. However, because the underlying graph representation contains no geometric information regarding the steric repulsion of the trans trifluoromethyl groups versus the compact dipole of the cis form, the scalar branch overcompensates: it improves predictions on R1336mzz(Z) ($\text{MAE}: 0.2831 \to 0.1478$, a $47.8\%$ reduction) while inducing severe negative transfer on R1336mzz(E) ($\text{MAE}: 0.1205 \to 0.2713$, a $+125.1\%$ error inflation).
 
 This demarcates a rigid \textbf{representational ceiling}: \textit{thermodynamic scalar coordinates can regularize parameter learning over continuous state functions, but they cannot compensate for the total absence of geometric or stereochemical information in the topological graph encoder.}
 
@@ -58,14 +58,14 @@ By implementing a selective prediction threshold at 50\% coverage, industrial pr
 \begin{itemize}
     \item \textbf{$52.5\%$} in fluorosulfonate anion substitutions ($\text{MAE}: 0.0292 \to 0.0139$).
     \item \textbf{$51.2\%$} in inorganic fluoride systems ($\text{MAE}: 0.0472 \to 0.0230$).
-    \item \textbf{$34.4\%$} in cross-family unsaturated transfers ($\text{MAE}: 0.0300 \to 0.0197$).
+    \item \textbf{$46.7\%$} in cross-family unsaturated transfers ($\text{MAE}: 0.0302 \to 0.0161$).
 \end{itemize}
 This demonstrates that deep ensembles offer a viable, computation-efficient mechanism for automated quality control in molecular property prediction pipelines.
 
 \subsubsection{The ``Unknown Unknowns'': False Confidence Under Representational Blindness}
 Critically, however, our results expose a dangerous limitation: \textbf{ensemble disagreement cannot detect errors arising from shared topological blind spots}.
 
-On the trans-isomer R1336mzz(E), despite experiencing a severe MAE of $0.2885$ and an $R^2$ of $-53.4$, the ensemble exhibits low disagreement ($\bar{\sigma} = 0.0213$, Table~\ref{tab:unsat_species}), yielding a near-zero error--uncertainty correlation ($\rho = 0.0818$). Because all five ensemble members were trained on 2D graphs that lack stereochemical flags, all five seeds shared the identical structural inductive bias. Consequently, the ensemble was unanimously confident in an entirely incorrect prediction.
+On the trans-isomer R1336mzz(E), despite experiencing a severe MAE of $0.2713$ and an $R^2$ of $-47.6$, the ensemble exhibits low disagreement ($\bar{\sigma} = 0.0155$, Table~\ref{tab:unsat_species}), yielding a near-zero error--uncertainty correlation. Because all five ensemble members were trained on 2D graphs that lack stereochemical flags, all five seeds shared the identical structural inductive bias. Consequently, the ensemble was unanimously confident in an entirely incorrect prediction.
 
 This observation yields an essential design principle for AI-driven chemical engineering:
 \begin{quote}

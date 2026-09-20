@@ -63,6 +63,17 @@ def sync_tree(src, dst):
         "audit_uq_false_confidence.csv",
         "audit_uq_recompute.json",
         "audit_uq_reliability_bins.csv",
+        "table_hfo_zeroshot_metrics_HFC_all.csv",
+        "table_hfo_zeroshot_metrics_B1.csv",
+        "table_hfo_zeroshot_metrics_L2.csv",
+        "hfo_zeroshot_predictions_HFC_all.csv",
+        "hfo_zeroshot_predictions_B1.csv",
+        "hfo_zeroshot_predictions_L2.csv",
+        "hfo_zeroshot_report_HFC_all.json",
+        "hfo_zeroshot_report_B1.json",
+        "hfo_zeroshot_report_L2.json",
+        "table_hfo_feasibility_audit.csv",
+        "hfo_selective_risk_coverage_curve.csv",
     ]
     
     for fname in direct_files:

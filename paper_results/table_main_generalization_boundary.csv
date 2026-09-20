@@ -3,4 +3,4 @@ M1,12 HFC refrigerants (LORO),1403,0.1049,0.0666,-36.5%,-0.4158,0.3824,—,Refri
 B1,Fam-2 fluorosulfonate anions,513,0.0304,0.0302,-0.7%,0.9265,0.9285,0.0092,Limited descriptor benefit
 B2,Fam-3 inorganic fluorides (BF4/PF6),598,0.0534,0.0483,-9.6%,0.7931,0.8333,0.0110,Family-specific recovery
 L2,4 unseen IL ion pairs,374,0.0334,0.0293,-12.2%,0.8878,0.9126,0.0142,Compositional interpolation
-HFO/HCFO,1106 unsaturated refrigerant points,1106,0.0468,0.0326,-30.4%,0.492,0.6926,0.0144,Cross-family transfer with boundary cases
+HFO/HCFO,1106 unsaturated refrigerant points,1106,0.0446,0.0306,-31.3%,0.5134,0.7345,0.0063,Cross-family transfer with boundary cases
