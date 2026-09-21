@@ -8,7 +8,7 @@
     "status": "FROZEN_FOR_PUBLICATION"
   },
   "git_provenance": {
-    "commit_sha": "00e47c6dca43c99a95643d2dc036b96061adbc18",
+    "commit_sha": "c3530b1c7091523532e39349a092377399773e74",
     "branch": "main",
     "repository": "https://github.com/badaozhiwei-cmyk/GNN.git"
   },
@@ -90,7 +90,7 @@
       },
       "research_pipeline/step25_graph_substructure_attribution.py": {
         "exists": true,
-        "sha256": "f7d847b71fb600afbe9fa103a0700d8468e5747ef0c3dc535adf40b2d387de74"
+        "sha256": "cdcef1305451cc7b3342a9ab0136b785393c5cfe0491ed3c4069015a2e91ae57"
       },
       "research_pipeline/audit_step25_v2.py": {
         "exists": true,
@@ -115,6 +115,18 @@
       "research_pipeline/run_f4_model_quantification.py": {
         "exists": true,
         "sha256": "1c2572b51ab476544d75f31c3d0d99c2e18ca0b95235450aa766adbe8a1decf3"
+      },
+      "research_pipeline/compute_stratified_stability.py": {
+        "exists": true,
+        "sha256": "b5256b81c952cdab52e3268c341ac7011f39cbe7adc593cb5c8a73a4fc1d406e"
+      },
+      "research_pipeline/audit_step25_attribution.py": {
+        "exists": true,
+        "sha256": "fb2312a79336b7a7f6a7100e7b713a9673a6146aed9ffdc3e7e77c7a6a2237d8"
+      },
+      "research_pipeline/generate_step25_final_freeze.py": {
+        "exists": true,
+        "sha256": "31dfc6ab81b2cf59ab68b7b679873b4b6b5ddf6248069826ce95a9e56e32d7d6"
       }
     },
     "checkpoints": {
@@ -358,8 +370,13 @@
       },
       "results_attribution/graph_attribution_stability.csv": {
         "exists": true,
-        "size_bytes": 5347,
-        "sha256": "65f2fdd4232d70e211704999525fe15d0a2dbd66323da99ba1b6ba9aaba556e1"
+        "size_bytes": 9788,
+        "sha256": "1c5926e7982b72276d89f61a0ae48670c24551bceef4175eb6d576b7a8096fed"
+      },
+      "results_attribution/graph_attribution_stability_summary.csv": {
+        "exists": true,
+        "size_bytes": 771,
+        "sha256": "97984202bca20d8ff9c456c3dc80420d2042c6ca9f4c917f4d4dac3e704fa919"
       },
       "results_attribution/attribution_sample_level.csv": {
         "exists": true,
@@ -430,8 +447,8 @@
       },
       "diagnostic_outputs/audit_step25_attribution_output.txt": {
         "exists": true,
-        "size_bytes": 6478,
-        "sha256": "37b99ac4151ff3ad63992527161c6426e0c13b252f8779faa1102886d0a6de40"
+        "size_bytes": 5911,
+        "sha256": "acf896b973b06d34557aa0d59f60dd1800dc3e309d71ceb0f87f52c94595d2e3"
       }
     },
     "paper_results_tables": {
