@@ -227,14 +227,14 @@ def main():
             "case": "R1234yf Unsaturated Double Bond",
             "attributed_group": "Refri:Halogenated_Alkene (48.73% attribution share in active model)",
             "independent_xtb_property": "Polarizability alpha: R1234yf = 45.74 au vs saturated R134a = 32.99 au (+38.6% enhancement consistent with the unsaturated C=C motif)",
-            "physical_alignment": "Consistent. The primary attribution driver directly maps to the halogenated alkene / C=C unsaturation motif associated with high polarizability.",
-            "error_consequence": "Zero-shot out-of-family generalization achieves MAE 0.0299, demonstrating effective transfer to unsaturated systems when the double bond is captured."
+            "physical_alignment": "Consistent. The primary attribution driver is consistent with the halogenated alkene / C=C unsaturation motif associated with high polarizability.",
+            "error_consequence": "Zero-shot out-of-family generalization achieves MAE 0.0299, observed in the tested zero-shot cohort when the unsaturated motif is captured."
         },
         {
             "case": "R1336mzz(E/Z) Stereochemical Boundary",
             "attributed_group": "Refri:Alkene_C=C (58.49%) & CF3 (12.01%), mathematically identical between E and Z (diff = 0.00178)",
-            "independent_xtb_property": "Dipole mu: E = 0.000 D vs Z = 4.369 D (Delta mu = 4.369 D, massive transverse dipole)",
-            "physical_alignment": "Orthogonal Proof of Blind Spot. 2D graph representation is mathematically degenerate (H_E == H_Z, E_E == E_Z), producing identical attribution despite a 4.37 D physical dipole disparity.",
+            "independent_xtb_property": "Dipole mu: E = 0.000 D vs Z = 4.369 D (Delta mu = 4.369 D, large permanent dipole difference)",
+            "physical_alignment": "Independent physical consistency evidence. 2D graph representation is mathematically degenerate (H_E == H_Z, E_E == E_Z), producing identical attribution despite a 4.37 D permanent dipole difference.",
             "error_consequence": "The stereochemical representation boundary is consistent with the large physical dipole divergence and the asymmetric error observed between the two isomers (MAE 0.2831 vs 0.1205)."
         }
     ]
@@ -264,7 +264,7 @@ def main():
         f.write("Across our comprehensive evaluation of the Step 25 active subnetwork (N=35 active probes) against GFN2-xTB descriptors:\n")
         f.write("1. **Exploratory Polarizability Association**: Refrigerant attribution share shows a strong exploratory positive correlation with molecular polarizability ($\\alpha$) across the evaluated target species (**Spearman $\\rho = 0.9000$, $p = 0.0374$**, Pearson $r = 0.7712, p = 0.1268$, $N=5$). Because this cohort intentionally includes structural isomer and geometric isomer pairs (R134/R134a, R1336mzz E/Z), these points are non-independent in chemical structure space; the association is reported as an exploratory mechanistic alignment rather than an asymptotic population-level claim.\n")
         f.write("2. **Polarity Asymmetry Sensitivity**: The asymmetric, highly polar isomer R134a ($\\mu = 2.719\\text{ D}$) receives **2.11× higher refrigerant attribution** (62.34% vs 29.59%) than symmetric nonpolar R134 ($\\mu = 0.003\\text{ D}$), with 85.3% concentrated on the fluorinated dipole head (`-CH2F` + `-CHF2`).\n")
-        f.write("3. **Stereochemical Topological Degeneracy**: For R1336mzz(E/Z), GFN2-xTB reveals a massive permanent dipole divergence ($\\mu_E = 0.000\\text{ D}$ vs $\\mu_Z = 4.369\\text{ D}$, $\\Delta \\mu = 4.369\\text{ D}$). However, the 2D graph representation is mathematically degenerate ($H_E \\equiv H_Z, E_E \\equiv E_Z$), producing identical attribution and resulting in a **2.35× error explosion** in the Z-isomer (MAE 0.2831 vs 0.1205).\n")
+        f.write("3. **Stereochemical Topological Degeneracy**: For R1336mzz(E/Z), GFN2-xTB reveals a large permanent dipole difference ($\\mu_E = 0.000\\text{ D}$ vs $\\mu_Z = 4.369\\text{ D}$, $\\Delta \\mu = 4.369\\text{ D}$). However, the 2D graph representation is mathematically degenerate ($H_E \\equiv H_Z, E_E \\equiv E_Z$), producing identical attribution and consistent with the asymmetric error between the isomers (MAE 0.2831 vs 0.1205).\n")
         f.write("4. **Ionic Volume Distribution**: Across the unique anions represented in active probes ([Ac], [BEI], [BF4], [PF6], [TF2N]), attribution share generally scales with anionic van der Waals volume. Note on pseudoreplication: while an uncorrected sample-level correlation across all 35 raw probes yields $p = 0.0013$, 23 of the 35 active probes share the same anion ([TF2N]); we strictly report the aggregated unique-anion distribution (Table F2-B) to avoid statistical pseudoreplication.\n\n")
         
         f.write("---\n\n")

@@ -6,21 +6,21 @@
 
 ---
 
-## 1. Executive Scientific Verdict: Empirical Proof of Scalar Bypass
+## 1. Executive Scientific Verdict: Empirical Evidence Consistent with Scalar Bypass
 
 - **Zero-Shot Evaluation Cohort**: $N = 1106$ evaluations across all HFO systems ($N = 23$ paired evaluations for geometric isomers R1336mzz(E) and R1336mzz(Z)).
 - **Empirical Intervention Finding**: Holding model weights and 4D edge embedding parameterization strictly identical, injecting topological E/Z parity into edge attributes produces **zero measurable shift in zero-shot predictions**:
   - R1336mzz(E): $\text{Control-4D MAE} = 0.05950002 \to \text{Stereo-4D MAE} = 0.05950002$ ($\Delta\text{MAE} = +-1.75e-09$, Bootstrap 95% CI: [-2.9e-09, -6.1e-10])
   - E-Z Error Disparity: $\text{Control Gap} = 0.0607 \to \text{Stereo Gap} = 0.0607$ ($\Delta\text{Gap} = -0.0000$, relative change = -0.00%).
 
-## 2. Mechanistic Insight: Information Availability vs. Architectural Utilization
+## 2. Mechanistic Insight: Empirical Graph-to-Head Insensitivity Under the Tested Checkpoint
 
-> **Core Epistemological Finding**: In the current single-global-token readout architecture, **possessing stereochemical feature capacity does not equate to the network utilizing that capacity**.
+> **Core Epistemological Finding**: Under the tested checkpoint (Seed 42), **possessing stereochemical feature capacity does not result in downstream readout utilization**.
 
-1. **Forensic Confirmation of Scalar Bypass**: In Step 25 substructure attribution, we uncovered that 83.7% of evaluation probes suffered from 'readout collapse / head insensitivity', wherein the final MLP predominantly relies on external scalar thermodynamic shortcuts (temperature, pressure, bulk molecular weights) and largely bypasses graph-derived representations.
-2. **Causal Validation**: The F3 intervention provides direct causal confirmation: even when the topological representation space is mathematically enriched from degenerate ($G_E \equiv G_Z$) to non-degenerate ($G_E \neq G_Z$), the downstream readout head does not propagate this edge distinction to output solubility in the zero-shot regime without explicit training pressure or architectural constraints.
-3. **Architectural Prescription for Future Work (V7)**: Resolving the 2D topological blind spot in refrigerant–IL mixtures requires **both** explicit stereochemical featurization **and** an inductive architecture that prevents scalar shortcut learning (e.g., condition dropout, component-level interaction pooling, or dedicated stereochemical sub-heads).
-4. **Scope Restriction**: This finding characterizes the empirical representation dynamics of the frozen Seed 42 checkpoint under standard training; it demonstrates an architectural bypass failure mode rather than a fundamental limitation of stereochemical graph representations.
+1. **Contextualizing with Step 25 Representation Bifurcation**: In Step 25, substructure attribution revealed a seed-dependent representation bifurcation across 43 evaluation probes × 5 seeds, where the majority of evaluations exhibited readout collapse or head insensitivity, with the final MLP relying primarily on scalar condition shortcuts.
+2. **Empirical Evidence of Graph-to-Head Insensitivity**: The F3 intervention provides empirical evidence consistent with this bypass behavior: for this tested checkpoint, enriching topological edge representations ($G_E \neq G_Z$) does not propagate to zero-shot output differences, indicating that graph representation channels remain unutilized by the readout head.
+3. **Architectural Implication (V7 Future Work)**: This observation indicates that resolving 2D topological isomer degeneracy likely requires pairing explicit stereochemical featurization with inductive architectures that actively discourage scalar shortcut learning (e.g., condition dropout or component-level interaction pooling).
+4. **Scope Restriction**: This finding characterizes the empirical behavior of the specific evaluated checkpoint (Seed 42) and cohort; it serves as empirical evidence of checkpoint-level graph-to-head insensitivity rather than an assertable universal mechanism across all model instances or architectures.
 
 ---
 
@@ -36,4 +36,4 @@ R1336mzz(Combined)   23        0.201129       0.201129  3.239383e-09   1.610599e
 
 ## 4. Defensible Peer-Review Response Strategy
 
-> *'To rigorously test whether providing explicit topological stereochemistry alone resolves the E/Z prediction disparity, we performed a controlled intervention on the 4D-edge network holding all model weights fixed: in Control-4D the stereochemical edge channel is clamped to 0, while in Stereo-4D it receives true E/Z parity. Remarkably, the intervention produces a null shift in zero-shot predictions (Delta MAE < 1e-8), while maintaining identical E-Z gap (0.0607 vs 0.0607). Rather than reflecting an inability of graph representations to distinguish stereochemistry, this empirical result provides decisive proof of scalar bypass: when unconstrained scalar thermodynamic features dominate the readout, the network bypasses fine-grained edge-level topological cues. This finding establishes that resolving stereochemical representation boundaries requires coupling explicit geometric features with inductive architectures that suppress scalar shortcuts.'*
+> *'To test whether providing topological stereochemistry alone resolves the E/Z prediction disparity, we performed a controlled intervention on the 4D-edge network holding all weights fixed: Control-4D clamps the stereo dimension to 0, while Stereo-4D provides true E/Z parity. Under the tested checkpoint, the intervention produces a null response in zero-shot predictions (Delta MAE < 1e-8; E-Z gap unchanged at 0.0607). Rather than demonstrating that graph representations cannot distinguish stereochemistry, this finding provides empirical evidence consistent with scalar bypass: when scalar condition features dominate the readout, edge-level topological differences remain unutilized by the prediction head. This suggests that resolving representation boundaries requires coupling stereochemical features with architectures that actively prevent scalar shortcuts.'*
