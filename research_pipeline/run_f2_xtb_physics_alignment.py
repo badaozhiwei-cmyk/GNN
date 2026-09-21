@@ -181,19 +181,26 @@ def main():
     df_act_comp["cation_volume"] = df_act_comp["cation_clean"].map(lambda x: ion_xtb_map.get(x, {}).get("volume", np.nan))
     df_act_comp["cation_alpha"] = df_act_comp["cation_clean"].map(lambda x: ion_xtb_map.get(x, {}).get("polarizability", np.nan))
     
-    print("各离子在活跃样本中的物理参数与归因份额分布:")
+    print("各唯一阴离子在活跃样本中的物理参数与归因份额分布 (聚合统计，防止伪重复):")
     anion_stat = df_act_comp.groupby("anion_clean").agg({
         "anion_volume": "first",
         "anion_alpha": "first",
         "anion_share": "mean",
         "prediction_error": "mean",
         "sample_id": "count"
-    }).rename(columns={"sample_id": "count"})
-    print(anion_stat.to_string())
+    }).rename(columns={"sample_id": "probe_count"}).reset_index()
+    print(anion_stat.to_string(index=False))
     
-    # Correlation between anion volume / polarizability and anion attribution share
-    r_ani_v, p_ani_v = stats.pearsonr(df_act_comp["anion_volume"].dropna(), df_act_comp.loc[df_act_comp["anion_volume"].notna(), "anion_share"])
-    print(f"\n  * Anion Share <-> Anion Volume V: Pearson r = {r_ani_v:.4f} (p = {p_ani_v:.4f})")
+    # Statistical check across UNIQUE anions (N=5 unique anions)
+    valid_anions = anion_stat.dropna(subset=["anion_volume", "anion_share"])
+    n_unique_anions = len(valid_anions)
+    if n_unique_anions >= 3:
+        r_ani_agg, p_ani_agg = stats.pearsonr(valid_anions["anion_volume"], valid_anions["anion_share"])
+        rho_ani_agg, prho_ani_agg = stats.spearmanr(valid_anions["anion_volume"], valid_anions["anion_share"])
+        print(f"\n  * Aggregate Anion Share <-> Volume V (N={n_unique_anions} unique anions): Pearson r = {r_ani_agg:.4f} (p = {p_ani_agg:.4f}), Spearman rho = {rho_ani_agg:.4f} (p = {prho_ani_agg:.4f})")
+    else:
+        r_ani_agg, p_ani_agg = np.nan, np.nan
+        rho_ani_agg, prho_ani_agg = np.nan, np.nan
     
     # Statement on Delta E pair calculations
     print("\n[严格学术声明: 配对结合能 (Delta E) 数据现况]")
@@ -219,8 +226,8 @@ def main():
         {
             "case": "R1234yf Unsaturated Double Bond",
             "attributed_group": "Refri:Halogenated_Alkene (48.73% attribution share in active model)",
-            "independent_xtb_property": "Polarizability alpha: R1234yf = 45.74 au vs saturated R134a = 32.99 au (+38.6% enhancement from pi-electron cloud)",
-            "physical_alignment": "Consistent. The primary attribution driver directly maps to the reactive pi-conjugated alkene motif governing chemical solubility.",
+            "independent_xtb_property": "Polarizability alpha: R1234yf = 45.74 au vs saturated R134a = 32.99 au (+38.6% enhancement consistent with the unsaturated C=C motif)",
+            "physical_alignment": "Consistent. The primary attribution driver directly maps to the halogenated alkene / C=C unsaturation motif associated with high polarizability.",
             "error_consequence": "Zero-shot out-of-family generalization achieves MAE 0.0299, demonstrating effective transfer to unsaturated systems when the double bond is captured."
         },
         {
@@ -228,7 +235,7 @@ def main():
             "attributed_group": "Refri:Alkene_C=C (58.49%) & CF3 (12.01%), mathematically identical between E and Z (diff = 0.00178)",
             "independent_xtb_property": "Dipole mu: E = 0.000 D vs Z = 4.369 D (Delta mu = 4.369 D, massive transverse dipole)",
             "physical_alignment": "Orthogonal Proof of Blind Spot. 2D graph representation is mathematically degenerate (H_E == H_Z, E_E == E_Z), producing identical attribution despite a 4.37 D physical dipole disparity.",
-            "error_consequence": "Directly explains the 2.35x error explosion in Z-isomer (MAE 0.2831 vs 0.1205) and justifies explicit stereochemical intervention."
+            "error_consequence": "The stereochemical representation boundary is consistent with the large physical dipole divergence and the asymmetric error observed between the two isomers (MAE 0.2831 vs 0.1205)."
         }
     ]
     
@@ -242,39 +249,38 @@ def main():
     out_report = out_dir / "report_f2_xtb_physics_alignment.md"
     
     df_sp_res.to_csv(out_f2a, index=False)
-    anion_stat.to_csv(out_f2b)
+    anion_stat.to_csv(out_f2b, index=False)
     df_mapping.to_csv(out_f2c, index=False)
     
     # Generate structured Markdown report
     with open(out_report, "w", encoding="utf-8") as f:
         f.write("# F2: xTB Quantum-Chemical Physics Alignment Report\n\n")
         f.write("**Status**: Formally Aligned & Frozen  \n")
-        f.write("**Reference Commit**: `0bef798`  \n")
-        f.write("**Protocol**: Orthogonal physical validation via GFN2-xTB quantum descriptors and active-subnetwork (Seed 45) attributions.\n\n")
+        f.write("**Protocol**: Orthogonal physical consistency check via GFN2-xTB quantum descriptors and active-subnetwork (Seed 45) attributions.\n\n")
         f.write("---\n\n")
         
         f.write("## 1. Executive Summary & Epistemological Boundaries\n\n")
-        f.write("> **Strict Framing Rule**: Independent quantum-chemical descriptors provide orthogonal physical evidence consistent with selected attribution and error patterns; they do **not** claim causal proof that the neural network 'learned physics'.\n\n")
-        f.write("Across our comprehensive evaluation of the Step 25 active subnetwork (N=35) against GFN2-xTB descriptors:\n")
-        f.write("1. **Strong Polarizability Coupling**: Refrigerant attribution share strongly and significantly correlates with molecular polarizability ($\\alpha$) across species (**Spearman $\\rho = 0.9000$, $p = 0.0374$**).\n")
+        f.write("> **Strict Framing Rule**: Independent quantum-chemical descriptors provide orthogonal physical evidence consistent with observed attribution and error patterns; they do **not** claim causal proof that the neural network internally 'solved quantum chemistry'.\n\n")
+        f.write("Across our comprehensive evaluation of the Step 25 active subnetwork (N=35 active probes) against GFN2-xTB descriptors:\n")
+        f.write("1. **Exploratory Polarizability Association**: Refrigerant attribution share shows a strong exploratory positive correlation with molecular polarizability ($\\alpha$) across the evaluated target species (**Spearman $\\rho = 0.9000$, $p = 0.0374$**, Pearson $r = 0.7712, p = 0.1268$, $N=5$). Because this cohort intentionally includes structural isomer and geometric isomer pairs (R134/R134a, R1336mzz E/Z), these points are non-independent in chemical structure space; the association is reported as an exploratory mechanistic alignment rather than an asymptotic population-level claim.\n")
         f.write("2. **Polarity Asymmetry Sensitivity**: The asymmetric, highly polar isomer R134a ($\\mu = 2.719\\text{ D}$) receives **2.11× higher refrigerant attribution** (62.34% vs 29.59%) than symmetric nonpolar R134 ($\\mu = 0.003\\text{ D}$), with 85.3% concentrated on the fluorinated dipole head (`-CH2F` + `-CHF2`).\n")
-        f.write("3. **Stereochemical Topological Degeneracy**: For R1336mzz(E/Z), GFN2-xTB reveals a massive permanent dipole divergence ($\\mu_E = 0.000\\text{ D}$ vs $\\mu_Z = 4.369\\text{ D}$, $\\Delta \\mu = 4.369\\text{ D}$). However, the 2D graph representation is mathematically degenerate ($H_E \\equiv H_Z, E_E \\equiv E_Z$), forcing near-identical attribution and resulting in a **2.35× error explosion** in the Z-isomer (MAE 0.2831 vs 0.1205).\n")
-        f.write("4. **Ionic Volume Bias Confirmation**: Anion attribution share significantly correlates with anionic van der Waals volume ($r = 0.5296, p = 0.0013$), empirically validating the 'large-component volume suppression' pathology in single-token readouts.\n\n")
+        f.write("3. **Stereochemical Topological Degeneracy**: For R1336mzz(E/Z), GFN2-xTB reveals a massive permanent dipole divergence ($\\mu_E = 0.000\\text{ D}$ vs $\\mu_Z = 4.369\\text{ D}$, $\\Delta \\mu = 4.369\\text{ D}$). However, the 2D graph representation is mathematically degenerate ($H_E \\equiv H_Z, E_E \\equiv E_Z$), producing identical attribution and resulting in a **2.35× error explosion** in the Z-isomer (MAE 0.2831 vs 0.1205).\n")
+        f.write("4. **Ionic Volume Distribution**: Across the unique anions represented in active probes ([Ac], [BEI], [BF4], [PF6], [TF2N]), attribution share generally scales with anionic van der Waals volume. Note on pseudoreplication: while an uncorrected sample-level correlation across all 35 raw probes yields $p = 0.0013$, 23 of the 35 active probes share the same anion ([TF2N]); we strictly report the aggregated unique-anion distribution (Table F2-B) to avoid statistical pseudoreplication.\n\n")
         
         f.write("---\n\n")
         f.write("## 2. Table F2-A: Species-Level Quantum Physical Alignment\n\n")
-        f.write(df_sp_res.to_markdown(index=False) if hasattr(df_sp_res, 'to_markdown') and False else df_sp_res.to_string(index=False) + "\n\n")
+        f.write(df_sp_res.to_string(index=False) + "\n\n")
         
-        f.write("### Quantitative Statistical Associations (N=5 Evaluated Target Species):\n")
-        f.write(f"- **Refri Attribution Share $\\leftrightarrow$ Polarizability $\\alpha$**: Pearson $r = {r_attr_al:.4f}$ ($p = {p_attr_al:.4f}$), Spearman $\\rho = {rho_attr_al:.4f}$ ($p = {prho_attr_al:.4f}$, statistically significant).\n")
+        f.write("### Quantitative Statistical Associations (N=5 Evaluated Target Species, Exploratory):\n")
+        f.write(f"- **Refri Attribution Share $\\leftrightarrow$ Polarizability $\\alpha$**: Pearson $r = {r_attr_al:.4f}$ ($p = {p_attr_al:.4f}$), Spearman $\\rho = {rho_attr_al:.4f}$ ($p = {prho_attr_al:.4f}$).\n")
         f.write(f"- **Refri Attribution Share $\\leftrightarrow$ Dipole $\\mu$**: Pearson $r = {r_attr_mu:.4f}$ ($p = {p_attr_mu:.4f}$), Spearman $\\rho = {rho_attr_mu:.4f}$ ($p = {prho_attr_mu:.4f}$).\n")
         f.write(f"- **Full Test MAE $\\leftrightarrow$ Dipole $\\mu$**: Pearson $r = {r_err_mu:.4f}$ ($p = {p_err_mu:.4f}$).\n")
         f.write(f"- **Full Test MAE $\\leftrightarrow$ Volume $V$**: Pearson $r = {r_err_v:.4f}$ ($p = {p_err_v:.4f}$).\n\n")
         
         f.write("---\n\n")
-        f.write("## 3. Table F2-B: Anion-Level Volume and Polarizability Distributions\n\n")
-        f.write(anion_stat.to_string() + "\n\n")
-        f.write(f"- **Anion Share $\\leftrightarrow$ Anion Volume $V$**: Pearson $r = {r_ani_v:.4f}$ ($p = {p_ani_v:.4f}$, statistically significant).\n\n")
+        f.write("## 3. Table F2-B: Anion-Level Volume and Polarizability Distributions (Unique Anions)\n\n")
+        f.write(anion_stat.to_string(index=False) + "\n\n")
+        f.write("> *Methodological Note*: 35 active probes span 5 unique anions ([Ac]: 1 probe, [BEI]: 4 probes, [BF4]: 2 probes, [PF6]: 5 probes, [TF2N]: 23 probes). Anion-level trends are presented via descriptive group aggregation rather than sample-level p-values to eliminate pseudoreplication.\n\n")
         
         f.write("---\n\n")
         f.write("## 4. Table F2-C: Attribution-to-Physics Mapping Synthesis\n\n")

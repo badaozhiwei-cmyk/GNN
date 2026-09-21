@@ -44,16 +44,19 @@ def count_parameters(model: nn.Module):
         total_params += params
     return pd.DataFrame(table), total_params
 
-def estimate_gat_flops(num_nodes, num_edges, in_dim, out_dim, heads):
-    # GATv2Conv FLOPs estimate:
-    # 1. Linear projection: 2 * num_nodes * in_dim * (out_dim * heads)
-    # 2. Edge attention score calculation: 2 * num_edges * (out_dim * heads)
-    # 3. Attention aggregation: 2 * num_edges * (out_dim * heads)
-    # 4. Final projection: num_nodes * out_dim * heads
-    lin_proj = 2 * num_nodes * in_dim * out_dim
-    edge_att = 2 * num_edges * out_dim
-    agg = 2 * num_edges * out_dim
-    return lin_proj + edge_att + agg
+def estimate_gat_flops(num_nodes, num_edges, in_dim, out_dim, heads, edge_dim=300):
+    # GATv2Conv analytical FLOPs estimate (rough theoretical upper bound):
+    # 1. Linear projection of source and target nodes: 2 * (num_nodes * in_dim * (heads * out_dim))
+    # 2. Linear projection of edge attributes: 2 * (num_edges * edge_dim * (heads * out_dim))
+    # 3. Attention score inner product & LeakyReLU: 2 * num_edges * (heads * out_dim)
+    # 4. Attention weighted aggregation: 2 * num_edges * (heads * out_dim)
+    # 5. Head reduction (concat=False averages across heads): num_nodes * (heads * out_dim)
+    lin_nodes = 4 * num_nodes * in_dim * heads * out_dim
+    lin_edge = 2 * num_edges * edge_dim * heads * out_dim
+    att_score = 2 * num_edges * heads * out_dim
+    att_agg = 2 * num_edges * heads * out_dim
+    head_avg = num_nodes * heads * out_dim
+    return lin_nodes + lin_edge + att_score + att_agg + head_avg
 
 def main():
     print("=" * 80)
@@ -150,46 +153,57 @@ def main():
     print(f"  - Batched (N=32) Latency  : {mean_lat_batch:.3f} ms ({lat_per_sample_batched:.3f} ms/sample)")
     print(f"  - Batched Throughput      : {throughput_batch:.1f} samples / second on CPU")
 
-    # 5. FLOPs Estimation
+    # 5. FLOPs Estimation (Theoretical Analytical Estimate)
     # GAT Layer 1: 300 -> 512, heads=4 (concat=False)
-    f_l1 = estimate_gat_flops(N_nodes, N_edges, 300, 512, 4)
+    f_l1 = estimate_gat_flops(N_nodes, N_edges, 300, 512, 4, edge_dim=300)
     # GAT Layer 2: 512 -> 1024, heads=4
-    f_l2 = estimate_gat_flops(N_nodes, N_edges, 512, 1024, 4)
+    f_l2 = estimate_gat_flops(N_nodes, N_edges, 512, 1024, 4, edge_dim=300)
     # GAT Layer 3: 1024 -> 512, heads=4
-    f_l3 = estimate_gat_flops(N_nodes, N_edges, 1024, 512, 4)
+    f_l3 = estimate_gat_flops(N_nodes, N_edges, 1024, 512, 4, edge_dim=300)
     # MLP Head: (512+9) -> 1024 -> 512 -> 1
     f_mlp = 2 * (521 * 1024 + 1024 * 512 + 512 * 1)
     total_flops_sample = f_l1 + f_l2 + f_l3 + f_mlp
     macs_sample = total_flops_sample / 2.0
     
-    print("\n[Computational Complexity]")
+    print("\n[Computational Complexity (Analytical Upper Bound)]")
     print(f"  - FLOPs per Sample        : {total_flops_sample / 1e6:.2f} MFLOPs ({total_flops_sample / 1e9:.4f} GFLOPs)")
     print(f"  - MACs per Sample         : {macs_sample / 1e6:.2f} MMACs")
     print(f"  - FLOPs per Batch (N=32)  : {(total_flops_sample * batch_size) / 1e9:.2f} GFLOPs")
 
-    # 6. Memory Profile
-    tracemalloc.start()
-    _ = model(batch_g_32, cond_batch_32)
-    current_mem, peak_mem = tracemalloc.get_traced_memory()
-    tracemalloc.stop()
-    peak_mem_mb = peak_mem / (1024 * 1024)
-    print(f"  - Peak Memory Overhead    : {peak_mem_mb:.2f} MB (Inference N=32)")
+    # 6. Memory Profile (Process Working Set & Python Traced Heap)
+    try:
+        import psutil
+        proc = psutil.Process()
+        rss_mem_mb = proc.memory_info().rss / (1024 * 1024)
+        mem_str = f"{rss_mem_mb:.1f} MB (Process RSS)"
+    except Exception:
+        tracemalloc.start()
+        _ = model(batch_g_32, cond_batch_32)
+        _, peak_mem = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        mem_str = f"{peak_mem / (1024 * 1024):.2f} MB (Python Heap)"
+    print(f"  - Memory Footprint        : {mem_str}")
 
-    # 7. Convergence Statistics from Production Model Checkpoints
-    seed_stats = [
-        {"seed": 42, "best_val_loss": 0.000371, "epochs_to_converge": 74, "train_duration_sec": 148.0},
-        {"seed": 43, "best_val_loss": 0.000388, "epochs_to_converge": 68, "train_duration_sec": 136.0},
-        {"seed": 44, "best_val_loss": 0.000355, "epochs_to_converge": 82, "train_duration_sec": 164.0},
-        {"seed": 45, "best_val_loss": 0.000258, "epochs_to_converge": 91, "train_duration_sec": 182.0},
-        {"seed": 46, "best_val_loss": 0.000392, "epochs_to_converge": 65, "train_duration_sec": 130.0}
-    ]
-    df_seeds = pd.DataFrame(seed_stats)
-    mean_epochs = df_seeds["epochs_to_converge"].mean()
-    mean_train_time = df_seeds["train_duration_sec"].mean()
+    # 7. Convergence Statistics from Production Model Checkpoints (seed_val_metrics.csv)
+    seed_metrics_path = ROOT / "seed_metrics/HFC_all_M0_seed_metrics.csv"
+    if not seed_metrics_path.exists():
+        seed_metrics_path = ROOT / "results_hfc_all/HFC_all_M0/seed_val_metrics.csv"
     
-    print("\n[5-Seed Convergence Summary]")
-    print(f"  - Mean Convergence Epochs : {mean_epochs:.1f} ± {df_seeds['epochs_to_converge'].std():.1f} epochs")
-    print(f"  - Mean Training Wall Time : {mean_train_time:.1f} ± {df_seeds['train_duration_sec'].std():.1f} seconds (~{mean_train_time/60:.1f} min)")
+    df_seeds = pd.read_csv(seed_metrics_path)
+    mean_val_loss = float(df_seeds["best_val_loss"].mean())
+    std_val_loss = float(df_seeds["best_val_loss"].std(ddof=1))
+    mean_val_mae = float(df_seeds["mae_clip"].mean())
+    std_val_mae = float(df_seeds["mae_clip"].std(ddof=1))
+    mean_val_r2 = float(df_seeds["r2_clip"].mean())
+    std_val_r2 = float(df_seeds["r2_clip"].std(ddof=1))
+    
+    print("\n[5-Seed Production Validation Performance (seed_val_metrics.csv)]")
+    for _, row in df_seeds.iterrows():
+        print(f"  - Seed {int(row['seed'])}: Best Val Loss = {row['best_val_loss']:.6f}, Val MAE = {row['mae_clip']:.5f}, Val R2 = {row['r2_clip']:.4f}")
+    print(f"  - Mean Val Loss : {mean_val_loss:.6f} ± {std_val_loss:.6f}")
+    print(f"  - Mean Val MAE  : {mean_val_mae:.5f} ± {std_val_mae:.5f}")
+    print(f"  - Mean Val R2   : {mean_val_r2:.4f} ± {std_val_r2:.4f}")
+    print("  - Training Protocol: Max 100 epochs, early stopping patience=15, CosineAnnealingLR (eta_min=1e-5), HuberLoss (delta=0.05)")
 
     # 8. Compile Master Profiling Table
     metrics_summary = [
@@ -197,16 +211,18 @@ def main():
         {"Category": "Architecture", "Metric": "Embedding & Token Parameters", "Value": f"{embedding_params:,}", "Unit": "count"},
         {"Category": "Architecture", "Metric": "GATv2 Message Passing Parameters", "Value": f"{gat_params:,}", "Unit": "count"},
         {"Category": "Architecture", "Metric": "MLP Readout Head Parameters", "Value": f"{mlp_params:,}", "Unit": "count"},
-        {"Category": "Complexity", "Metric": "Multiply-Accumulate Operations (MACs)", "Value": f"{macs_sample / 1e6:.2f}", "Unit": "MMACs / sample"},
-        {"Category": "Complexity", "Metric": "Floating Point Operations (FLOPs)", "Value": f"{total_flops_sample / 1e6:.2f}", "Unit": "MFLOPs / sample"},
+        {"Category": "Complexity", "Metric": "Multiply-Accumulate Operations (MACs, Analytical)", "Value": f"{macs_sample / 1e6:.2f}", "Unit": "MMACs / sample"},
+        {"Category": "Complexity", "Metric": "Floating Point Operations (FLOPs, Analytical)", "Value": f"{total_flops_sample / 1e6:.2f}", "Unit": "MFLOPs / sample"},
         {"Category": "Complexity", "Metric": "Batched Compute (Batch=32)", "Value": f"{(total_flops_sample * 32) / 1e9:.3f}", "Unit": "GFLOPs / batch"},
         {"Category": "Latency", "Metric": "Single-Sample CPU Latency", "Value": f"{mean_lat_single:.2f} ± {std_lat_single:.2f}", "Unit": "ms"},
         {"Category": "Latency", "Metric": "P95 Single-Sample Latency", "Value": f"{p95_lat_single:.2f}", "Unit": "ms"},
         {"Category": "Latency", "Metric": "Batched CPU Latency (Batch=32)", "Value": f"{mean_lat_batch:.2f}", "Unit": "ms"},
         {"Category": "Throughput", "Metric": "Batched CPU Throughput", "Value": f"{throughput_batch:.1f}", "Unit": "samples / sec"},
-        {"Category": "Memory", "Metric": "Peak Working Memory Footprint", "Value": f"{peak_mem_mb:.2f}", "Unit": "MB"},
-        {"Category": "Training Cost", "Metric": "Mean Convergence Epochs", "Value": f"{mean_epochs:.1f} ± {df_seeds['epochs_to_converge'].std():.1f}", "Unit": "epochs"},
-        {"Category": "Training Cost", "Metric": "Mean Training Duration per Seed", "Value": f"{mean_train_time:.1f}", "Unit": "seconds"}
+        {"Category": "Memory", "Metric": "Process Memory Footprint", "Value": mem_str, "Unit": "memory"},
+        {"Category": "Training & Ensemble", "Metric": "5-Seed Validation Huber Loss", "Value": f"{mean_val_loss:.6f} ± {std_val_loss:.6f}", "Unit": "loss"},
+        {"Category": "Training & Ensemble", "Metric": "5-Seed Validation MAE", "Value": f"{mean_val_mae:.5f} ± {std_val_mae:.5f}", "Unit": "mole fraction"},
+        {"Category": "Training & Ensemble", "Metric": "5-Seed Validation R2", "Value": f"{mean_val_r2:.4f} ± {std_val_r2:.4f}", "Unit": "R2"},
+        {"Category": "Training & Ensemble", "Metric": "Optimization Protocol", "Value": "Max 100 epochs, Patience 15, CosineAnnealingLR", "Unit": "schedule"}
     ]
     df_profile = pd.DataFrame(metrics_summary)
     
@@ -217,14 +233,15 @@ def main():
     
     with open(out_md, "w", encoding="utf-8") as f:
         f.write("# Supplementary Note: Computational Efficiency & Resource Quantification (F4)\n\n")
-        f.write("This supplementary section provides full technical transparency on the model's architectural parameterization, computational complexity, inference latency, and hardware footprint.\n\n")
+        f.write("This supplementary section provides full technical transparency on the model's architectural parameterization, computational complexity, inference latency, hardware footprint, and 5-seed validation convergence.\n\n")
         f.write("## 1. Quantitative Efficiency Summary\n\n")
         f.write(df_profile.to_string(index=False) + "\n\n")
         f.write("---\n\n")
         f.write("## 2. Reviewer Pre-emption Discussion\n\n")
-        f.write("1. **Modest Footprint**: The entire network comprises **4,082,105 parameters (~4.08M)** with an inference cost of **~14.5 MFLOPs per ternary evaluation**, ensuring deployment feasibility on commodity CPU hardware without requiring dedicated GPU accelerators.\n")
-        f.write("2. **High Throughput**: Batched inference executes at **~1,200–1,500 samples/sec** on standard multi-core CPUs, enabling real-time screening of millions of refrigerant–ionic liquid pairs in virtual high-throughput screening campaigns.\n")
-        f.write("3. **Rapid Training Convergence**: With cosine learning rate scheduling and early stopping, full convergence is achieved in **~75 epochs (~2.5 minutes per seed)** on a single commercial accelerator, making 5-seed ensemble uncertainty quantification highly practical.\n")
+        f.write(f"1. **Architectural Capacity**: The complete architecture comprises exactly **{total_params:,} trainable parameters (~13.2M)**. The capacity is predominantly allocated to the 3-layer GATv2 message-passing backbone ({gat_params:,} params, 91.58%) with multi-head attention (heads=4) and 300-dimensional edge featurization, followed by the non-linear readout MLP ({mlp_params:,} params, 8.04%) and molecular token embeddings ({embedding_params:,} params, 0.38%).\n")
+        f.write(f"2. **Computational Complexity**: An analytical evaluation of the matrix multiplication operations across the 3 GATv2 layers, edge projections, attention mechanisms, and readout MLP yields approximately **{total_flops_sample / 1e6:.2f} MFLOPs ({macs_sample / 1e6:.2f} MMACs) per ternary evaluation** (equivalent to ~{(total_flops_sample * 32) / 1e9:.2f} GFLOPs per batch of 32). This modest operational load allows high-throughput evaluation without specialized hardware accelerators.\n")
+        f.write(f"3. **Empirical Latency & Throughput**: Benchmarked on a commodity single-core CPU, single-sample evaluation incurs **{mean_lat_single:.2f} ± {std_lat_single:.2f} ms** (P95: {p95_lat_single:.2f} ms). Under batched execution (batch size = 32), throughput reaches **{throughput_batch:.1f} samples / second** ({lat_per_sample_batched:.2f} ms per sample). This enables screening large thermodynamic candidate spaces (e.g., >100,000 ternary combinations in under 25 minutes on standard CPU workstations).\n")
+        f.write(f"4. **5-Seed Ensemble Validation Robustness**: Under the standardized training protocol (maximum 100 epochs, early stopping patience of 15 epochs on validation loss, CosineAnnealingLR schedule with $\\eta_{{min}}=10^{{-5}}$, and Huber loss with $\\delta=0.05$), the 5 production random seeds achieve highly consistent convergence: Validation Loss = **{mean_val_loss:.6f} ± {std_val_loss:.6f}**, Validation MAE = **{mean_val_mae:.5f} ± {std_val_mae:.5f}**, and Validation $R^2$ = **{mean_val_r2:.4f} ± {std_val_r2:.4f}**.\n")
         
     print(f"\n[SUCCESS] Successfully generated F4 artifacts:")
     print(f"  1. {out_csv}")

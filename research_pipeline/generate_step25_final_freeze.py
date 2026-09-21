@@ -43,6 +43,9 @@ def main():
         "research_pipeline/audit_step25_v2.py",
         "research_pipeline/sync_and_deep_audit.py",
         "research_pipeline/diagnostic_virtual_node.py",
+        "research_pipeline/run_f2_xtb_physics_alignment.py",
+        "research_pipeline/run_f3_stereo_intervention.py",
+        "research_pipeline/run_f4_model_quantification.py",
     ]
     code_hashes = {}
     for cf in code_files:
@@ -121,6 +124,12 @@ def main():
         "paper_results/table_step24_stereo_ablation.csv",
         "paper_results/table_training_size_curve.csv",
         "paper_results/table_cluster_bootstrap_significance.csv",
+        "paper_results/table_f2a_species_xtb_alignment.csv",
+        "paper_results/table_f2b_ion_xtb_alignment.csv",
+        "paper_results/table_f2c_attribution_physics_mapping.csv",
+        "paper_results/table_f3_stereo_intervention.csv",
+        "paper_results/table_f3_stereo_paired_predictions.csv",
+        "paper_results/table_f4_model_quantification.csv",
     ]
     paper_hashes = {}
     for pf in paper_files:

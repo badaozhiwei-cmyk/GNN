@@ -3,13 +3,15 @@ Architecture,Total Parameters,"13,214,945",count
 Architecture,Embedding & Token Parameters,"50,400",count
 Architecture,GATv2 Message Passing Parameters,"12,101,632",count
 Architecture,MLP Readout Head Parameters,"1,062,913",count
-Complexity,Multiply-Accumulate Operations (MACs),37.58,MMACs / sample
-Complexity,Floating Point Operations (FLOPs),75.16,MFLOPs / sample
-Complexity,Batched Compute (Batch=32),2.405,GFLOPs / batch
-Latency,Single-Sample CPU Latency,21.71 ± 5.95,ms
-Latency,P95 Single-Sample Latency,26.26,ms
-Latency,Batched CPU Latency (Batch=32),431.96,ms
-Throughput,Batched CPU Throughput,74.1,samples / sec
-Memory,Peak Working Memory Footprint,0.01,MB
-Training Cost,Mean Convergence Epochs,76.0 ± 10.6,epochs
-Training Cost,Mean Training Duration per Seed,152.0,seconds
+Complexity,"Multiply-Accumulate Operations (MACs, Analytical)",566.79,MMACs / sample
+Complexity,"Floating Point Operations (FLOPs, Analytical)",1133.58,MFLOPs / sample
+Complexity,Batched Compute (Batch=32),36.275,GFLOPs / batch
+Latency,Single-Sample CPU Latency,13.49 ± 1.69,ms
+Latency,P95 Single-Sample Latency,15.71,ms
+Latency,Batched CPU Latency (Batch=32),339.54,ms
+Throughput,Batched CPU Throughput,94.2,samples / sec
+Memory,Process Memory Footprint,931.3 MB (Process RSS),memory
+Training & Ensemble,5-Seed Validation Huber Loss,0.000581 ± 0.000194,loss
+Training & Ensemble,5-Seed Validation MAE,0.02475 ± 0.00568,mole fraction
+Training & Ensemble,5-Seed Validation R2,0.9504 ± 0.0178,R2
+Training & Ensemble,Optimization Protocol,"Max 100 epochs, Patience 15, CosineAnnealingLR",schedule
