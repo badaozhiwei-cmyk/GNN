@@ -8,7 +8,7 @@
     "status": "FROZEN_FOR_PUBLICATION"
   },
   "git_provenance": {
-    "commit_sha": "f186a0981adec27282ba4058a034ac5bf3651972",
+    "commit_sha": "00e47c6dca43c99a95643d2dc036b96061adbc18",
     "branch": "main",
     "repository": "https://github.com/badaozhiwei-cmyk/GNN.git"
   },
@@ -106,15 +106,15 @@
       },
       "research_pipeline/run_f2_xtb_physics_alignment.py": {
         "exists": true,
-        "sha256": "0423462d7ae7836c308fe8762f06db5987bacd91d8aec023c28d62d8fb662348"
+        "sha256": "5da2fc19de9d4efd60e9ac01fe2bdd8a4408bc29e808d415978838cf5cd61bbe"
       },
       "research_pipeline/run_f3_stereo_intervention.py": {
         "exists": true,
-        "sha256": "d9c8ec680ce3e55c212bc90c5ddebe502e0c8c4cf58843f7fc866c1bc9e8ab1d"
+        "sha256": "5aa424085b2735df01581111525ca07716641046932551d2089e6efdfea101dc"
       },
       "research_pipeline/run_f4_model_quantification.py": {
         "exists": true,
-        "sha256": "67f80dbe835acb882e8dabdbfe80ba1aed9caac1be75d3f198f55dc394c9bdba"
+        "sha256": "1c2572b51ab476544d75f31c3d0d99c2e18ca0b95235450aa766adbe8a1decf3"
       }
     },
     "checkpoints": {
@@ -497,8 +497,8 @@
       },
       "paper_results/table_f2c_attribution_physics_mapping.csv": {
         "exists": true,
-        "size_bytes": 1757,
-        "sha256": "3d6839656b4a582ba09965ef46633dac013b88949b196ee4729e40186a29ab79"
+        "size_bytes": 1770,
+        "sha256": "c7b8afa5ea5fd45aae0eab1f5140c98cf7e77314908d8691f3a8ef1060992f56"
       },
       "paper_results/table_f3_stereo_intervention.csv": {
         "exists": true,
@@ -512,8 +512,8 @@
       },
       "paper_results/table_f4_model_quantification.csv": {
         "exists": true,
-        "size_bytes": 1071,
-        "sha256": "a739d0403111961e6a8563dc687e46a2faaf7568f8d1ea65c6777c1959fb50d3"
+        "size_bytes": 1078,
+        "sha256": "c670f5cfc053195f6ccaae8bc4765699c3c21352a0cde17c6cd3ab8c102c82fc"
       }
     }
   }
