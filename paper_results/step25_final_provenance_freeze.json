@@ -8,7 +8,7 @@
     "status": "FROZEN_FOR_PUBLICATION"
   },
   "git_provenance": {
-    "commit_sha": "0bef798b2ea2744ead68337e0f2a009e7ca4c40f",
+    "commit_sha": "f186a0981adec27282ba4058a034ac5bf3651972",
     "branch": "main",
     "repository": "https://github.com/badaozhiwei-cmyk/GNN.git"
   },
@@ -103,6 +103,18 @@
       "research_pipeline/diagnostic_virtual_node.py": {
         "exists": true,
         "sha256": "1fcff35d90c7d4614b959184e4e9a671ed19055f0242e10b1a6ed4199101cb4f"
+      },
+      "research_pipeline/run_f2_xtb_physics_alignment.py": {
+        "exists": true,
+        "sha256": "0423462d7ae7836c308fe8762f06db5987bacd91d8aec023c28d62d8fb662348"
+      },
+      "research_pipeline/run_f3_stereo_intervention.py": {
+        "exists": true,
+        "sha256": "d9c8ec680ce3e55c212bc90c5ddebe502e0c8c4cf58843f7fc866c1bc9e8ab1d"
+      },
+      "research_pipeline/run_f4_model_quantification.py": {
+        "exists": true,
+        "sha256": "67f80dbe835acb882e8dabdbfe80ba1aed9caac1be75d3f198f55dc394c9bdba"
       }
     },
     "checkpoints": {
@@ -472,6 +484,36 @@
         "exists": true,
         "size_bytes": 321,
         "sha256": "9c4079405dba09c10c1210a3ac98c4cf972bbeda1ba7fd51b139244bcf6b4faa"
+      },
+      "paper_results/table_f2a_species_xtb_alignment.csv": {
+        "exists": true,
+        "size_bytes": 667,
+        "sha256": "eeb2426783f3604f3f2083aeaace33d3579725029df07369ff8e322279b1534b"
+      },
+      "paper_results/table_f2b_ion_xtb_alignment.csv": {
+        "exists": true,
+        "size_bytes": 384,
+        "sha256": "ad0e4de125facdd4b82a3b5f5c5d9972b7ad3d8baac920396db7c9cfd1f38992"
+      },
+      "paper_results/table_f2c_attribution_physics_mapping.csv": {
+        "exists": true,
+        "size_bytes": 1757,
+        "sha256": "3d6839656b4a582ba09965ef46633dac013b88949b196ee4729e40186a29ab79"
+      },
+      "paper_results/table_f3_stereo_intervention.csv": {
+        "exists": true,
+        "size_bytes": 869,
+        "sha256": "91cba581cc46818525853aecec05b10fc6a03a9e1d22bbf15c522b7fc2852488"
+      },
+      "paper_results/table_f3_stereo_paired_predictions.csv": {
+        "exists": true,
+        "size_bytes": 102226,
+        "sha256": "a52fcd46ccaeac896bb4a38276f8e512695ea607d45d634da7dd44203c11db93"
+      },
+      "paper_results/table_f4_model_quantification.csv": {
+        "exists": true,
+        "size_bytes": 1071,
+        "sha256": "a739d0403111961e6a8563dc687e46a2faaf7568f8d1ea65c6777c1959fb50d3"
       }
     }
   }
