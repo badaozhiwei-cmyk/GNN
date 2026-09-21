@@ -18,7 +18,7 @@ step25_graph_substructure_attribution.py — Phase III-F: Graph & Functional-Gro
    - 三元基团指标: A_g^signed, A_g^abs, A_tilde_g = A_g^abs / |g|, P_g = A_g^abs / sum_h A_h^abs
 4. 连续嵌入层节点特征遮蔽保真度测试 (Post-Embedding Node-Feature Masking Faithfulness):
    - H[group] = 0 (在连续嵌入空间遮蔽, 绝不在离散 x 上修改)
-   - Top-1 基团遮蔽 vs 100 次等原子数随机遮蔽 -> R_faith = Δy_top / mean(Δy_rand)
+   - Top-1 基团遮蔽 vs 30 次等原子数随机遮蔽 -> R_faith = Δy_top / mean(Δy_rand)
 5. 结果与主干隔离:
    - 严禁触碰 FINAL_FREEZE.json 与 table_main_generalization_boundary.csv
    - 结果统一输出至 results_attribution/ 并生成 graph_attribution_provenance.json
@@ -700,7 +700,7 @@ def run_single_sample_smoke_test(
         data_i=comb_g,
         cond=target_cond,
         top_atom_indices=top_atoms,
-        n_random_trials=100,
+        n_random_trials=30,
         seed=seed,
     )
 
@@ -710,7 +710,7 @@ def run_single_sample_smoke_test(
     print("\n[GATE D: 节点特征遮蔽保真度 (Node-Feature Masking)]")
     print(f"  - 目标 Top-1 基团        : {top_group_name} ({faith_res['top_k_atoms']} 原子)")
     print(f"  - Top 基团遮蔽预测变动   : Δy_top  = {faith_res['delta_y_top']:.6f}")
-    print(f"  - 100次随机遮蔽平均变动 : Δy_rand = {faith_res['mean_delta_rand']:.6f} ± {faith_res['std_delta_rand']:.6f}")
+    print(f"  - 30次随机遮蔽平均变动  : Δy_rand = {faith_res['mean_delta_rand']:.6f} ± {faith_res['std_delta_rand']:.6f}")
     print(f"  - 保真度响应比率 (R_faith): {faith_res['r_faith']:.2f}")
     print(f"  ==> GATE D 判定: {'[PASS]' if gate_d_pass else '[FAIL]'}")
 

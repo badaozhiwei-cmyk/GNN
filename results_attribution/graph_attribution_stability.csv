@@ -1,44 +1,44 @@
-case_id,sample_id,top1_group_consensus,top1_recurrence_rate,mean_pairwise_spearman,mean_pairwise_cosine
-Case1_R1234yf,[emim]__[Ac]__R1234yf__313.15__0.311,Cation:Imidazolium_Ring,0.8,0.8095238095238096,0.9180620710055033
-Case1_R1234yf,[emim]__[BF4]__R1234yf__313.15__0.3919,Cation:Imidazolium_Ring,0.8,0.4666666666666666,0.8985505898793539
-Case1_R1234yf,[bmim]__[Ac]__R1234yf__313.15__0.561,Cation:Imidazolium_Ring,0.8,0.6952380952380953,0.9100728829701742
-Case1_R1234yf,[bmim]__[PF6]__R1234yf__313.15__0.23,Cation:Imidazolium_Ring,0.8,0.2333333333333333,0.9078855514526367
-Case2_R134_vs_R134a,[emim]__[BEI]__R134__283.149__0.01,Cation:Imidazolium_Ring,0.6,0.7777777777777778,0.9421777327855428
-Case2_R134_vs_R134a,[emim]__[BEI]__R134a__283.1__0.0103,Cation:Imidazolium_Ring,0.6,0.7833333333333332,0.9396195610364279
-Case2_R134_vs_R134a,[emim]__[BEI]__R134__283.123__0.05,Cation:Imidazolium_Ring,0.6,0.7777777777777778,0.9421465794245402
-Case2_R134_vs_R134a,[emim]__[BEI]__R134a__283.15__0.0504,Cation:Imidazolium_Ring,0.6,0.7833333333333332,0.9405945936838785
-Case2_R134_vs_R134a,[emim]__[BEI]__R134__283.132__0.1,Cation:Imidazolium_Ring,0.6,0.7777777777777778,0.9421238303184509
-Case2_R134_vs_R134a,[emim]__[BEI]__R134a__283.1__0.1003,Cation:Imidazolium_Ring,0.6,0.7833333333333332,0.9407485524813334
-Case2_R134_vs_R134a,[emim]__[BEI]__R134__283.149__0.15,Cation:Imidazolium_Ring,0.6,0.7777777777777778,0.942053218682607
-Case2_R134_vs_R134a,[emim]__[BEI]__R134a__283.15__0.1502,Cation:Imidazolium_Ring,0.6,0.8166666666666668,0.9432958563168844
-Case3_BF4_vs_PF6,[bmim]__[BF4]__R32__283.1__0.01,Cation:Alkyl_Chain,1.0,0.8799999999999999,0.9913142383098602
-Case3_BF4_vs_PF6,[bmim]__[PF6]__R32__283.2__0.0098,Cation:Alkyl_Chain,0.8,0.82,0.9878343284130097
-Case3_BF4_vs_PF6,[bmim]__[BF4]__R32__283.1__0.0998,Cation:Alkyl_Chain,1.0,0.8799999999999999,0.9907626450061798
-Case3_BF4_vs_PF6,[bmim]__[PF6]__R32__283.2__0.0996,Cation:Alkyl_Chain,0.8,0.82,0.9860442340373993
-Case3_BF4_vs_PF6,[bmim]__[BF4]__R32__283.2__0.2499,Cation:Alkyl_Chain,1.0,0.8799999999999999,0.9905366539955139
-Case3_BF4_vs_PF6,[bmim]__[PF6]__R32__283.2__0.2497,Cation:Alkyl_Chain,0.8,0.82,0.9865669488906861
-Case3_BF4_vs_PF6,[bmim]__[BF4]__R32__283.2__0.3995,Cation:Alkyl_Chain,1.0,0.8799999999999999,0.9901413083076477
-Case3_BF4_vs_PF6,[bmim]__[PF6]__R32__283.2__0.3996,Cation:Alkyl_Chain,0.6,0.76,0.985697615146637
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__293.1__0.194,Cation:Imidazolium_Ring,0.6,0.6547619047619049,0.9296592672665914
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__293.1__0.223,Cation:Imidazolium_Ring,0.6,0.6547619047619049,0.9298846324284872
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__303__0.228,Cation:Imidazolium_Ring,0.6,0.6547619047619049,0.930856466293335
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__303__0.293,Cation:Imidazolium_Ring,0.6,0.6547619047619049,0.9291927814483643
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__322.5__0.336,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9319769938786825
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__322.5__0.488,Cation:Imidazolium_Ring,0.6,0.6547619047619049,0.928687314192454
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__332.9__0.381,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9329447944959005
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__332.9__0.623,Cation:Imidazolium_Ring,0.6,0.6547619047619049,0.9307257533073425
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__342.9__0.453,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9350121021270752
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__342.9__0.8,Cation:Imidazolium_Ring,0.6,0.6547619047619049,0.9301147063573202
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__352.8__0.511,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9324056704839071
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__293.1__0.05,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9314199487368265
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__293.1__0.06,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9310156305631002
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__303__0.07,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9316848516464233
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__303__0.09,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9318419098854065
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__322.5__0.13,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9340214927991232
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__322.5__0.17,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9356184601783752
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__332.9__0.18,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9344256718953451
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__332.9__0.24,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.932621975739797
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__342.9__0.24,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9331317742665609
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__342.9__0.31,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.931735078493754
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__352.8__0.31,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9346891641616821
-Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__352.8__0.41,Cation:Imidazolium_Ring,0.6,0.7380952380952381,0.9339298009872437
+case_id,sample_id,top1_group_consensus,top1_recurrence_rate,mean_pairwise_spearman,mean_pairwise_cosine,stability_regime,n_active_seeds,active_seeds_list,active_consensus_top1,n_inactive_seeds,inactive_consensus_top1,inactive_recurrence_rate,inactive_mean_spearman,inactive_mean_cosine
+Case1_R1234yf,[emim]__[Ac]__R1234yf__313.15__0.311,Refri:CF3,0.6,0.4666666666666666,0.8707848886648814,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Halogenated_Alkene,4,Refri:CF3,0.75,0.7714285714285715,0.9884113073348999
+Case1_R1234yf,[emim]__[BF4]__R1234yf__313.15__0.3919,Anion:BF4_Core,0.4,0.4333333333333333,0.8491380910078684,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Halogenated_Alkene,4,Anion:BF4_Core,0.5,0.8999999999999998,0.9783914883931478
+Case1_R1234yf,[bmim]__[Ac]__R1234yf__313.15__0.561,Cation:Alkyl_Chain,0.4,0.29523809523809524,0.7942201296488444,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Halogenated_Alkene,4,Cation:Alkyl_Chain,0.5,0.7714285714285715,0.9819883108139038
+Case1_R1234yf,[bmim]__[PF6]__R1234yf__313.15__0.23,Anion:PF6_Core,0.4,0.06666666666666667,0.7943745454152426,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Halogenated_Alkene,4,Anion:PF6_Core,0.5,0.7,0.9584309061368307
+Case2_R134_vs_R134a,[emim]__[BEI]__R134__283.149__0.01,Anion:CF3,0.6,0.880952380952381,0.9673352440198263,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:CHF2,4,Anion:CF3,0.75,0.8730158730158731,0.98988805214564
+Case2_R134_vs_R134a,[emim]__[BEI]__R134a__283.1__0.0103,Anion:CF3,0.6,0.6833333333333332,0.7014395495255789,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:CH2F,4,Anion:CF3,0.75,0.8944444444444444,0.9896795352300009
+Case2_R134_vs_R134a,[emim]__[BEI]__R134__283.123__0.05,Anion:CF3,0.6,0.880952380952381,0.964819997549057,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:CHF2,4,Anion:CF3,0.75,0.8730158730158731,0.9899141192436218
+Case2_R134_vs_R134a,[emim]__[BEI]__R134a__283.15__0.0504,Anion:CF3,0.6,0.6833333333333332,0.704669788479805,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:CH2F,4,Anion:CF3,0.75,0.8944444444444444,0.9895820220311483
+Case2_R134_vs_R134a,[emim]__[BEI]__R134__283.132__0.1,Anion:CF3,0.6,0.880952380952381,0.9615085124969482,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:CHF2,4,Anion:CF3,0.75,0.8730158730158731,0.9899528622627258
+Case2_R134_vs_R134a,[emim]__[BEI]__R134a__283.1__0.1003,Anion:CF3,0.6,0.6833333333333332,0.7228339066108068,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:CH2F,4,Anion:CF3,0.75,0.8944444444444444,0.9895721276601156
+Case2_R134_vs_R134a,[emim]__[BEI]__R134__283.149__0.15,Anion:CF3,0.6,0.880952380952381,0.9569490154584249,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:CHF2,4,Anion:CF3,0.75,0.8730158730158731,0.9899531006813049
+Case2_R134_vs_R134a,[emim]__[BEI]__R134a__283.15__0.1502,Anion:CF3,0.6,0.6833333333333332,0.7247703323761622,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:CH2F,4,Anion:CF3,0.75,0.8944444444444444,0.989631454149882
+Case3_BF4_vs_PF6,[bmim]__[BF4]__R32__283.1__0.01,Cation:Alkyl_Chain,0.8,0.7666666666666666,0.9885759552319845,Fully_Bypassed (0 Active Seeds),0,[],N/A,5,Cation:Alkyl_Chain,0.8,0.7666666666666666,0.9885759552319845
+Case3_BF4_vs_PF6,[bmim]__[PF6]__R32__283.2__0.0098,Cation:Alkyl_Chain,0.6,0.8000000000000002,0.9872576594352722,Fully_Bypassed (0 Active Seeds),0,[],N/A,5,Cation:Alkyl_Chain,0.6,0.8000000000000002,0.9872576594352722
+Case3_BF4_vs_PF6,[bmim]__[BF4]__R32__283.1__0.0998,Cation:Alkyl_Chain,0.8,0.6999999999999998,0.9893135031064352,Fully_Bypassed (0 Active Seeds),0,[],N/A,5,Cation:Alkyl_Chain,0.8,0.6999999999999998,0.9893135031064352
+Case3_BF4_vs_PF6,[bmim]__[PF6]__R32__283.2__0.0996,Cation:Alkyl_Chain,0.6,0.8000000000000002,0.9882382651170095,Fully_Bypassed (0 Active Seeds),0,[],N/A,5,Cation:Alkyl_Chain,0.6,0.8000000000000002,0.9882382651170095
+Case3_BF4_vs_PF6,[bmim]__[BF4]__R32__283.2__0.2499,Cation:Alkyl_Chain,0.8,0.7666666666666666,0.9895438949267069,Fully_Bypassed (0 Active Seeds),0,[],N/A,5,Cation:Alkyl_Chain,0.8,0.7666666666666666,0.9895438949267069
+Case3_BF4_vs_PF6,[bmim]__[PF6]__R32__283.2__0.2497,Cation:Alkyl_Chain,0.6,0.6333333333333333,0.9861918985843658,Fully_Bypassed (0 Active Seeds),0,[],N/A,5,Cation:Alkyl_Chain,0.6,0.6333333333333333,0.9861918985843658
+Case3_BF4_vs_PF6,[bmim]__[BF4]__R32__283.2__0.3995,Cation:Alkyl_Chain,0.8,0.7666666666666666,0.9897355238596598,Fully_Bypassed (0 Active Seeds),0,[],N/A,5,Cation:Alkyl_Chain,0.8,0.7666666666666666,0.9897355238596598
+Case3_BF4_vs_PF6,[bmim]__[PF6]__R32__283.2__0.3996,Cation:Alkyl_Chain,0.6,0.8000000000000002,0.9889514446258545,Fully_Bypassed (0 Active Seeds),0,[],N/A,5,Cation:Alkyl_Chain,0.6,0.8000000000000002,0.9889514446258545
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__293.1__0.194,Anion:CF3,0.6,0.6190476190476191,0.7313481718301773,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9929502407709757
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__293.1__0.223,Anion:CF3,0.6,0.6190476190476191,0.7310965011517206,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9928317864735922
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__303__0.228,Anion:CF3,0.6,0.6190476190476191,0.7259601404269537,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9930476148923238
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__303__0.293,Anion:CF3,0.6,0.6190476190476191,0.7245546728372574,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9935171206792196
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__322.5__0.336,Anion:CF3,0.6,0.6190476190476191,0.6154087583223978,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9944872260093689
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__322.5__0.488,Anion:CF3,0.6,0.6190476190476191,0.6159857710202535,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9944587349891663
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__332.9__0.381,Anion:CF3,0.6,0.6190476190476191,0.7162466297547022,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9926901062329611
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__332.9__0.623,Anion:CF3,0.6,0.6190476190476191,0.6196614702542623,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.99459308385849
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__342.9__0.453,Anion:CF3,0.6,0.6190476190476191,0.717864399154981,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9926851987838745
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__342.9__0.8,Anion:CF3,0.6,0.6190476190476191,0.6236153642336527,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9945236444473267
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(E)__352.8__0.511,Anion:CF3,0.6,0.6190476190476191,0.7133023937543234,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9926305611928304
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__293.1__0.05,Anion:CF3,0.6,0.7142857142857144,0.7191750705242157,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9927355249722799
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__293.1__0.06,Anion:CF3,0.6,0.7142857142857144,0.7213573157787323,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9926953117052714
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__303__0.07,Anion:CF3,0.6,0.7142857142857144,0.7126768330732981,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.99263596534729
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__303__0.09,Anion:CF3,0.6,0.7142857142857144,0.7154917617638906,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.992620587348938
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__322.5__0.13,Anion:CF3,0.6,0.6190476190476191,0.7039395570755005,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9928996562957764
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__322.5__0.17,Anion:CF3,0.6,0.6190476190476191,0.6026362280050913,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9946149587631226
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__332.9__0.18,Anion:CF3,0.6,0.6190476190476191,0.5928650697072347,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9945696592330933
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__332.9__0.24,Anion:CF3,0.6,0.6190476190476191,0.5990201135476431,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9947665333747864
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__342.9__0.24,Anion:CF3,0.6,0.6190476190476191,0.7000812888145447,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9923001726468405
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__342.9__0.31,Anion:CF3,0.6,0.6190476190476191,0.7068222314119339,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9924366474151611
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__352.8__0.31,Anion:CF3,0.6,0.6190476190476191,0.5876126786073049,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9944311380386353
+Case4_R1336mzz_Stereo,[emim]__[Tf2N]__R1336mzz(Z)__352.8__0.41,Anion:CF3,0.6,0.6190476190476191,0.7062219679355621,Active_Subnetwork (Seed 45 Sole Active),1,[45],Refri:Alkene_C=C,4,Anion:CF3,0.75,1.0,0.9924916426340739

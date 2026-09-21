@@ -46,6 +46,9 @@ def main():
         "research_pipeline/run_f2_xtb_physics_alignment.py",
         "research_pipeline/run_f3_stereo_intervention.py",
         "research_pipeline/run_f4_model_quantification.py",
+        "research_pipeline/compute_stratified_stability.py",
+        "research_pipeline/audit_step25_attribution.py",
+        "research_pipeline/generate_step25_final_freeze.py",
     ]
     code_hashes = {}
     for cf in code_files:
@@ -82,6 +85,7 @@ def main():
         "results_attribution/graph_attribution_faithfulness.csv",
         "results_attribution/graph_attribution_groups.csv",
         "results_attribution/graph_attribution_stability.csv",
+        "results_attribution/graph_attribution_stability_summary.csv",
         "results_attribution/attribution_sample_level.csv",
         "results_attribution/attribution_species_summary.csv",
         "results_attribution/attribution_perturbation_sanity.csv",

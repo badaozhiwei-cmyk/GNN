@@ -1,0 +1,4 @@
+Metric_Domain,Sample_Cohort,Top1_Recurrence_Mean,Mean_Pairwise_Spearman,Mean_Pairwise_Cosine,Scientific_Interpretation
+All-Seed Numerical Stability (Unstratified),All Probes (N=43),60.5%,0.655,0.780,Unstratified baseline; conflates active signal with uninformative background noise from bypassed models.
+Graph-Active Conditional Regime,"Active Probes (N=35 / 43, 81.4%)",100.0% (Seed 45 Unique),N/A (Single Active Seed),N/A (Single Active Seed),Seed-dependent representation bifurcation: active graph subnetwork manifests solely under Seed 45; zero samples exhibit >=2 active seeds.
+Graph-Inactive Baseline Regime,Inactive Subnetwork (N=43),72.3%,0.913,0.990,Numerical pseudo-stability in bypassed models reflecting uniform baseline noise in collapsed readout heads.
