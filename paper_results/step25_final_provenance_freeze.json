@@ -1,0 +1,478 @@
+{
+  "title": "V6 & Step 25 Final Immutable Provenance Record",
+  "timestamp": "2026-09-21",
+  "frozen_state_affirmation": {
+    "v6_model_frozen": true,
+    "v6_dataset_frozen": true,
+    "read_only_rule": "Model_v6.py and Dataset_v6.py are permanently frozen. No further training or parameter modifications permitted on V6.",
+    "status": "FROZEN_FOR_PUBLICATION"
+  },
+  "git_provenance": {
+    "commit_sha": "0bef798b2ea2744ead68337e0f2a009e7ca4c40f",
+    "branch": "main",
+    "repository": "https://github.com/badaozhiwei-cmyk/GNN.git"
+  },
+  "experimental_seeds": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "step25_protocol_specifications": {
+    "total_audit_evaluations": 215,
+    "probe_cases_count": 4,
+    "probe_samples_count": 43,
+    "seeds_per_sample": 5,
+    "integrated_gradients": {
+      "method": "Riemann sum path integral",
+      "steps": 25,
+      "baseline": "Zero-graph baseline (H=0, E=0, topological edges preserved)",
+      "target": "Solubility output scalar f(G, cond)"
+    },
+    "faithfulness_protocol": {
+      "intervention_type": "continuous post-embedding masking (model-sensitivity probe, not chemical causal synthesis)",
+      "top1_masking": "Top-1 attributed functional group masked with zero embeddings",
+      "random_matched_masking": "k random atoms sampled within same component excluding Top-1 group atoms",
+      "random_trials": 30,
+      "metrics": [
+        "delta_y_top (absolute perturbation delta of top-1 group)",
+        "delta_y_rand_comp (mean absolute perturbation delta of component-matched random control)",
+        "r_faith_comp (ratio delta_y_top / delta_y_rand_comp, reported alongside absolute deltas to avoid small-denominator bias)"
+      ]
+    },
+    "representation_bifurcation_criterion": {
+      "metric": "Forward graph sensitivity delta_y_graph = |f(H, E) - f(H_0, E_0)|",
+      "threshold_tau": 0.001,
+      "bimodal_separation_window": "[1e-6, 5e-3]",
+      "graph_active_evaluations": 35,
+      "graph_inactive_evaluations": 180,
+      "active_evaluation_rate_pct": 16.279,
+      "seed_distribution": {
+        "seed_42": "0 / 43 (0.0%)",
+        "seed_43": "0 / 43 (0.0%)",
+        "seed_44": "0 / 43 (0.0%)",
+        "seed_45": "35 / 43 (81.4%)",
+        "seed_46": "0 / 43 (0.0%)"
+      },
+      "paper_framing_guideline": "Strictly frame as 'seed-dependent representation bifurcation / scalar bypass'. Do not describe as 'GNN failed / dead network', and do not claim causal proof."
+    },
+    "smarts_functional_group_schema": {
+      "total_probe_atoms": 750,
+      "primary_assignment_coverage_pct": 100.0,
+      "specific_smarts_coverage_pct": 97.87,
+      "other_atom_fraction_pct": 2.13,
+      "refrigerant_specific_coverage_pct": 100.0
+    },
+    "ez_stereochemical_boundary": {
+      "representation_identity": "H_E == H_Z, E_E == E_Z, edge_index_E == edge_index_Z in production 2D GNN (edge_dim=3, max abs diff = 0.0)",
+      "attribution_consistency": "attribution_E approx attribution_Z (mean diff = 0.00178, subsequent consistency under identity)",
+      "paper_framing_guideline": "Frame as 'stereochemical representation boundary / 2D topological blind spot' necessitating physical prior or explicit stereochemical intervention."
+    }
+  },
+  "checksums": {
+    "core_code": {
+      "GNN_for_property_prediction/Model_v6.py": {
+        "exists": true,
+        "sha256": "40165dd9dc001d1eef5118212283fa0b4c1efc18683d06fbbf1925ef1b1bc23d"
+      },
+      "GNN_for_property_prediction/Dataset_v6.py": {
+        "exists": true,
+        "sha256": "1087a4638dbe33a8d023cd42b8a0458699d70a7745edf474601004ce53feb577"
+      },
+      "prepare_tri_graph_data_v6.py": {
+        "exists": true,
+        "sha256": "5e0edc299b34ac39124e24133ed83cc7690ade8cd42fb2aa9be1e9805abe4714"
+      },
+      "run_ablation.py": {
+        "exists": true,
+        "sha256": "87bc00a59b2c680f280fba7124e648a92e8fdfa80d0b58fa4d824a4b8d15e65c"
+      },
+      "research_pipeline/step25_graph_substructure_attribution.py": {
+        "exists": true,
+        "sha256": "f7d847b71fb600afbe9fa103a0700d8468e5747ef0c3dc535adf40b2d387de74"
+      },
+      "research_pipeline/audit_step25_v2.py": {
+        "exists": true,
+        "sha256": "6351fbe4679ed5e8adfeea44f76b1d004fd2fcb33f5bf2312ada19d9e4cec5ea"
+      },
+      "research_pipeline/sync_and_deep_audit.py": {
+        "exists": true,
+        "sha256": "adf86a63e048cc6ceac2be18efae0cecf072babab77b9d98aae84563cb13f257"
+      },
+      "research_pipeline/diagnostic_virtual_node.py": {
+        "exists": true,
+        "sha256": "1fcff35d90c7d4614b959184e4e9a671ed19055f0242e10b1a6ed4199101cb4f"
+      }
+    },
+    "checkpoints": {
+      "results_hfc_all/HFC_all_M0": {
+        "seed_42": {
+          "path": "results_hfc_all/HFC_all_M0/best_seed_42.pth",
+          "exists": true,
+          "sha256": "a8737782b67511f7f8227d57a0eb838604e8ad053a480251a97f763c2acf63fb"
+        },
+        "seed_43": {
+          "path": "results_hfc_all/HFC_all_M0/best_seed_43.pth",
+          "exists": true,
+          "sha256": "71f77a5b2feaa32e6936ca55b7d3db1da3a0c88379418c154146d883cf922f40"
+        },
+        "seed_44": {
+          "path": "results_hfc_all/HFC_all_M0/best_seed_44.pth",
+          "exists": true,
+          "sha256": "aa66e20c3f16bbcb5848c5e9a5fd56e9bea8de2b750238d98b1620cd0fe2cdec"
+        },
+        "seed_45": {
+          "path": "results_hfc_all/HFC_all_M0/best_seed_45.pth",
+          "exists": true,
+          "sha256": "36c1ef33fd607a3c3fa522dbd4bb87226eb525a2cc317ec17adcf4eb26df8fb3"
+        },
+        "seed_46": {
+          "path": "results_hfc_all/HFC_all_M0/best_seed_46.pth",
+          "exists": true,
+          "sha256": "06f0a369bce0d2df86e950820dc5a6216cf21f1049d8f9f7e228807ec6c102a0"
+        }
+      },
+      "results_hfc_all/HFC_all_Mreduced": {
+        "seed_42": {
+          "path": "results_hfc_all/HFC_all_Mreduced/best_seed_42.pth",
+          "exists": true,
+          "sha256": "65fd817491eb6ebc3b6d9978b7d67ce11d29f44fa6e378c9d04238ead11dfca9"
+        },
+        "seed_43": {
+          "path": "results_hfc_all/HFC_all_Mreduced/best_seed_43.pth",
+          "exists": true,
+          "sha256": "0fa7ed37ac6513d1238d953e2d5a62dffd19cbe3d3003d7b6b9c00ed0ef78f29"
+        },
+        "seed_44": {
+          "path": "results_hfc_all/HFC_all_Mreduced/best_seed_44.pth",
+          "exists": true,
+          "sha256": "00f4ac334631b0a5db369de8ef4eaef989836b091211d2caca87c90e16a5d136"
+        },
+        "seed_45": {
+          "path": "results_hfc_all/HFC_all_Mreduced/best_seed_45.pth",
+          "exists": true,
+          "sha256": "9fb145ea96c0f03e66677e55a4300b32c186498d8fe6d0f88b153e59a0470416"
+        },
+        "seed_46": {
+          "path": "results_hfc_all/HFC_all_Mreduced/best_seed_46.pth",
+          "exists": true,
+          "sha256": "2cc24002a618483a0b45c58bed10fa951263ad3ef5f5061362b1a8b5f994628e"
+        }
+      },
+      "results_split_B/B1_M0": {
+        "seed_42": {
+          "path": "results_split_B/B1_M0/best_seed_42.pth",
+          "exists": true,
+          "sha256": "8d063f2cea8ca97c878326576f230a01f82311a09a7c5656939ad534a27a89a2"
+        },
+        "seed_43": {
+          "path": "results_split_B/B1_M0/best_seed_43.pth",
+          "exists": true,
+          "sha256": "ae0d4ff377cbcfe7f54be99f8b98c0e16555471eae1d67e8860c390cc67ad744"
+        },
+        "seed_44": {
+          "path": "results_split_B/B1_M0/best_seed_44.pth",
+          "exists": true,
+          "sha256": "453839e54721172d8d6bfc5665bad23f1c0802ca6b9da21ccc52bbdafe76729a"
+        },
+        "seed_45": {
+          "path": "results_split_B/B1_M0/best_seed_45.pth",
+          "exists": true,
+          "sha256": "e88aa321e75410bc28dc6b05e6b7299fbbf7ddef74c2fba30499b894ad08a825"
+        },
+        "seed_46": {
+          "path": "results_split_B/B1_M0/best_seed_46.pth",
+          "exists": true,
+          "sha256": "789fb18682e2afb61ba93d884fc6cd639c5d6852f5a9e116b28411c07729d502"
+        }
+      },
+      "results_split_B/B1_Mreduced": {
+        "seed_42": {
+          "path": "results_split_B/B1_Mreduced/best_seed_42.pth",
+          "exists": true,
+          "sha256": "7932086e8680f06fd91f13a6e3ce0e5db5a6abc62a84197e8859da37a7d0c670"
+        },
+        "seed_43": {
+          "path": "results_split_B/B1_Mreduced/best_seed_43.pth",
+          "exists": true,
+          "sha256": "08589cccc137d7f532bf344abc8b8cf6453952bf9c84c9a676f487d3014f6dad"
+        },
+        "seed_44": {
+          "path": "results_split_B/B1_Mreduced/best_seed_44.pth",
+          "exists": true,
+          "sha256": "56b0070ea25b22d1a8c946c3fad9c6fbd1a24df4b33c697f80a5c6d7ea3ae967"
+        },
+        "seed_45": {
+          "path": "results_split_B/B1_Mreduced/best_seed_45.pth",
+          "exists": true,
+          "sha256": "511bb86aa0fa7f1ccde2e082fbed2131e5272b10d06278d4805ae04d63f0db50"
+        },
+        "seed_46": {
+          "path": "results_split_B/B1_Mreduced/best_seed_46.pth",
+          "exists": true,
+          "sha256": "98394baa1926e8880292008233eefadb1f9e0803cb674edae7c53932c6dade2d"
+        }
+      },
+      "results_split_B/B2_M0": {
+        "seed_42": {
+          "path": "results_split_B/B2_M0/best_seed_42.pth",
+          "exists": true,
+          "sha256": "076bd2c9ca7fc2c0051ab3b15ac0a49c90291858d293fd6fc1c87b2eda08a1ef"
+        },
+        "seed_43": {
+          "path": "results_split_B/B2_M0/best_seed_43.pth",
+          "exists": true,
+          "sha256": "2bc8aa276c058a07f7b469e5e8350b10f89bc891513c7cc62b0c36872e8eccd7"
+        },
+        "seed_44": {
+          "path": "results_split_B/B2_M0/best_seed_44.pth",
+          "exists": true,
+          "sha256": "1ac0c754c1f386241a23056bbbecf8b5cb4a260b7149f7e94c391d7e560babea"
+        },
+        "seed_45": {
+          "path": "results_split_B/B2_M0/best_seed_45.pth",
+          "exists": true,
+          "sha256": "f86ea37894b3637d6e9f1d81e7a18f8db9cdfe94364b9d578c5c9c92e64c4365"
+        },
+        "seed_46": {
+          "path": "results_split_B/B2_M0/best_seed_46.pth",
+          "exists": true,
+          "sha256": "1e9e4bd4f73e68f558ca882bbaa28250ebdd9dd949b799cc05de11b5811329dd"
+        }
+      },
+      "results_split_B/B2_Mreduced": {
+        "seed_42": {
+          "path": "results_split_B/B2_Mreduced/best_seed_42.pth",
+          "exists": true,
+          "sha256": "cc534b931608c27ee7d1b5c2a83ed15595b9b81533f5a56cc18efd210a8500ab"
+        },
+        "seed_43": {
+          "path": "results_split_B/B2_Mreduced/best_seed_43.pth",
+          "exists": true,
+          "sha256": "75042507eae5bbb272b46c28a93ee07d2eb83f69781dd6db7825ccc5f7caaa84"
+        },
+        "seed_44": {
+          "path": "results_split_B/B2_Mreduced/best_seed_44.pth",
+          "exists": true,
+          "sha256": "fb4974c7ae930aca73ce5af72d8934ca2e31f84d7136e8634dc7608d51daf943"
+        },
+        "seed_45": {
+          "path": "results_split_B/B2_Mreduced/best_seed_45.pth",
+          "exists": true,
+          "sha256": "febbfa23923aba081bff989a76341da43190f2b6785a41326dd6ae9ceb6dd7cf"
+        },
+        "seed_46": {
+          "path": "results_split_B/B2_Mreduced/best_seed_46.pth",
+          "exists": true,
+          "sha256": "0c177b4e71bfd8917089c5f6abe35eb3288f5c94facdc3458d2be01b5c401a30"
+        }
+      },
+      "results_split_L2/L2_M0": {
+        "seed_42": {
+          "path": "results_split_L2/L2_M0/best_seed_42.pth",
+          "exists": true,
+          "sha256": "7d2084b41995ef7238b409a9a96f174740d0ea250c9185858d1eb4fc3f82ca3d"
+        },
+        "seed_43": {
+          "path": "results_split_L2/L2_M0/best_seed_43.pth",
+          "exists": true,
+          "sha256": "64c5cfd8f0da666c1e8a950547359b59b28193cd337752aba0367e91949cc1bc"
+        },
+        "seed_44": {
+          "path": "results_split_L2/L2_M0/best_seed_44.pth",
+          "exists": true,
+          "sha256": "845886195fd7c9629422e184d1ae57d4200c68629edbc9f99891d895db61dcf9"
+        },
+        "seed_45": {
+          "path": "results_split_L2/L2_M0/best_seed_45.pth",
+          "exists": true,
+          "sha256": "061c70f4f2477a200ff0d532095eb7c52ab313d7be99ccc9dd7b43832bdbb7a7"
+        },
+        "seed_46": {
+          "path": "results_split_L2/L2_M0/best_seed_46.pth",
+          "exists": true,
+          "sha256": "a6a72d68e7286f61abbbdacbd9d69b512bf3b03707236e219f6200a39c42719e"
+        }
+      },
+      "results_split_L2/L2_Mreduced": {
+        "seed_42": {
+          "path": "results_split_L2/L2_Mreduced/best_seed_42.pth",
+          "exists": true,
+          "sha256": "d69e92bc22ad82f52e19da265a5fed94cfc0efaea12f56252755ee77b3248650"
+        },
+        "seed_43": {
+          "path": "results_split_L2/L2_Mreduced/best_seed_43.pth",
+          "exists": true,
+          "sha256": "f62760738bfbe1bb1405d0349cde68bc51d999dd096f77afa608ed5237a64929"
+        },
+        "seed_44": {
+          "path": "results_split_L2/L2_Mreduced/best_seed_44.pth",
+          "exists": true,
+          "sha256": "a41ace17067bb0aa871638437ebf04512b22c6ff5014ffd749537109e0ce1538"
+        },
+        "seed_45": {
+          "path": "results_split_L2/L2_Mreduced/best_seed_45.pth",
+          "exists": true,
+          "sha256": "7297c01121649635e8dd2093156b796ace143414227b22fd42d71760e33acf1e"
+        },
+        "seed_46": {
+          "path": "results_split_L2/L2_Mreduced/best_seed_46.pth",
+          "exists": true,
+          "sha256": "d303c76ec6f2349d8df17a6afe4552873055b83b9361fa6851b95099e364a6b8"
+        }
+      }
+    },
+    "step25_attribution_outputs": {
+      "results_attribution/case_selection_manifest.csv": {
+        "exists": true,
+        "size_bytes": 13341,
+        "sha256": "2d3cf21114ce46041e2d22f0959bad93576569050bf0d85becf0b0f8b658a1a2"
+      },
+      "results_attribution/graph_attribution_atoms_bonds.csv": {
+        "exists": true,
+        "size_bytes": 873397,
+        "sha256": "0e0be6c2e2521bbc94f06770696d27f0dc6146689180c98642bbbb7d50fee65d"
+      },
+      "results_attribution/graph_attribution_faithfulness.csv": {
+        "exists": true,
+        "size_bytes": 45683,
+        "sha256": "09f496365319193250b3e88ef4999a75111f973fff73e593fc2d5b88c834d5c2"
+      },
+      "results_attribution/graph_attribution_groups.csv": {
+        "exists": true,
+        "size_bytes": 245017,
+        "sha256": "3e7ae9040b38b83fafd5ad497cb42acc76db63e6ead5fa9ca759f65c1825317e"
+      },
+      "results_attribution/graph_attribution_stability.csv": {
+        "exists": true,
+        "size_bytes": 5347,
+        "sha256": "65f2fdd4232d70e211704999525fe15d0a2dbd66323da99ba1b6ba9aaba556e1"
+      },
+      "results_attribution/attribution_sample_level.csv": {
+        "exists": true,
+        "size_bytes": 62332,
+        "sha256": "dc0b56cd44cc5049b5bd96833125a5d483a16fe8bf5690bc0b2a23096364c11a"
+      },
+      "results_attribution/attribution_species_summary.csv": {
+        "exists": true,
+        "size_bytes": 1760,
+        "sha256": "f7ae8220f765299c210736efb9215689d60613180093cc7f3fcf9831e364a6fa"
+      },
+      "results_attribution/attribution_perturbation_sanity.csv": {
+        "exists": true,
+        "size_bytes": 4682,
+        "sha256": "2bc4d2fa5e0bb6487cce25f1ac3814cb6fdde6aa893cff7609e5f98685363f97"
+      },
+      "results_attribution/attribution_stability_per_sample.csv": {
+        "exists": true,
+        "size_bytes": 13534,
+        "sha256": "e14f0102da4f36942c526b5c0b09eb2fd6c19721370c8dd5b590814e698b9e34"
+      },
+      "results_attribution/attribution_stability_summary.csv": {
+        "exists": true,
+        "size_bytes": 383,
+        "sha256": "5be821342c116dba13aed926b301448afc69ef801b0b86fca51a2cc69b79b7b1"
+      },
+      "results_attribution/graph_attribution_provenance.json": {
+        "exists": true,
+        "size_bytes": 1517,
+        "sha256": "ca5bc187f3c7ad4c9e3ed2ac62bae216090677d5b0599695b45327fce6c421c8"
+      }
+    },
+    "step25_diagnostics": {
+      "diagnostic_outputs/step25_integrity_audit_v2.csv": {
+        "exists": true,
+        "size_bytes": 67650,
+        "sha256": "c6504545f2f51f87541f6dade1c8be18931979f82aac0aa3f0410bee349cdcdd"
+      },
+      "diagnostic_outputs/stratified_activity_summary.csv": {
+        "exists": true,
+        "size_bytes": 410,
+        "sha256": "58334903c270a5bc7ef48b3a94226e4374cb167016026f34c626d6b0f6c048cd"
+      },
+      "diagnostic_outputs/ez_representation_identity_proof.json": {
+        "exists": true,
+        "size_bytes": 563,
+        "sha256": "3e31f956fc918bbf8c3456016f6f989016bcef62f30eacdc4f92f233572c9adb"
+      },
+      "diagnostic_outputs/smarts_specific_coverage_breakdown.csv": {
+        "exists": true,
+        "size_bytes": 4879,
+        "sha256": "cb3b58ee517148f1f976a42b86623470e43f8b3f1980ec6c0f33bb49a072fc10"
+      },
+      "diagnostic_outputs/virtual_node_layerwise_breakdown.csv": {
+        "exists": true,
+        "size_bytes": 3564,
+        "sha256": "12e357e97449ac063e4a8ef588bcad010417714903e2b04894a798ed02077066"
+      },
+      "diagnostic_outputs/virtual_node_global_summary.csv": {
+        "exists": true,
+        "size_bytes": 1775,
+        "sha256": "4b7f362b7bb0b7b07e447e640a750dd6677db15fb2c64324c2729dfdc3dd3c96"
+      },
+      "diagnostic_outputs/diagnostic_virtual_node_output.txt": {
+        "exists": true,
+        "size_bytes": 5791,
+        "sha256": "36110c8cbb1c09eab7a259eeabdfcb7a7e6cef96e9a6127a0399a07142b75830"
+      },
+      "diagnostic_outputs/audit_step25_attribution_output.txt": {
+        "exists": true,
+        "size_bytes": 6478,
+        "sha256": "37b99ac4151ff3ad63992527161c6426e0c13b252f8779faa1102886d0a6de40"
+      }
+    },
+    "paper_results_tables": {
+      "paper_results/FINAL_FREEZE.json": {
+        "exists": true,
+        "size_bytes": 16422,
+        "sha256": "9af6423a12133d8bec8dd282cdbee70a4d8f0c5bd67948417d82782b63563c7a"
+      },
+      "paper_results/table_main_generalization_boundary.csv": {
+        "exists": true,
+        "size_bytes": 647,
+        "sha256": "d3c1c2c002c4bac272c59b6668894aac275ac80f247b20188d383ab64ef80a3c"
+      },
+      "paper_results/table_m1_formal_diagnostics.csv": {
+        "exists": true,
+        "size_bytes": 3586,
+        "sha256": "d4f29202f8d6863fb0a10f21742a269332742a2426d4c2bb21ebdfb5c4dea5f3"
+      },
+      "paper_results/table_hfo_zeroshot_metrics_HFC_all.csv": {
+        "exists": true,
+        "size_bytes": 2908,
+        "sha256": "83e058669be021c0d647c9a892f211f0f7f2d056ba4382d6a80910a11a802f14"
+      },
+      "paper_results/table_hfo_zeroshot_metrics_B1.csv": {
+        "exists": true,
+        "size_bytes": 1746,
+        "sha256": "e547acdb17100708de5cacc3cf6cdc1fda1dea0f9ae2ab6b59afe86389b8cb5d"
+      },
+      "paper_results/table_hfo_zeroshot_metrics_L2.csv": {
+        "exists": true,
+        "size_bytes": 2821,
+        "sha256": "1d6e405bc9a8569efddeb49b3adbd67fff40d7dea49212b4fe913f5732bf165c"
+      },
+      "paper_results/table_gnn_vs_rf_comparison.csv": {
+        "exists": true,
+        "size_bytes": 1197,
+        "sha256": "bb50ee0622eebab65002283b4e0fa7158e0f7a43d143a191c2cf7119125a9c7b"
+      },
+      "paper_results/table_step24_stereo_ablation.csv": {
+        "exists": true,
+        "size_bytes": 620,
+        "sha256": "c7c9f896bf9845fb5a5b7154108a9486245ebea1c2ea437fce517d36e617dc71"
+      },
+      "paper_results/table_training_size_curve.csv": {
+        "exists": true,
+        "size_bytes": 1562,
+        "sha256": "976a30f72767e55335c972d030bd9d75c17fb0b36ef27c6883c80032026b4638"
+      },
+      "paper_results/table_cluster_bootstrap_significance.csv": {
+        "exists": true,
+        "size_bytes": 321,
+        "sha256": "9c4079405dba09c10c1210a3ac98c4cf972bbeda1ba7fd51b139244bcf6b4faa"
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+Category,Metric,Value,Unit
+Architecture,Total Parameters,"13,214,945",count
+Architecture,Embedding & Token Parameters,"50,400",count
+Architecture,GATv2 Message Passing Parameters,"12,101,632",count
+Architecture,MLP Readout Head Parameters,"1,062,913",count
+Complexity,Multiply-Accumulate Operations (MACs),37.58,MMACs / sample
+Complexity,Floating Point Operations (FLOPs),75.16,MFLOPs / sample
+Complexity,Batched Compute (Batch=32),2.405,GFLOPs / batch
+Latency,Single-Sample CPU Latency,21.71 ± 5.95,ms
+Latency,P95 Single-Sample Latency,26.26,ms
+Latency,Batched CPU Latency (Batch=32),431.96,ms
+Throughput,Batched CPU Throughput,74.1,samples / sec
+Memory,Peak Working Memory Footprint,0.01,MB
+Training Cost,Mean Convergence Epochs,76.0 ± 10.6,epochs
+Training Cost,Mean Training Duration per Seed,152.0,seconds
