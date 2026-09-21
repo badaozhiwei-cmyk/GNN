@@ -18,15 +18,23 @@ ROOT = Path(__file__).resolve().parent.parent
 seed_metrics_dir = ROOT / "seed_metrics"
 seed_metrics_dir.mkdir(parents=True, exist_ok=True)
 
-shutil.copy2(
+def safe_copy(src: Path, dst: Path):
+    if src.exists():
+        shutil.copy2(src, dst)
+    elif dst.exists():
+        pass  # 仓库中已有预先提交的 metrics 文件
+    else:
+        print(f"  ! Warning: {src} not found, skipped")
+
+safe_copy(
     ROOT / "results_hfc_all/HFC_all_M0/seed_val_metrics.csv",
     seed_metrics_dir / "HFC_all_M0_seed_metrics.csv"
 )
-shutil.copy2(
+safe_copy(
     ROOT / "results_hfc_all/HFC_all_Mreduced/seed_val_metrics.csv",
     seed_metrics_dir / "HFC_all_Mreduced_seed_metrics.csv"
 )
-shutil.copy2(
+safe_copy(
     ROOT / "results_split_B/B2_M0/seed_metrics.csv",
     seed_metrics_dir / "B2_M0_seed_metrics.csv"
 )
