@@ -2,9 +2,16 @@
 run_kaggle_v7_pilot.py — Master One-Click Kaggle GPU Controller for V7 Shadow Pilot
 ===================================================================================
 【在 Kaggle Notebook (开启 T4 GPU) 中执行】:
-    %cd /kaggle/working/GNN/Refrigerant-Solubility-GNN  # (或你的对应路径)
+    %cd /kaggle/working
+    # 1. 浅克隆仓库最新 Commit (极速下载，不下载多余历史):
+    !git clone --depth 1 https://github.com/badaozhiwei-cmyk/GNN.git
+    %cd /kaggle/working/GNN
     !git pull origin main
-    !pip install -q torch_geometric rdkit
+
+    # 2. 仅安装真正必需的轻量图神经网络库 (训练无需 rdkit):
+    !pip install -q torch_geometric
+
+    # 3. 一键启动 V7-A Seed 42 训练:
     !python run_kaggle_v7_pilot.py --model V7-A --seeds 42
 
 【流水线说明】:
