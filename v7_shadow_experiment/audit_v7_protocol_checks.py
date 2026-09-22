@@ -75,7 +75,7 @@ def run_check_a_parameter_breakdown():
     print(f"  - 真实 sys_proj (Linear 1536->512 + LayerNorm) 参数量: {sys_proj_params:,} (约 0.79M)")
     print(f"  - P3 预估时简化的 inter_params 仅按简单的 2 层 MLP 粗估为 525,312 (差额: {inter_conv_params - 525312:,})")
     print(f"  - P3 预估时未包含显式 sys_proj (差额: {sys_proj_params:,})")
-    print(f"  - 净差额: {inter_conv_params - 525312 + sys_proj_params:,} ≡ 2,372,360 字节精准闭环！")
+    print(f"  - 净差额: {inter_conv_params - 525312 + sys_proj_params:,} ≡ 2,372,360 个参数 (parameters) 精准闭环！")
     print("  [Check A 结论]: 29.26M 是真实结构的严格精确值，参数结构清晰透明，不存在未登记的隐藏参数。")
 
 
@@ -113,7 +113,7 @@ def run_check_b_split_integrity():
     val_set = set(val_idx)
     overlap = train_set.intersection(val_set)
     assert len(overlap) == 0, f"Critical Leak: {len(overlap)} samples overlap between Train and Val!"
-    print(f"  [PASS] [验证 2: 索引重叠检查] Train ∩ Val 重叠数 = {len(overlap)} (严格为 0，零数据泄漏)！")
+    print(f"  [PASS] [验证 2: 索引重叠检查] Train ∩ Val 重叠数 = {len(overlap)} (行索引严格无交集: row-index disjoint / no index overlap)！")
     
     # 3. Check for internal duplicates within train and val
     train_dups = len(train_idx) - len(train_set)
