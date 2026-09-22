@@ -303,8 +303,20 @@ def main():
         all_seed_summaries.append(res)
 
     out_summary_file = ROOT / "v7_shadow_experiment" / f"pilot_summary_{args.model}.csv"
-    pd.DataFrame(all_seed_summaries).to_csv(out_summary_file, index=False)
-    print(f"\n[ALL SEEDS FINISHED] Summary saved to: {out_summary_file}")
+    df_new = pd.DataFrame(all_seed_summaries)
+    if out_summary_file.exists():
+        try:
+            df_old = pd.read_csv(out_summary_file)
+            combined = pd.concat([df_old[~df_old['seed'].isin(df_new['seed'])], df_new], ignore_index=True)
+            combined = combined.sort_values(by='seed').reset_index(drop=True)
+            combined.to_csv(out_summary_file, index=False)
+            print(f"\n[SUMMARY UPDATED] Aggregated summary (total {len(combined)} seeds) saved to: {out_summary_file}")
+        except Exception:
+            df_new.to_csv(out_summary_file, index=False)
+            print(f"\n[ALL SEEDS FINISHED] Summary saved to: {out_summary_file}")
+    else:
+        df_new.to_csv(out_summary_file, index=False)
+        print(f"\n[ALL SEEDS FINISHED] Summary saved to: {out_summary_file}")
 
 if __name__ == "__main__":
     main()
