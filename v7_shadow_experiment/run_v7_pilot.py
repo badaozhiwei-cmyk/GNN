@@ -8,7 +8,7 @@ Protocol strictly bound to V6 production standards:
 - Dataset: Saturated HFC Universe (N=2739)
 - Split: splits/HFC_all_split.npz (Train=2465, Val=274, 90%/10%)
 - Optimizer: Adam(lr=0.001, weight_decay=1e-6)
-- Scheduler: CosineAnnealingLR(eta_min=1e-6)
+- Scheduler: CosineAnnealingLR(eta_min=1e-5)
 - Criterion: HuberLoss(delta=0.05)
 - Batch Size: 32, Max Epochs: 100, Patience: 15
 - Scaler: Standardized strictly on training set indices
