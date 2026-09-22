@@ -181,9 +181,11 @@ class IL_GAT_v7(nn.Module):
 
         return h_cat_prime, h_ani_prime, h_ref_prime
 
-    def forward(self, batch_data, override_mask_desc=None):
+    def forward(self, batch_data, override_mask_desc=None, override_zero_graph=False):
         """
         batch_data: dict with 'cat', 'ani', 'ref', 'state', 'desc'
+        override_mask_desc: float/tensor for descriptor ablation (e.g. 0.0)
+        override_zero_graph: bool, if True zeros out h_sys to measure delta_y_graph
         """
         g_cat = batch_data['cat']
         g_ani = batch_data['ani']
@@ -202,6 +204,8 @@ class IL_GAT_v7(nn.Module):
         # 3. System Readout
         h_concat = torch.cat([h_cat_p, h_ani_p, h_ref_p], dim=-1)
         h_sys = self.sys_proj(h_concat)
+        if override_zero_graph:
+            h_sys = torch.zeros_like(h_sys)
 
         # 4. Modality-Level Descriptor Dropout (ModDrop)
         if self.training and self.desc_dropout_p > 0.0:

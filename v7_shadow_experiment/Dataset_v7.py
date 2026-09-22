@@ -145,11 +145,12 @@ def collate_v7(batch_list):
         'label': batch_label
     }
 
-def get_v7_dataloader(dataset, batch_size=32, shuffle=False, num_workers=0):
+def get_v7_dataloader(dataset, batch_size=32, shuffle=False, num_workers=0, drop_last=False):
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        collate_fn=collate_v7
+        collate_fn=collate_v7,
+        drop_last=drop_last
     )
