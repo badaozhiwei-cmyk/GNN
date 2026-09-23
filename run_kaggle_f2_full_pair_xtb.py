@@ -26,6 +26,7 @@ import time
 import zipfile
 import subprocess
 from pathlib import Path
+import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent
@@ -91,7 +92,51 @@ def main():
     n_succ = (df_res["Status"] == "Success").sum()
     print(f"  • 全量 218 链接任务池: 实际记录 {n_total}/218, 收敛成功: {n_succ}/218 (成功率 {n_succ/max(n_total,1)*100:.1f}%)")
 
-    # 重点核查 Phase 2 的 10 个物理三元体系上下文 (20 个配对链接)
+    # 1. 严格提取 index_with_anion.csv 中预期的 218 个独立物理配对键集合
+    input_csv = ROOT / "index_with_anion.csv"
+    if not input_csv.exists():
+        raise FileNotFoundError(f"未找到输入数据索引文件: {input_csv}")
+    df_idx = pd.read_csv(input_csv)
+    expected_anion_pairs = {
+        ("Anion-Ref", str(r["anion"]), str(r["refrigerant"]))
+        for _, r in df_idx[["anion", "refrigerant"]].drop_duplicates().iterrows()
+    }
+    expected_cation_pairs = {
+        ("Cation-Ref", str(r["cation"]), str(r["refrigerant"]))
+        for _, r in df_idx[["cation", "refrigerant"]].drop_duplicates().iterrows()
+    }
+    expected_pairs = expected_anion_pairs | expected_cation_pairs
+    assert len(expected_pairs) == 218, f"预期键集合数量异常: 期望 218，实际 {len(expected_pairs)}"
+
+    # 2. 检查实际产物的键集合与重复性 (P0: Full-218 键完整性与唯一性门禁)
+    actual_keys = [
+        (str(r["Pair_Type"]), str(r["Ion_Name"]), str(r["Refrigerant"]))
+        for _, r in df_res.iterrows()
+    ]
+
+    # 重复 key 检测
+    if len(actual_keys) != len(set(actual_keys)):
+        seen = set()
+        duplicates = set()
+        for k in actual_keys:
+            if k in seen:
+                duplicates.add(k)
+            seen.add(k)
+        raise RuntimeError(f"🚨 [GATE F2 DUPLICATE KEYS DETECTED] 产物 CSV 中检测到重复键 ({len(duplicates)} 个): {duplicates}")
+
+    # 键集合全等性检测 (必须刚好等于 expected_pairs)
+    actual_set = set(actual_keys)
+    if actual_set != expected_pairs:
+        missing = expected_pairs - actual_set
+        extra = actual_set - expected_pairs
+        raise RuntimeError(
+            f"🚨 [GATE F2 KEY-SET MISMATCH] 产物键集合与 index_with_anion.csv 预期 218 集合不一致！\n"
+            f"缺少 ({len(missing)} 个): {missing}\n"
+            f"多余 ({len(extra)} 个): {extra}"
+        )
+    print(f"  ✓ 键集合完整性与唯一性校验通过: 严格全等 218/218，无任何重复键！")
+
+    # 3. 重点核查 Phase 2 的 10 个物理三元体系上下文 (20 个配对链接)
     print(f"\n  --- 检查 Phase 2 核心 10 个 Unique System Contexts (共 20 个配对链接) ---")
     covered_systems = 0
     total_links_ok = 0
@@ -100,16 +145,26 @@ def main():
     for cat, ani, ref in PHASE2_10_SYSTEM_CONTEXTS:
         match_cat = df_res[(df_res["Pair_Type"] == "Cation-Ref") & (df_res["Ion_Name"] == cat) & (df_res["Refrigerant"] == ref)]
         match_ani = df_res[(df_res["Pair_Type"] == "Anion-Ref") & (df_res["Ion_Name"] == ani) & (df_res["Refrigerant"] == ref)]
-        cat_ok = not match_cat.empty and (match_cat.iloc[0]["Status"] == "Success") and pd.notna(match_cat.iloc[0]["Delta_E_assoc_kcal_mol"])
-        ani_ok = not match_ani.empty and (match_ani.iloc[0]["Status"] == "Success") and pd.notna(match_ani.iloc[0]["Delta_E_assoc_kcal_mol"])
-        
+
+        # 强制断言唯一性匹配 (P0: 杜绝静默切片或多解)
+        if len(match_cat) != 1:
+            raise RuntimeError(f"🚨 核心体系 Cation-Ref ({cat}, {ref}) 匹配记录数异常: 期望 1，实际 {len(match_cat)}")
+        if len(match_ani) != 1:
+            raise RuntimeError(f"🚨 核心体系 Anion-Ref ({ani}, {ref}) 匹配记录数异常: 期望 1，实际 {len(match_ani)}")
+
+        cat_row = match_cat.iloc[0]
+        ani_row = match_ani.iloc[0]
+
+        cat_ok = (cat_row["Status"] == "Success") and pd.notna(cat_row["Delta_E_assoc_kcal_mol"]) and np.isfinite(cat_row["Delta_E_assoc_kcal_mol"]) and (cat_row["N_Converged_Orientations"] >= 1)
+        ani_ok = (ani_row["Status"] == "Success") and pd.notna(ani_row["Delta_E_assoc_kcal_mol"]) and np.isfinite(ani_row["Delta_E_assoc_kcal_mol"]) and (ani_row["N_Converged_Orientations"] >= 1)
+
         if cat_ok: total_links_ok += 1
         if ani_ok: total_links_ok += 1
 
         if cat_ok and ani_ok:
             covered_systems += 1
-            cat_e = match_cat.iloc[0]["Delta_E_assoc_kcal_mol"]
-            ani_e = match_ani.iloc[0]["Delta_E_assoc_kcal_mol"]
+            cat_e = cat_row["Delta_E_assoc_kcal_mol"]
+            ani_e = ani_row["Delta_E_assoc_kcal_mol"]
             print(f"    ✓ [System] {cat:<8} + {ani:<8} + {ref:<14} -> C-R ΔE={cat_e:.2f}, A-R ΔE={ani_e:.2f} kcal/mol")
         else:
             err_msg = f"体系 {cat} + {ani} + {ref} (Cation-Ref: {'OK' if cat_ok else 'FAIL'}, Anion-Ref: {'OK' if ani_ok else 'FAIL'})"

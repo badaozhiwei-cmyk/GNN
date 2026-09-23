@@ -60,7 +60,9 @@ def parse_energy(text):
     return None
 
 def check_convergence(text):
-    return bool(re.search(r'GEOMETRY OPTIMIZATION CONVERGED|normal termination of xtb', text, re.I))
+    # 严格限定：仅当捕获到 GEOMETRY OPTIMIZATION CONVERGED 时判定几何优化成功收敛
+    # 彻底杜绝仅为程序正常退出（normal termination）但未达到收敛判据的假收敛
+    return bool(re.search(r'GEOMETRY OPTIMIZATION CONVERGED', text, re.I))
 
 def build_monomer_3d(smiles):
     mol = Chem.MolFromSmiles(smiles)
@@ -335,7 +337,32 @@ def main():
         ion_mol = build_monomer_3d(ion_smi)
         ref_mol = build_monomer_3d(ref_smi)
         if ion_mol is None or ref_mol is None:
-            print(f"   ❌ 无法生成 3D 构象，跳过！")
+            print(f"   ❌ 无法生成 3D 构象，记录 Failed！")
+            res_row = {
+                'Pair_Type': pair_type,
+                'Ion_Name': ion_name,
+                'Refrigerant': ref_name,
+                'Delta_E_assoc_kcal_mol': None,
+                'Delta_E_int_kcal_mol': None,
+                'd_min_Angstrom': None,
+                'Best_Orientation': None,
+                'N_Converged_Orientations': 0,
+                'E_complex_Eh': None,
+                'E_ion_Eh': monomer_energies.get(ion_name),
+                'E_ref_Eh': monomer_energies.get(ref_name),
+                **{f"E_ori{i}_Eh": None for i in range(1, 5)},
+                **{f"converged_ori{i}": False for i in range(1, 5)},
+                **{f"d_min_ori{i}_Angstrom": None for i in range(1, 5)},
+                'energy_selection_criterion': 'lowest-energy converged structure among four sampled initial orientations',
+                'physical_definition': 'Association energy relative to isolated optimized monomers (includes geometry relaxation)',
+                'monomer_conformer_protocol': 'deterministic single-conformer monomer reference (ETKDGv3 seed=42 + MMFF/UFF + GFN2-xTB tight)',
+                'Status': 'Failed'
+            }
+            df_new = pd.DataFrame([res_row])
+            if not os.path.exists(OUTPUT_CSV):
+                df_new.to_csv(OUTPUT_CSV, index=False)
+            else:
+                df_new.to_csv(OUTPUT_CSV, mode='a', header=False, index=False)
             continue
 
         syms, orientations, n_ion_atoms = create_dimer_orientations(ion_mol, ref_mol)
