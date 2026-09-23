@@ -1,4 +1,4 @@
-steps,comp_abs_err,comp_rel_err_pct,cosine_sim_to_next,l2_diff_to_next,provenance
-25,0.001218,1.83,0.999994,0.00245,"Representative Sample #5 (HFC-134a, V7-A Seed 42)"
-50,0.00083791,1.26,0.999999,0.00134,Production Setting (430 Evals)
-100,0.00039002,0.59,1.0,0.0,Asymptotic Reference
+steps,comp_abs_err,comp_rel_err_pct,l2_norm_current,l2_diff_to_next,relative_l2_change_to_next_pct,cosine_sim_to_next,provenance,pipeline_role
+25,0.001218,1.83,0.0694,0.00245,3.53,0.999994,"Representative Sample #5 ([emim][Tf2N] + R134a, V7-A Seed 42, preflight empirical Riemann integration benchmark)",Preflight Validation
+50,0.00083791,1.26,0.0682,0.00134,1.96,0.999999,Production Setting (430 Evals across V7-A & V7-B),Production Standard
+100,0.00039002,0.59,0.0676,,,,"Representative Sample #5 ([emim][Tf2N] + R134a, V7-A Seed 42, asymptotic step-doubling reference)",Asymptotic Ceiling
