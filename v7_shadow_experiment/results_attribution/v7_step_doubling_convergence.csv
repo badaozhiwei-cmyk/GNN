@@ -1,0 +1,4 @@
+steps,comp_abs_err,comp_rel_err_pct,cosine_sim_to_next,l2_diff_to_next,provenance
+25,0.001218,1.83,0.999994,0.00245,"Representative Sample #5 (HFC-134a, V7-A Seed 42)"
+50,0.00083791,1.26,0.999999,0.00134,Production Setting (430 Evals)
+100,0.00039002,0.59,1.0,0.0,Asymptotic Reference

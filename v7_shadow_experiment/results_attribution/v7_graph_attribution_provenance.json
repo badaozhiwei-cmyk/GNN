@@ -1,0 +1,56 @@
+{
+  "metadata": {
+    "title": "Phase 2: V7 Graph Integrated Gradients Provenance Manifest",
+    "timestamp": "2026-09-23 14:41:00",
+    "device": "cuda",
+    "riemann_steps": 50,
+    "faithfulness_trials": 30,
+    "models_evaluated": [
+      "V7-A",
+      "V7-B"
+    ],
+    "seeds_evaluated": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_cases": 43,
+    "total_evaluations": 430
+  },
+  "input_hashes": {
+    "script_sha256": "8ab9f8e8508cb083ca60c47a92ce4d7d8c1e04f2c1762070f2783a72427df705",
+    "manifest_sha256": "2d3cf21114ce46041e2d22f0959bad93576569050bf0d85becf0b0f8b658a1a2",
+    "alignment_audit_sha256": "3cb83bccbfbf71cdb9a66452b4f8fe1913b6643346110c90e72adbc661a8f9f8",
+    "hfc_data_sha256": "a408c2832352d69799d1c0a8b7151dd7535fe2edf34d171992b9385b1bd3e6bb",
+    "full_data_sha256": "78d09146287951a23665db9d4ff2c3af931fd449ad0ae39680b6cba70354d695",
+    "scaler_hashes": {
+      "V7-A": "ca008583566582c93fdd1f711c6dde53d2f8ba6676cca50bda2dbaec41bcf2ce",
+      "V7-B": "ca008583566582c93fdd1f711c6dde53d2f8ba6676cca50bda2dbaec41bcf2ce"
+    },
+    "checkpoint_hashes": {
+      "V7-A": {
+        "42": "ceda239cccde6970290c15ef1bc630f6dfd45e8cde92cd5ffb87f14cbac37d71",
+        "43": "39cafdf225d1a06e8468a9b1e7ae99a11135106ab1e56636394c7130b1421972",
+        "44": "aec56700209a0fbab30c5f4c0fda64f4af8b068cfb118612e49b88a31282d890",
+        "45": "eb2b78ccc2e99619ee1dfc458c172dc03d44c4c994a1d37cdd49df72374caf89",
+        "46": "ba27cf68d127b02640db61f2b39390e9f977dd54bcc3622420ae74f58ab70919"
+      },
+      "V7-B": {
+        "42": "53b7dff71c97157da59baabbb721171849719c34829fd48c339012fb7dea9c5d",
+        "43": "a85de59d6597a6dd312815999f5015585013b1eaca03d51f575dedb57c8100e1",
+        "44": "0739d0f6f644da0deb38bcb90b3f681d337b6ce6c5c6cd3bcd986538d504214e",
+        "45": "74b6debe04a84044eb835356a7aadf5d8b6ca1ea5a309ca9815c61a08b481dfc",
+        "46": "68964c5549ced71ba6f6d7908721228a3a5e408e543e3cafec3f09ecd62e5a8c"
+      }
+    }
+  },
+  "output_hashes": {
+    "atoms_csv_sha256": "38206b56df654b1a7ad0fee30c32842b0d3d4f3d32a413914779396aa881286e",
+    "edges_csv_sha256": "1120fa6da2ced4b40c846fb932e5d249fba473af21316bb2d342b6c3ebb11f2e",
+    "groups_csv_sha256": "71aa1898b196849b7b4552692a61cda497c45477433b15c684217ad32e9d4aa1",
+    "faithfulness_csv_sha256": "6c9011734a2baa6e81c74c53cd6c1b7a1726fa3f88000a441fe9db20518d173a",
+    "stability_csv_sha256": "ff2cbf0c59e070970ffb8c9c3c23d546c5605f1009a437c4363aabf911a2adf7"
+  }
+}

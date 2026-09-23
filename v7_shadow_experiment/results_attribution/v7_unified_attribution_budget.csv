@@ -1,0 +1,5 @@
+stream_modality,mathematical_tensor,baseline_state,sum_abs_attribution,share_within_graph_streams_pct,methodological_scope
+Intramolecular Atom Chemical Features (phi_i),h_i = phi_i + m_comp,m_comp (Component Identity Embedding),258.49519702323175,99.77688467494652,Post-embedding continuous space integrated gradients across 430 evals
+Intramolecular Message Edges (e_ij),"e_ij in R^4 (bond type, conj, ring, stereo)",Zero edge embedding vector,0.5780320772340504,0.22311532505347964,Directed GATv2 message edge integrated gradients across 430 evals
+"Global Thermodynamic State (T, P)",state in R^2 (StandardScaler normalized),Decoupled global condition (Not integrated in graph chemical path),,,Fused at readout stage; evaluated separately via descriptor sensitivity
+Physical Descriptors (7D),desc in R^7 (StandardScaler normalized),Decoupled global condition (Not integrated in graph chemical path),,,Fused at readout stage; evaluated separately via F2 physics alignment
