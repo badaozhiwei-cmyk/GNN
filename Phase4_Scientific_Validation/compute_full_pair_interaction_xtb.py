@@ -281,13 +281,49 @@ def main():
 
     print(f"\n[Step 2/2] 全量多构型配对复合物优化 (共 {len(pair_tasks)} 个配对任务)...")
 
-    # 读取已完成的结果（断点续算）
+    EXPECTED_COLUMNS = [
+        'Pair_Type', 'Ion_Name', 'Refrigerant',
+        'Delta_E_assoc_kcal_mol', 'Delta_E_int_kcal_mol',
+        'd_min_Angstrom', 'Best_Orientation', 'N_Converged_Orientations',
+        'E_complex_Eh', 'E_ion_Eh', 'E_ref_Eh',
+        'E_ori1_Eh', 'converged_ori1', 'd_min_ori1_Angstrom',
+        'E_ori2_Eh', 'converged_ori2', 'd_min_ori2_Angstrom',
+        'E_ori3_Eh', 'converged_ori3', 'd_min_ori3_Angstrom',
+        'E_ori4_Eh', 'converged_ori4', 'd_min_ori4_Angstrom',
+        'energy_selection_criterion', 'physical_definition',
+        'monomer_conformer_protocol', 'Status'
+    ]
+
+    # 读取已完成的结果（断点续算与 Schema 门禁）
     completed_keys = set()
     if os.path.exists(OUTPUT_CSV):
         df_exist = pd.read_csv(OUTPUT_CSV)
-        for _, r in df_exist.iterrows():
-            completed_keys.add((r['Pair_Type'], str(r['Ion_Name']), str(r['Refrigerant'])))
-        print(f"🔄 检测到已有进度，已完成 {len(completed_keys)} / {len(pair_tasks)} 个任务，自动跳过...")
+        
+        # 1. Output Schema Gate: 严格杜绝新旧字段混杂与污染
+        if list(df_exist.columns) != EXPECTED_COLUMNS:
+            raise ValueError(
+                f"🚨 [SCHEMA CONTAMINATION DETECTED]\n"
+                f"已有文件 {OUTPUT_CSV} 的字段为:\n{list(df_exist.columns)}\n"
+                f"与 v2.0 严谨字段结构不一致:\n{EXPECTED_COLUMNS}\n"
+                f"为防数据污染，请备份或删除旧版 CSV 后再启动计算！"
+            )
+
+        # 2. Checkpoint Resume Gate: 严禁将 Failed 视为完成
+        mask_valid = (
+            (df_exist['Status'] == 'Success') &
+            (pd.notna(df_exist['Delta_E_assoc_kcal_mol'])) &
+            (np.isfinite(pd.to_numeric(df_exist['Delta_E_assoc_kcal_mol'], errors='coerce'))) &
+            (df_exist['N_Converged_Orientations'] >= 1)
+        )
+        df_valid = df_exist[mask_valid].copy()
+        n_purged = len(df_exist) - len(df_valid)
+        if n_purged > 0:
+            print(f"🧹 [CHECKPOINT RESUME] 发现 {n_purged} 个未收敛/失败的历史任务，已从断点记录中剔除，将在本次运行中重新优化！")
+            df_valid.to_csv(OUTPUT_CSV, index=False)
+
+        for _, r in df_valid.iterrows():
+            completed_keys.add((str(r['Pair_Type']), str(r['Ion_Name']), str(r['Refrigerant'])))
+        print(f"🔄 检测到有效断点进度，已确认完成 {len(completed_keys)} / {len(pair_tasks)} 个任务，自动跳过成功项...")
 
     for idx, (pair_type, ion_name, ion_smi, ion_q, ref_name, ref_smi, ref_q, dimer_q) in enumerate(pair_tasks, 1):
         if (pair_type, str(ion_name), str(ref_name)) in completed_keys:

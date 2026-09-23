@@ -35,8 +35,8 @@ print("=" * 85)
 print("  KAGGLE: MASTER F2 PAIRWISE xTB ASSOCIATION ENERGY CONTROLLER")
 print("=" * 85)
 
-# 10 个 Phase 2 唯一定义的物理配对基准
-PHASE2_10_PAIRS = [
+# Phase 2 核心定义的 10 个三元体系上下文 (N_system = 10, 对应 N_pairwise = 20 个缔合链接)
+PHASE2_10_SYSTEM_CONTEXTS = [
     ("[emim]", "[Ac]", "R1234yf"),
     ("[emim]", "[BF4]", "R1234yf"),
     ("[bmim]", "[Ac]", "R1234yf"),
@@ -79,35 +79,59 @@ def main():
         print(f"  ❌ xTB 配对计算执行异常，退出码: {ret.returncode}")
         sys.exit(ret.returncode)
 
-    # Step 3: 严格审计产物与 10 个 Unique Pairs 覆盖
+    # Step 3: 严格审计产物与 10 个 Unique System Contexts (20 Links)
     out_csv = ROOT / "Phase4_Scientific_Validation" / "full_pair_interaction_results.csv"
     if not out_csv.exists():
         print(f"  ❌ 未找到产物文件: {out_csv}")
         sys.exit(1)
 
-    print("\n>>> [STEP 3/3] 正在审计 F2 配对计算产物门禁...")
+    print("\n>>> [STEP 3/3] 正在执行 F2 门禁审计与故障快速熔断 (Gate Fail-Fast)...")
     df_res = pd.read_csv(out_csv)
     n_total = len(df_res)
     n_succ = (df_res["Status"] == "Success").sum()
-    print(f"  • 全量配对任务数: {n_total} (收敛成功: {n_succ} / {n_total}, 成功率 {n_succ/max(n_total,1)*100:.1f}%)")
+    print(f"  • 全量 218 链接任务池: 实际记录 {n_total}/218, 收敛成功: {n_succ}/218 (成功率 {n_succ/max(n_total,1)*100:.1f}%)")
 
-    # 重点核查 Phase 2 的 10 个物理配对
-    print(f"\n  --- 检查 Phase 2 关键的 10 个 Unique Physical Pairs 覆盖率 ---")
-    covered_p2 = 0
-    for cat, ani, ref in PHASE2_10_PAIRS:
+    # 重点核查 Phase 2 的 10 个物理三元体系上下文 (20 个配对链接)
+    print(f"\n  --- 检查 Phase 2 核心 10 个 Unique System Contexts (共 20 个配对链接) ---")
+    covered_systems = 0
+    total_links_ok = 0
+    unconverged_reports = []
+
+    for cat, ani, ref in PHASE2_10_SYSTEM_CONTEXTS:
         match_cat = df_res[(df_res["Pair_Type"] == "Cation-Ref") & (df_res["Ion_Name"] == cat) & (df_res["Refrigerant"] == ref)]
         match_ani = df_res[(df_res["Pair_Type"] == "Anion-Ref") & (df_res["Ion_Name"] == ani) & (df_res["Refrigerant"] == ref)]
-        cat_ok = not match_cat.empty and match_cat.iloc[0]["Status"] == "Success"
-        ani_ok = not match_ani.empty and match_ani.iloc[0]["Status"] == "Success"
+        cat_ok = not match_cat.empty and (match_cat.iloc[0]["Status"] == "Success") and pd.notna(match_cat.iloc[0]["Delta_E_assoc_kcal_mol"])
+        ani_ok = not match_ani.empty and (match_ani.iloc[0]["Status"] == "Success") and pd.notna(match_ani.iloc[0]["Delta_E_assoc_kcal_mol"])
+        
+        if cat_ok: total_links_ok += 1
+        if ani_ok: total_links_ok += 1
+
         if cat_ok and ani_ok:
-            covered_p2 += 1
+            covered_systems += 1
             cat_e = match_cat.iloc[0]["Delta_E_assoc_kcal_mol"]
             ani_e = match_ani.iloc[0]["Delta_E_assoc_kcal_mol"]
-            print(f"    ✓ Pair: {cat:<8} + {ani:<8} + {ref:<14} -> ΔE_cat={cat_e:.2f}, ΔE_ani={ani_e:.2f} kcal/mol")
+            print(f"    ✓ [System] {cat:<8} + {ani:<8} + {ref:<14} -> C-R ΔE={cat_e:.2f}, A-R ΔE={ani_e:.2f} kcal/mol")
         else:
-            print(f"    ! 警告: 物理对 {cat} + {ani} + {ref} 尚未完全收敛 (Cation OK: {cat_ok}, Anion OK: {ani_ok})")
+            err_msg = f"体系 {cat} + {ani} + {ref} (Cation-Ref: {'OK' if cat_ok else 'FAIL'}, Anion-Ref: {'OK' if ani_ok else 'FAIL'})"
+            print(f"    🚨 [UNCONVERGED] {err_msg}")
+            unconverged_reports.append(err_msg)
 
-    print(f"  • Phase 2 核心 10 对物理覆盖度: {covered_p2} / 10 ({covered_p2*10:.1f}%)")
+    print(f"\n  • 核心体系上下文覆盖度 (N_system=10): {covered_systems} / 10 ({covered_systems*10:.1f}%)")
+    print(f"  • 核心离子-制冷剂链接覆盖度 (N_pairwise=20): {total_links_ok} / 20 ({total_links_ok/20*100:.1f}%)")
+
+    # 【P0 级 Fail-Fast 强制门禁熔断】
+    if covered_systems != 10:
+        raise RuntimeError(
+            f"🚨 [GATE F2-CORE FAILED] Phase 2 核心 10 个体系 (20 个配对链接) 必须 100% 收敛！当前仅完成 {covered_systems}/10。\n"
+            f"未收敛清单: {'; '.join(unconverged_reports)}\n"
+            f"流程强制熔断终止，严禁带病打包！请检查对应构象优化日志。"
+        )
+
+    if n_succ < 218:
+        print(f"\n  ⚠️ [全量池收敛警示] 全量 218 个配对链接中收敛 {n_succ}/218 (成功率 {n_succ/218*100:.1f}%)，存在 {218 - n_succ} 个非核心配对优化未收敛。")
+        print(f"     生产状态判定: Core-10 Systems: [PASS 10/10] | Full-218 Pool: [PARTIAL {n_succ}/218]")
+    else:
+        print(f"\n  ✓ 全量 218 个离子-制冷剂配对链接 100% 收敛完成！")
 
     # 打包产物
     zip_out = Path("/kaggle/working/f2_xtb_pair_results.zip")
@@ -116,7 +140,7 @@ def main():
     
     elapsed = (time.time() - start_time) / 60.0
     print("\n" + "=" * 85)
-    print("  🎉 F2 配对计算与审计全量通过！")
+    print("  🎉 GATE F2-CORE FULLY PASSED: 10/10 SYSTEM CONTEXTS (20/20 LINKS) VERIFIED!")
     print(f"  产物压缩包已就绪: {zip_out} ({zip_out.stat().st_size / 1024:.1f} KB)")
     print(f"  总耗时: {elapsed:.2f} 分钟")
     print("  请直接在 Kaggle Notebook 输出区下载 'f2_xtb_pair_results.zip' 并解压至本地")
