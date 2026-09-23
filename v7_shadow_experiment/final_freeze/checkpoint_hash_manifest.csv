@@ -1,0 +1,16 @@
+model,seed,checkpoint_path,file_size_bytes,sha256
+V6-M0,42,C:\Users\霸道志伟\Desktop\GNN\Refrigerant-Solubility-GNN\results_hfc_all\HFC_all_M0\best_seed_42.pth,52888867,a8737782b67511f7f8227d57a0eb838604e8ad053a480251a97f763c2acf63fb
+V6-M0,43,C:\Users\霸道志伟\Desktop\GNN\Refrigerant-Solubility-GNN\results_hfc_all\HFC_all_M0\best_seed_43.pth,52888867,71f77a5b2feaa32e6936ca55b7d3db1da3a0c88379418c154146d883cf922f40
+V6-M0,44,C:\Users\霸道志伟\Desktop\GNN\Refrigerant-Solubility-GNN\results_hfc_all\HFC_all_M0\best_seed_44.pth,52888867,aa66e20c3f16bbcb5848c5e9a5fd56e9bea8de2b750238d98b1620cd0fe2cdec
+V6-M0,45,C:\Users\霸道志伟\Desktop\GNN\Refrigerant-Solubility-GNN\results_hfc_all\HFC_all_M0\best_seed_45.pth,52888867,36c1ef33fd607a3c3fa522dbd4bb87226eb525a2cc317ec17adcf4eb26df8fb3
+V6-M0,46,C:\Users\霸道志伟\Desktop\GNN\Refrigerant-Solubility-GNN\results_hfc_all\HFC_all_M0\best_seed_46.pth,52888867,06f0a369bce0d2df86e950820dc5a6216cf21f1049d8f9f7e228807ec6c102a0
+V7-A,42,D:\折腾\v7_pilot_gpu_results\v7_shadow_experiment\checkpoints\V7-A\best_seed_42.pth,351240663,bf00d24c3be1a2f4a0d34030f5fb5f0bc36536d87ee0d8383014328939df1dc2
+V7-A,43,D:\折腾\v7_pilot_gpu_results\v7_shadow_experiment\checkpoints\V7-A\best_seed_43.pth,351240663,39410aa9cd4f79170b65a7abc832f8479170f15ddc2f16f2a0979500b06090d0
+V7-A,44,D:\折腾\v7_pilot_gpu_results\v7_shadow_experiment\checkpoints\V7-A\best_seed_44.pth,351240663,e65d5394852ddfcfc331db1e64096d83db042c306309d3195dbffb53b815446d
+V7-A,45,D:\折腾\v7_pilot_gpu_results\v7_shadow_experiment\checkpoints\V7-A\best_seed_45.pth,351240663,e8f531c6dc738c125671a73a778687a22eb33fa2e035132fee23688d4d22d397
+V7-A,46,D:\折腾\v7_pilot_gpu_results\v7_shadow_experiment\checkpoints\V7-A\best_seed_46.pth,351240663,ebcbdfd5e0b14d33e3de4e0f6e05b744a940f155189f17d029a64604a245083d
+V7-B,42,D:\折腾\v7_pilot_gpu_results2\v7_shadow_experiment\checkpoints\V7-B\best_seed_42.pth,351240663,f4ec0832f244c2bd4034f560c394957a91277b7945c9f0b6ac5d7d8755af6c87
+V7-B,43,D:\折腾\v7_pilot_gpu_results2\v7_shadow_experiment\checkpoints\V7-B\best_seed_43.pth,351240663,11de9fecda283261556f2329bb4cf0b1bbfaa35449b9492aa5048d3b91a43d3e
+V7-B,44,D:\折腾\v7_pilot_gpu_results2\v7_shadow_experiment\checkpoints\V7-B\best_seed_44.pth,351240663,211a8cbf5f35dcc658ffc4c471a2f817969ace79e7a22e60221862532a82462c
+V7-B,45,D:\折腾\v7_pilot_gpu_results2\v7_shadow_experiment\checkpoints\V7-B\best_seed_45.pth,351240663,d0221be62b9f635ea1574888fda7f838d9d662c8e4424b8ee434108d3fa9ca6b
+V7-B,46,D:\折腾\v7_pilot_gpu_results2\v7_shadow_experiment\checkpoints\V7-B\best_seed_46.pth,351240663,893ee96e9dcb24018adfcd147d04b2f5114a1aaa57e49585354d77ea1ba61780

@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "expected_runs": 15,
+  "identified_checkpoints": 15,
+  "missing_runs": [],
+  "duplicates": [],
+  "errors": [],
+  "git_head": "bcb35f588b3e57c4e4b8371bae6a7f220de00e50",
+  "git_worktree_status": "?? paper_results/figures/Figure_S_resonance_representation_sensitivity.png\n?? results_attribution/resonance_symmetry_sanity_check.csv\n?? results_attribution/resonance_symmetry_sanity_check.json\n?? v7_shadow_experiment/audit_b42_vs_a42.py\n?? v7_shadow_experiment/audit_v7a_vs_v6_paired.py\n?? v7_shadow_experiment/audit_v7b_full_5seed_dissection.py\n?? v7_shadow_experiment/b42_vs_a42_paired_dissection.csv\n?? v7_shadow_experiment/final_freeze/\n?? v7_shadow_experiment/pilot_summary_V7-A.csv\n?? v7_shadow_experiment/v7a_vs_v6_paired_dissection.csv\n?? v7_shadow_experiment/v7b_full_5seed_dissection.csv",
+  "official_seed_set": [
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "official_models": [
+    "V6-M0",
+    "V7-A",
+    "V7-B"
+  ],
+  "notes": [
+    "All five seeds are official primary runs; Seed45 is never excluded from primary reporting.",
+    "V7-B four-seed exclusion of Seed45 is sensitivity analysis only.",
+    "SHA256 values are computed from the actual checkpoint bytes on the local machine.",
+    "A PASS requires all 15 exact best_seed_{42..46}.pth files to exist at the explicit roots."
+  ]
+}

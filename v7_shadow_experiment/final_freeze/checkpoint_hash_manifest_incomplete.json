@@ -1,0 +1,30 @@
+{
+  "status": "INCOMPLETE",
+  "expected_runs": 15,
+  "identified_checkpoint_files": 0,
+  "missing_runs": [
+    "V6-M0-Seed42",
+    "V6-M0-Seed43",
+    "V6-M0-Seed44",
+    "V6-M0-Seed45",
+    "V6-M0-Seed46",
+    "V7-A-Seed42",
+    "V7-A-Seed43",
+    "V7-A-Seed44",
+    "V7-A-Seed45",
+    "V7-A-Seed46",
+    "V7-B-Seed42",
+    "V7-B-Seed43",
+    "V7-B-Seed44",
+    "V7-B-Seed45",
+    "V7-B-Seed46"
+  ],
+  "ambiguous_runs": [],
+  "git_head": null,
+  "git_worktree_status": null,
+  "notes": [
+    "Do not discard Seed45 from the official 5-seed set.",
+    "A 4-seed subset excluding V7-B Seed45 is sensitivity analysis only.",
+    "If multiple checkpoints match one run, resolve the intended checkpoint manually before freezing."
+  ]
+}
