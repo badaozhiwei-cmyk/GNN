@@ -359,6 +359,7 @@ def main():
                 **ori_data,
                 'energy_selection_criterion': 'lowest-energy converged structure among four sampled initial orientations',
                 'physical_definition': 'Association energy relative to isolated optimized monomers (includes geometry relaxation)',
+                'monomer_conformer_protocol': 'deterministic single-conformer monomer reference (ETKDGv3 seed=42 + MMFF/UFF + GFN2-xTB tight)',
                 'Status': 'Success'
             }
         else:
@@ -378,6 +379,7 @@ def main():
                 **ori_data,
                 'energy_selection_criterion': 'lowest-energy converged structure among four sampled initial orientations',
                 'physical_definition': 'Association energy relative to isolated optimized monomers (includes geometry relaxation)',
+                'monomer_conformer_protocol': 'deterministic single-conformer monomer reference (ETKDGv3 seed=42 + MMFF/UFF + GFN2-xTB tight)',
                 'Status': 'Failed'
             }
 
