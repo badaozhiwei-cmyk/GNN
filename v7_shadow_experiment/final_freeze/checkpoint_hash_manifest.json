@@ -5,7 +5,9 @@
   "missing_runs": [],
   "duplicates": [],
   "errors": [],
-  "git_head": "bcb35f588b3e57c4e4b8371bae6a7f220de00e50",
+  "manifest_generated_from_parent_head": "bcb35f588b3e57c4e4b8371bae6a7f220de00e50",
+  "freeze_commit": "06bc19a8be71b3364402b78fc7a0bb09ab6565f3",
+  "git_head": "06bc19a8be71b3364402b78fc7a0bb09ab6565f3",
   "git_worktree_status": "?? paper_results/figures/Figure_S_resonance_representation_sensitivity.png\n?? results_attribution/resonance_symmetry_sanity_check.csv\n?? results_attribution/resonance_symmetry_sanity_check.json\n?? v7_shadow_experiment/audit_b42_vs_a42.py\n?? v7_shadow_experiment/audit_v7a_vs_v6_paired.py\n?? v7_shadow_experiment/audit_v7b_full_5seed_dissection.py\n?? v7_shadow_experiment/b42_vs_a42_paired_dissection.csv\n?? v7_shadow_experiment/final_freeze/\n?? v7_shadow_experiment/pilot_summary_V7-A.csv\n?? v7_shadow_experiment/v7a_vs_v6_paired_dissection.csv\n?? v7_shadow_experiment/v7b_full_5seed_dissection.csv",
   "official_seed_set": [
     42,

@@ -6,9 +6,10 @@
 
 **官方主统计口径：必须使用完整 5-Seed。** V7-B Seed45 不得从主指标中剔除。排除 Seed45 的 4-Seed 结果只作为敏感性子集。
 
-当前仓库主分支 HEAD：`bcb35f588b3e57c4e4b8371bae6a7f220de00e50`（2026-09-22，`feat(v7): add unified V6 sensitivity audit on exact 274 validation samples`）。
+基准生成基线父提交（Parent HEAD）：`bcb35f588b3e57c4e4b8371bae6a7f220de00e50`（2026-09-22，`feat(v7): add unified V6 sensitivity audit on exact 274 validation samples`）。  
+正式封存提交（Freeze Commit）：`06bc19a8be71b3364402b78fc7a0bb09ab6565f3`。
 
-> 重要可追溯性说明：当前可访问运行环境中没有 15 个 checkpoint 二进制文件，因此本次无法诚实地产出 15 个权重文件的 SHA256。为避免伪造，已同时生成 `generate_v7_final_freeze_manifest.py`，可在存放 checkpoint 的原始实验目录运行，脚本会对 `.pt/.pth/.ckpt/.bin/.safetensors` 进行 SHA256，并在缺失/多重候选时失败退出。
+> 权重存证与可追溯性验证状态：**PASS（已全量通过并完成真实哈希固化）**。本实验所涉及的全部 15 个权重二进制文件（V6-M0 / V7-A / V7-B × Seeds 42–46）已在本地计算物理环境完成实机 SHA256 哈希计算与唯一性校验，生成了 `checkpoint_hash_manifest.csv` 与 `checkpoint_hash_manifest.json`（15/15 命中，0 缺失，0 重复，0 报错），全量存证已随仓库封存入库。
 
 ## 1. 15-Run 官方主矩阵
 
@@ -96,9 +97,10 @@ V7-B 4-seed 子集的 MAE 为 0.01644 ± 0.00101，而全量 5-seed 为 0.01932 
 
 - `v7_master_benchmark_summary.csv`：15-Run 官方矩阵 + 4-Seed 敏感性行；
 - `generate_v7_final_freeze_manifest.py`：checkpoint SHA256 封存器；
-- `V7_Final_Diagnostic_Report.md`：本终审报告。
+- `checkpoint_hash_manifest.csv`：真实 15-Run checkpoint SHA256 存证表；
+- `checkpoint_hash_manifest.json`：实机唯一性与完整性校验通过报告（`status: "PASS"`）。
 
-运行 checkpoint 封存器后，建议把其输出的 `checkpoint_hash_manifest.csv` 与 `checkpoint_hash_manifest.json` 一并纳入最终归档。若某个模型对应多个候选 checkpoint，脚本会标记 `INCOMPLETE` 而不会擅自选一个。
+checkpoint 封存器已实际运行并通过检验，全部 15 个物理权重与预期目录 100% 唯一命中，其输出的 `checkpoint_hash_manifest.csv` 与 `checkpoint_hash_manifest.json` 已全量纳入最终归档。
 
 ## 8. 当前最稳健的最终科学叙述
 

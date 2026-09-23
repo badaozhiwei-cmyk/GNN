@@ -2,7 +2,7 @@
 audit_v7_protocol_checks.py — Scientific Protocol Smoke Test for V7
 ===================================================================
 1. Check A: Layer-by-Layer Parameter Breakdown (Resolving the 29.26M vs 26.89M discrepancy)
-2. Check B: HFC_all_split.npz Integrity Audit (Train=2191, Val=548, Overlap=0, Duplicates=0)
+2. Check B: HFC_all_split.npz Integrity Audit (Train=2465, Val=274, Overlap=0, Duplicates=0)
 """
 
 import os
@@ -146,7 +146,7 @@ def run_check_b_split_integrity():
                 print(f"    * {ov} -> 测量值 x1: {sub['x1'].tolist()}, 来源表格: {sub['sheet'].tolist()}")
         print(f"  [PASS] [验证 4: 元数据索引对齐] 样本行索引严格无交叉 (Train ∩ Val = 0)，元数据行数精确对应！")
         
-    print("  [Check B 结论]: HFC_all_split.npz 数据划分纯洁无瑕，完全达到顶刊投稿审计标准！")
+    print("  [Check B 结论]: row-index integrity checks PASS (row-index disjoint split with documented repeated experimental states in metadata).")
 
 if __name__ == "__main__":
     run_check_a_parameter_breakdown()
