@@ -15,7 +15,7 @@ run_kaggle_f2_full_pair_xtb.py — Master One-Click Kaggle Controller for F2 Pai
 【流水线特性】:
 1. 自动下载与解压 GFN2-xTB 6.6.1 Linux 二进制引擎;
 2. 调度执行 compute_full_pair_interaction_xtb.py 完成 218 对离子-制冷剂缔合能计算 (4 构向采样);
-3. 严格审计 Gate F2-1 (收敛率) 与 Gate F2-2 (Phase 2 的 10 个 Unique Physical Pairs 覆盖率);
+3. 严格审计 Gate F2-1 (收敛率) 与 Gate F2-2 (Phase 2 的 10 个 Unique System Contexts 覆盖率，对应 20 个关联链接实例与 16 个唯一配对身份);
 4. 自动打包 full_pair_interaction_results.csv 为 /kaggle/working/f2_xtb_pair_results.zip 供下载。
 ======================================================================================
 """
@@ -36,7 +36,7 @@ print("=" * 85)
 print("  KAGGLE: MASTER F2 PAIRWISE xTB ASSOCIATION ENERGY CONTROLLER")
 print("=" * 85)
 
-# Phase 2 核心定义的 10 个三元体系上下文 (N_system = 10, 对应 N_pairwise = 20 个缔合链接)
+# Phase 2 核心定义的 10 个三元体系上下文 (N_system = 10, 对应 N_link-instance = 20 个关联链接实例, N_unique-pair = 16 个唯一离子-制冷剂物理身份)
 PHASE2_10_SYSTEM_CONTEXTS = [
     ("[emim]", "[Ac]", "R1234yf"),
     ("[emim]", "[BF4]", "R1234yf"),
@@ -172,12 +172,12 @@ def main():
             unconverged_reports.append(err_msg)
 
     print(f"\n  • 核心体系上下文覆盖度 (N_system=10): {covered_systems} / 10 ({covered_systems*10:.1f}%)")
-    print(f"  • 核心离子-制冷剂链接覆盖度 (N_pairwise=20): {total_links_ok} / 20 ({total_links_ok/20*100:.1f}%)")
+    print(f"  • 核心体系关联链接实例覆盖度 (N_link-instance=20, 对应 16 个唯一物理配对): {total_links_ok} / 20 ({total_links_ok/20*100:.1f}%)")
 
     # 【P0 级 Fail-Fast 强制门禁熔断】
     if covered_systems != 10:
         raise RuntimeError(
-            f"🚨 [GATE F2-CORE FAILED] Phase 2 核心 10 个体系 (20 个配对链接) 必须 100% 收敛！当前仅完成 {covered_systems}/10。\n"
+            f"🚨 [GATE F2-CORE FAILED] Phase 2 核心 10 个体系 (20 个配对链接实例) 必须 100% 收敛！当前仅完成 {covered_systems}/10。\n"
             f"未收敛清单: {'; '.join(unconverged_reports)}\n"
             f"流程强制熔断终止，严禁带病打包！请检查对应构象优化日志。"
         )
@@ -195,7 +195,7 @@ def main():
     
     elapsed = (time.time() - start_time) / 60.0
     print("\n" + "=" * 85)
-    print("  🎉 GATE F2-CORE FULLY PASSED: 10/10 SYSTEM CONTEXTS (20/20 LINKS) VERIFIED!")
+    print("  🎉 GATE F2-CORE FULLY PASSED: 10/10 SYSTEM CONTEXTS (20/20 LINK INSTANCES, 16/16 UNIQUE PAIRS) VERIFIED!")
     print(f"  产物压缩包已就绪: {zip_out} ({zip_out.stat().st_size / 1024:.1f} KB)")
     print(f"  总耗时: {elapsed:.2f} 分钟")
     print("  请直接在 Kaggle Notebook 输出区下载 'f2_xtb_pair_results.zip' 并解压至本地")
