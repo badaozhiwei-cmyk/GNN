@@ -220,7 +220,7 @@ def main():
             if n_carbon_centers <= 1:
                 tie_mechanism = "Single_Center_Full_Coverage"  # e.g., R32 CH2F2 (1 central carbon, 3/3 heavy atoms)
             else:
-                tie_mechanism = "Symmetric_Multicenter_Full_Coverage"  # e.g., R134 CHF2-CHF2 (2 symmetric CHF2 centers, 6/6 heavy atoms)
+                tie_mechanism = "Multicenter_Full_Coverage"  # e.g., R134 CHF2-CHF2 (2 central carbons, 6/6 heavy atoms; symmetric topology in R134)
         elif diff_d < 1e-4 or (diff_d / max(d_top, 1e-8) < 0.01):
             # Top group covers sub-graph (e.g., R1336mzz(Z) 8/10 atoms), but perturbation response is saturated
             tie_mechanism = "Saturated_Node_Sensitivity"
@@ -250,9 +250,9 @@ def main():
     eq1_p = RES_DIR / "v7_r_faith_eq1_topology_audit.csv"
     df_eq1_audit.to_csv(eq1_p, index=False)
     print(f"  ✓ Exported: {eq1_p} ({len(df_eq1_audit)} cases audited under |R_faith - 1.0| <= {R_FAITH_TOL})")
-    print(f"    - Single Center Full Coverage      : {(df_eq1_audit['tie_mechanism'] == 'Single_Center_Full_Coverage').sum()} / {len(df_eq1_audit)}")
-    print(f"    - Symmetric Multicenter Full Cover : {(df_eq1_audit['tie_mechanism'] == 'Symmetric_Multicenter_Full_Coverage').sum()} / {len(df_eq1_audit)}")
-    print(f"    - Saturated Node Sensitivity      : {(df_eq1_audit['tie_mechanism'] == 'Saturated_Node_Sensitivity').sum()} / {len(df_eq1_audit)}")
+    print(f"    - Single Center Full Coverage : {(df_eq1_audit['tie_mechanism'] == 'Single_Center_Full_Coverage').sum()} / {len(df_eq1_audit)}")
+    print(f"    - Multicenter Full Coverage   : {(df_eq1_audit['tie_mechanism'] == 'Multicenter_Full_Coverage').sum()} / {len(df_eq1_audit)}")
+    print(f"    - Saturated Node Sensitivity : {(df_eq1_audit['tie_mechanism'] == 'Saturated_Node_Sensitivity').sum()} / {len(df_eq1_audit)}")
     print(f"    - Numerical Parity                : {(df_eq1_audit['tie_mechanism'] == 'Numerical_Parity').sum()} / {len(df_eq1_audit)}")
 
     # =========================================================================
