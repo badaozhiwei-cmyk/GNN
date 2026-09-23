@@ -1,6 +1,6 @@
 """
-run_phase2_statistical_addendum.py — Phase 2 Rigorous Statistical Addendum (v2.1 Corrected)
-========================================================================================
+run_phase2_statistical_addendum.py — Phase 2 Rigorous Statistical Addendum (v2.1 Final Freeze)
+============================================================================================
 Produces formal supplementary statistical tables with rigorous paired statistics:
 1. v7_step_doubling_convergence.csv (25 vs 50 vs 100 Riemann step evidence with proper NaN handling)
 2. v7_unified_attribution_budget.csv (Formal definitions of atom vs edge stream)
@@ -26,25 +26,6 @@ if hasattr(sys.stderr, 'reconfigure'):
 
 ROOT = Path(__file__).resolve().parent.parent
 RES_DIR = ROOT / "v7_shadow_experiment" / "results_attribution"
-
-# SMARTS Definitions matching phase2_v7_graph_ig.py
-SMARTS_PATTERNS = {
-    "CF3": "[CX4](F)(F)F",
-    "CHF2": "[CX4H1](F)F",
-    "CH2F": "[CX4H2]F",
-    "Halogenated_Alkene": "[CX3;$([C]=[C])]~[#9,#17,#35]",
-    "Alkene_C=C": "[CX3]=[CX3]",
-    "BF4_Core": "[BX4-](F)(F)(F)F",
-    "PF6_Core": "[PX6-](F)(F)(F)(F)(F)F",
-    "Imidazolium_Ring": "[nR1]1[cR1][cR1][n+R1][cR1]1",
-    "Imidazolium_Alt": "n1cc[n+]c1",
-    "Pyridinium_Ring": "[n+R1]1[cR1][cR1][cR1][cR1][cR1]1",
-    "Sulfonyl_SO2": "S(=O)(=O)",
-    "Sulfonimide_N": "[N-]",
-    "Carboxylate_COO": "C(=O)[O-]",
-    "Alkyl_Chain": "[CX4;!R]",
-    "Aromatic_C": "[cR1]",
-}
 
 def bootstrap_ci(data: np.ndarray, n_boot: int = 10000, ci: float = 0.95, stat_fn = np.mean) -> Tuple[float, float]:
     """Calculates non-parametric bootstrap confidence interval."""
@@ -98,7 +79,7 @@ def compute_paired_effect_metrics(diff: np.ndarray) -> Dict[str, float]:
 
 def main():
     print("=" * 85)
-    print("  PHASE 2 RIGOROUS STATISTICAL ADDENDUM GENERATOR (v2.1 CORRECTED)")
+    print("  PHASE 2 RIGOROUS STATISTICAL ADDENDUM GENERATOR (v2.1 FINAL FREEZE)")
     print("=" * 85)
 
     df_manifest = pd.read_csv(ROOT / "results_attribution" / "case_selection_manifest.csv")
@@ -200,7 +181,7 @@ def main():
     print(f"  ✓ Exported: {budget_p}")
 
     # =========================================================================
-    # 3. R_faith ≈ 1.0 Molecular Topology Audit (P0 Fix: Explicit Atom Sets & Threshold)
+    # 3. R_faith ≈ 1.0 Molecular Topology Audit (Center-Based Dissection)
     # =========================================================================
     print("\n>>> [3/5] Dissecting R_faith ≈ 1.0 Molecular Topology Tie Cases...")
     df_faith_merged = df_faith.merge(
@@ -226,11 +207,8 @@ def main():
         diff_d = abs(d_top - d_rand)
         r_faith_val = float(r["r_faith_comp"])
 
-        # Check group instances matching top_group_name
-        top_g_clean = str(r["top_group_name"]).replace("Refri:", "").strip()
-        patt = Chem.MolFromSmarts(SMARTS_PATTERNS.get(top_g_clean, ""))
-        matches = mol.GetSubstructMatches(patt) if (mol and patt) else []
-        instance_count = len(matches)
+        # Count actual central carbon atoms (Z=6) in the refrigerant molecule
+        n_carbon_centers = sum(1 for a in mol.GetAtoms() if a.GetAtomicNum() == 6) if mol else 0
 
         # Topological verification:
         # Does the top masked group cover 100% of the molecule's heavy atoms?
@@ -239,10 +217,10 @@ def main():
         if is_full_covered:
             # When V_top = V_ref, random baseline (sampling k = |V_ref| atoms) identically samples V_ref.
             # S_rand == S_top, causing Delta y_top == Delta y_rand by mathematical necessity.
-            if instance_count <= 1:
-                tie_mechanism = "Single_Group_Full_Coverage"  # e.g., R32 CH2F2 (3/3 atoms)
+            if n_carbon_centers <= 1:
+                tie_mechanism = "Single_Center_Full_Coverage"  # e.g., R32 CH2F2 (1 central carbon, 3/3 heavy atoms)
             else:
-                tie_mechanism = "Symmetric_Multigroup_Full_Coverage"  # e.g., R134 CHF2-CHF2 (6/6 atoms)
+                tie_mechanism = "Symmetric_Multicenter_Full_Coverage"  # e.g., R134 CHF2-CHF2 (2 symmetric CHF2 centers, 6/6 heavy atoms)
         elif diff_d < 1e-4 or (diff_d / max(d_top, 1e-8) < 0.01):
             # Top group covers sub-graph (e.g., R1336mzz(Z) 8/10 atoms), but perturbation response is saturated
             tie_mechanism = "Saturated_Node_Sensitivity"
@@ -257,10 +235,10 @@ def main():
             "refrigerant": r["refrigerant"],
             "refri_smiles": smi,
             "n_heavy_atoms": n_mol_heavy_atoms,
+            "n_carbon_centers": n_carbon_centers,
             "top_group_name": r["top_group_name"],
             "top_k_atoms": n_top_atoms,
             "is_full_molecule_covered": is_full_covered,
-            "group_instance_count": instance_count,
             "delta_y_top": d_top,
             "delta_y_random": d_rand,
             "abs_diff_deltas": diff_d,
@@ -272,8 +250,8 @@ def main():
     eq1_p = RES_DIR / "v7_r_faith_eq1_topology_audit.csv"
     df_eq1_audit.to_csv(eq1_p, index=False)
     print(f"  ✓ Exported: {eq1_p} ({len(df_eq1_audit)} cases audited under |R_faith - 1.0| <= {R_FAITH_TOL})")
-    print(f"    - Single Group Full Coverage       : {(df_eq1_audit['tie_mechanism'] == 'Single_Group_Full_Coverage').sum()} / {len(df_eq1_audit)}")
-    print(f"    - Symmetric Multigroup Full Cover : {(df_eq1_audit['tie_mechanism'] == 'Symmetric_Multigroup_Full_Coverage').sum()} / {len(df_eq1_audit)}")
+    print(f"    - Single Center Full Coverage      : {(df_eq1_audit['tie_mechanism'] == 'Single_Center_Full_Coverage').sum()} / {len(df_eq1_audit)}")
+    print(f"    - Symmetric Multicenter Full Cover : {(df_eq1_audit['tie_mechanism'] == 'Symmetric_Multicenter_Full_Coverage').sum()} / {len(df_eq1_audit)}")
     print(f"    - Saturated Node Sensitivity      : {(df_eq1_audit['tie_mechanism'] == 'Saturated_Node_Sensitivity').sum()} / {len(df_eq1_audit)}")
     print(f"    - Numerical Parity                : {(df_eq1_audit['tie_mechanism'] == 'Numerical_Parity').sum()} / {len(df_eq1_audit)}")
 
@@ -452,7 +430,7 @@ def main():
     print(f"  ✓ Exported: {stab_paired_p} ({len(df_stab_paired)} cases)")
 
     print("\n" + "=" * 85)
-    print("  PHASE 2 STATISTICAL ADDENDUM COMPLETED SUCCESSFULLY (v2.1 CORRECTED)")
+    print("  PHASE 2 STATISTICAL ADDENDUM COMPLETED SUCCESSFULLY (v2.1 FINAL FREEZE)")
     print("=" * 85 + "\n")
 
 if __name__ == "__main__":
