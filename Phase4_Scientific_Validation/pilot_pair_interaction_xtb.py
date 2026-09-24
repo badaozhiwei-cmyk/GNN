@@ -59,7 +59,7 @@ FLOAT_RE = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][+-]?\d+)?"
 HARTREE_TO_KCAL = 627.509474
 
 def safe_name(name):
-    return re.sub(r'[^\w\-.]', '_', str(name))
+    return re.sub(r'[^a-zA-Z0-9_.-]', '_', str(name))
 
 def parse_energy(text):
     matches = re.findall(r'TOTAL ENERGY\s+(' + FLOAT_RE + r')\s+Eh', text)

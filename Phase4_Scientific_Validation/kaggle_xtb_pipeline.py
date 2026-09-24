@@ -34,7 +34,7 @@ VEGA_REFRIGERANTS = {
 }
 
 def safe_filename(name):
-    return re.sub(r'[^\w\-.]', '_', name)
+    return re.sub(r'[^a-zA-Z0-9_.-]', '_', name)
 
 def generate_xyz(smiles, molecule_name, output_xyz):
     mol = Chem.MolFromSmiles(smiles)

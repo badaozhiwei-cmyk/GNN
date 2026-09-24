@@ -238,7 +238,7 @@ def main():
         r_mol = ref_mol_3d
 
         syms, orientations, n_ion_atoms = create_dimer_orientations(i_mol, r_mol)
-        p_tag = f"yf_{re.sub(r'[^\\w\\-.]', '_', i_name)}__{r_name}"
+        p_tag = f"yf_{re.sub(r'[^a-zA-Z0-9_.-]', '_', i_name)}__{r_name}"
 
         ori_data = {}
         converged_candidates = []
@@ -334,7 +334,7 @@ def main():
         r_mol = build_monomer_3d(r_smi)
         syms, orientations, n_ion_atoms = create_dimer_orientations(i_mol, r_mol)
 
-        p_tag = f"sentinel_{re.sub(r'[^\\w\\-.]', '_', i_name)}__{r_name}"
+        p_tag = f"sentinel_{re.sub(r'[^a-zA-Z0-9_.-]', '_', i_name)}__{r_name}"
         converged_candidates = []
         raw_ori_records = []
         for o_idx, coords in enumerate(orientations, 1):

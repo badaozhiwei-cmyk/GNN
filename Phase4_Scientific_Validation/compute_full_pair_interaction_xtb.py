@@ -63,7 +63,7 @@ EXPECTED_COLUMNS = [
 ]
 
 def safe_name(name):
-    return re.sub(r'[^\w\-.]', '_', str(name))
+    return re.sub(r'[^a-zA-Z0-9_.-]', '_', str(name))
 
 def parse_energy(text):
     matches = re.findall(r'TOTAL ENERGY\s+(' + FLOAT_RE + r')\s+Eh', text)
