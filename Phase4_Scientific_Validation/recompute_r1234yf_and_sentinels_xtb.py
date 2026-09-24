@@ -42,8 +42,7 @@ from compute_full_pair_interaction_xtb import (
     compute_min_distance,
     parse_energy,
     check_convergence,
-    HARTREE_TO_KCAL,
-    EXPECTED_COLUMNS
+    HARTREE_TO_KCAL
 )
 
 # 12 个目标 R1234yf 配对

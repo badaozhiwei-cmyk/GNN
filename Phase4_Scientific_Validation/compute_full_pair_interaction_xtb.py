@@ -49,6 +49,19 @@ WORK_DIR = os.path.join(SCRIPT_DIR, 'full_xtb_work')
 FLOAT_RE = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][+-]?\d+)?"
 HARTREE_TO_KCAL = 627.509474
 
+EXPECTED_COLUMNS = [
+    'Pair_Type', 'Ion_Name', 'Refrigerant',
+    'Delta_E_assoc_kcal_mol', 'Delta_E_int_kcal_mol',
+    'd_min_Angstrom', 'Best_Orientation', 'N_Converged_Orientations',
+    'E_complex_Eh', 'E_ion_Eh', 'E_ref_Eh',
+    'E_ori1_Eh', 'converged_ori1', 'd_min_ori1_Angstrom',
+    'E_ori2_Eh', 'converged_ori2', 'd_min_ori2_Angstrom',
+    'E_ori3_Eh', 'converged_ori3', 'd_min_ori3_Angstrom',
+    'E_ori4_Eh', 'converged_ori4', 'd_min_ori4_Angstrom',
+    'energy_selection_criterion', 'physical_definition',
+    'monomer_conformer_protocol', 'Status'
+]
+
 def safe_name(name):
     return re.sub(r'[^\w\-.]', '_', str(name))
 

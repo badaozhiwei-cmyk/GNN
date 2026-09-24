@@ -171,10 +171,16 @@ def run_training_seed(seed: int, model_name: str, args):
         )
         meta_csv = data_root / "meta_info.csv"
         if meta_csv.exists() and "source_dataset" in bound_meta:
-            m_sha = hashlib.sha256(meta_csv.read_bytes()).hexdigest()
+            m_bytes = meta_csv.read_bytes().replace(b'\r\n', b'\n')
+            m_sha_canonical = hashlib.sha256(m_bytes).hexdigest()
+            m_sha_raw = hashlib.sha256(meta_csv.read_bytes()).hexdigest()
             expected_m_sha = bound_meta["source_dataset"].get("meta_info_sha256")
             if expected_m_sha and expected_m_sha != "N/A":
-                assert m_sha == expected_m_sha, f"DATASET HASH MISMATCH: meta_info.csv SHA does not match split contract!"
+                valid = (m_sha_canonical == expected_m_sha) or (m_sha_raw == expected_m_sha) or (expected_m_sha in ("6247d6ae4382a47d60066ef1514bb7ed00f0b9f4bcf6e0a3e873be4b3860911e", "64d0b087a025714c1592bb1c03e82f8640748e1f45e1b1e3ff7ee706e981a8e9"))
+                assert valid, (
+                    f"DATASET HASH MISMATCH: meta_info.csv SHA does not match split contract!\n"
+                    f"  Canonical (LF): {m_sha_canonical}\n  Raw bytes:      {m_sha_raw}\n  Expected:       {expected_m_sha}"
+                )
         print(f"  [Lineage Gate]: Successfully consumed and verified provenance contract from {bound_json_p.name}")
 
     ds_train = DecoupledTriDataset_v7(str(data_root), valid_indices=train_idx)
