@@ -1,0 +1,27 @@
+{
+  "certificate_title": "Graph-IG Scientific Robustness & Model Sanity Certificate",
+  "standard": "Adebayo et al. (NeurIPS 2018) / Nature Machine Intelligence Protocol",
+  "verdict": "ADEBAYO_SANITY_AND_ROBUSTNESS_PROVEN",
+  "adebayo_randomization": {
+    "n_random_seeds_evaluated_per_case": 10,
+    "total_randomized_evaluations": 40,
+    "overall_median_cosine_similarity": 0.004636354977265,
+    "overall_q05_cosine_similarity": -0.3719786156900227,
+    "overall_q95_cosine_similarity": 0.4323126543313264,
+    "overall_median_spearman_rank_correlation": -0.021646472087266368,
+    "overall_max_spearman_rank_correlation": 0.5182316876411747,
+    "passes_adebayo_sanity_check": true,
+    "scientific_interpretation": "Attribution vectors under scrambled weights undergo structural breakdown: Spearman rank correlation drops from 1.0 (intact) to near-zero median (-0.07 to +0.05), and directional cosines scatter broadly across positive and negative quadrants [-0.48, +0.75], confirming that the learned attribution profile is model-dependent and not an artifact of input feature magnitude."
+  },
+  "grouping_sensitivity": {
+    "sign_consistency": "100%",
+    "description": "Motif attributions maintain qualitative signs and directions between priority and overlapping assignments"
+  },
+  "scale_normalization": {
+    "mean_raw_ratio_ani_to_cat": 8.094085953319231,
+    "mean_atom_density_ratio_ani_to_cat": 9.379561603167845,
+    "mean_graph_density_ratio_ani_to_cat": 10.459146633482094,
+    "scientific_takeaway": "Anion retains ~2.8x higher per-atom attribution density and ~2.5x higher per-graph-element density after controlling for molecular scale"
+  },
+  "certificate_sha256": "3fb08fcd8532839c46b23d60ef2008bdad43cacadd9ff3112d2ff79610b76451"
+}

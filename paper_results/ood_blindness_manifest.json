@@ -1,0 +1,91 @@
+{
+  "verdict": "OOD_BLINDNESS_CONTRACT_VERIFIED",
+  "dag_topology": {
+    "dag_name": "Refrigerant_Solubility_GNN_Lineage_DAG",
+    "protocol_version": "v7_scientific_integrity_v1",
+    "unidirectional_flow_rule": "Upstream definitions cannot be modified by downstream consumers",
+    "layers": {
+      "Layer_0_Raw_Source": {
+        "source": "Literature experimental data (Table S3, Table S4)",
+        "verification": "Canonical NIST / PubChem identifiers"
+      },
+      "Layer_1_Canonical_Contracts": {
+        "identity_manifests": [
+          "Phase4_Scientific_Validation/refrigerant_identity_manifest.csv",
+          "Phase4_Scientific_Validation/ionic_liquid_identity_manifest.csv"
+        ],
+        "state_contract": "Phase4_Scientific_Validation/thermodynamic_state_contract.py (state_key_v1)"
+      },
+      "Layer_2_Dataset_and_Benchmark_Split": {
+        "dataset": "datasets/hfc_2739_v7",
+        "benchmark_split": "splits/HFC_grouped_state_split.npz",
+        "split_provenance": "splits/HFC_grouped_state_split_bound.json"
+      },
+      "Layer_3_Model_Retraining": {
+        "scaler": "checkpoints/V7-A_grouped_state_v1/scalers.pkl (Train-Only Fit)",
+        "models": "V7-A and V7-B (5 seeds each: 42, 43, 44, 45, 46)"
+      },
+      "Layer_4_Downstream_Evaluations_Strictly_Consumer": [
+        "Prediction QA & Internal Generalization Assessment",
+        "F2 Physics Alignment with xTB clean descriptors",
+        "Graph-IG Attribution Density Analysis (430 evaluations)"
+      ]
+    }
+  },
+  "taxonomy": {
+    "DEVELOPMENT_AND_TUNING_DATA": {
+      "partition_name": "Grouped-L0 Train",
+      "universe": "HFC-2739 Universe (Table S3)",
+      "sample_count": 2464,
+      "split_file": "splits/HFC_grouped_state_split.npz",
+      "permitted_operations": [
+        "Loss calculation and backpropagation",
+        "Model weight optimization (Adam)",
+        "StandardScaler fitting"
+      ],
+      "prohibited_operations": [
+        "Serving as untouched external test benchmark"
+      ]
+    },
+    "INTERNAL_VALIDATION_DATA": {
+      "partition_name": "Grouped-L0 Val",
+      "universe": "HFC-2739 Universe (Table S3)",
+      "sample_count": 275,
+      "split_file": "splits/HFC_grouped_state_split.npz",
+      "permitted_operations": [
+        "Early stopping trigger monitoring (patience=15)",
+        "CosineAnnealingLR schedule tracking",
+        "Concomitant metric logging (Val MAE, Val R2, Huber loss, Delta_y_graph)"
+      ],
+      "prohibited_operations": [
+        "StandardScaler fitting (Information Peeking)",
+        "Gradient descent backpropagation",
+        "Designating metrics as unbiased final external test generalization"
+      ]
+    },
+    "EXTERNAL_UNTOUCHED_OOD_BENCHMARKS": {
+      "status": "SEALED_BLIND_EVALUATION",
+      "governing_rule": "Strictly post-hoc evaluation; zero influence on V7 architecture, weights, or hyperparameters",
+      "benchmarks": {
+        "Split_B1_B2_Anion_OOD": {
+          "description": "Unseen fluorosulfonate and novel anion chemical families",
+          "split_path": "splits_anion_ood/split_B1_Fam2_Fluorosulfonate.npz",
+          "blindness_status": "SEALED"
+        },
+        "Split_L2_Pair_OOD": {
+          "description": "Controlled recombinant cation-anion ionic liquid pairs unseen during training",
+          "split_path": "splits/L2_controlled_composite.npz",
+          "blindness_status": "SEALED"
+        },
+        "HFO_Zero_Shot_Refrigerant_OOD": {
+          "description": "Zero-shot transfer to unsaturated hydrofluoroolefins (R1234yf, R1234ze, R1336mzz) absent from HFC-2739",
+          "blindness_status": "SEALED"
+        }
+      }
+    }
+  },
+  "external_benchmarks_hashes": {
+    "split_B1_sha256": "f36b83802722f22f8947c68170faf03076783ddb934be37b0409cc80b804b094",
+    "split_L2_sha256": "3ed5154fab02ffb56e700572f9577c3a68d8dfa659b306dfb25e88b9b41d43c6"
+  }
+}

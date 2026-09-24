@@ -1,4 +1,4 @@
-﻿"""
+"""
 step0_verify_alignment.py
 =========================
 【目的】
@@ -50,20 +50,25 @@ for _, row in il_df.iterrows():
     smiles_dict[abbr] = smi
     smiles_dict[abbr_nb] = smi
 
+# 从中央化学注册表统一消费制冷剂
+import sys
+from pathlib import Path
+root_p = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(root_p / "Phase4_Scientific_Validation"))
+from chemical_identity_contract import get_refrigerant_identity, _df_registry
+
+for _, row in _df_registry.iterrows():
+    cname = str(row['canonical_name']).strip().upper()
+    cname_nb = cname.replace('[', '').replace(']', '')
+    smi = str(row['canonical_smiles']).strip()
+    smiles_dict[cname] = smi
+    smiles_dict[cname_nb] = smi
+    smiles_dict[cname.replace('-', '').replace('_', '')] = smi
+
+# 仅补充离子液体专有结构 (制冷剂严禁在此硬编码)
 extra_smiles = {
-    'R32': 'C(F)F', 'R134A': 'C(C(F)(F)F)F', 'R143A': 'CC(F)(F)F',
-    'R125': 'C(F)(F)(C(F)(F)F)', 'R114': 'C(C(F)(F)Cl)(F)(F)Cl',
-    'R1234YF': 'C(=C(F)F)(C(F)(F)F)F', 'R1234ZE(E)': 'F/C=C/C(F)(F)F',
-    'R152A': 'CC(F)F', 'R23': 'C(F)(F)F', 'R41': 'CF',
     'AC': 'CC(=O)[O-]',
     'Tf2N': 'FC(S(=O)(=O)[N-]S(=O)(=O)C(F)(F)F)(F)F',
-    'R22': 'ClC(F)F', 'R22B1': 'BrC(F)F', 'R14': 'FC(F)(F)F',
-    'R116': 'FC(F)(F)C(F)(F)F', 'R124': 'FC(F)(F)C(Cl)F',
-    'R124A': 'ClC(F)C(F)(F)F', 'R114A': 'ClC(Cl)(F)C(F)(F)F',
-    'R134': 'FC(F)C(F)F', 'R161': 'CCF', 'R218': 'FC(F)(F)C(F)(F)C(F)(F)F',
-    'R227EA': 'FC(F)(F)C(F)C(F)(F)F', 'R236FA': 'FC(F)(F)CC(F)(F)F',
-    'R245FA': 'FC(F)(F)CC(F)F', 'R1233ZD(E)': 'FC(F)(F)/C=C/Cl',
-    'R1336MZZ(E)': 'FC(F)(F)/C=C/C(F)(F)F', 'R1336MZZ(Z)': 'FC(F)(F)/C=C\\C(F)(F)F',
     'P4442': 'CCCC[P+](CCCC)(CCCC)CC',
     'P66614': 'CCCCCC[P+](CCCCCC)(CCCCCC)CCCCCCCCCCCCCC',
     'DOIM': 'CCCCCCCCn1cc[n+](CCCCCCCC)c1',

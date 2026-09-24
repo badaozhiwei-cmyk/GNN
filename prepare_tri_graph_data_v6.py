@@ -91,22 +91,37 @@ def mol2graph_components(smiles_string):
     return [node_f, edge_index, edge_attr]
 
 # ==========================================
-# 3. 加载 xTB 单分子物理描述符 (mu, alpha, V)
+# 3. 加载 xTB 单分子物理描述符 (mu, alpha, V) [Fail-Closed 安全门禁]
 # ==========================================
 xtb_lookup = {}
-xtb_path = 'Phase4_Scientific_Validation/xTB_Physics_Descriptors.csv'
+clean_xtb_path = 'Phase4_Scientific_Validation/xTB_Physics_Descriptors_v7_clean.csv'
+legacy_xtb_path = 'Phase4_Scientific_Validation/xTB_Physics_Descriptors.csv'
+xtb_path = clean_xtb_path if os.path.exists(clean_xtb_path) else legacy_xtb_path
+
 if os.path.exists(xtb_path):
     xtb_df = pd.read_csv(xtb_path)
+    # Fail-Closed 门禁: 严禁加载含有 HFP 污染的 R1234yf 记录
+    yf_rows = xtb_df[xtb_df['Molecule'].astype(str).str.upper().str.strip() == 'R1234YF']
+    if len(yf_rows) > 0 and 'SMILES' in yf_rows.columns:
+        for smi in yf_rows['SMILES']:
+            if str(smi).strip() == "C(=C(F)F)(C(F)(F)F)F":
+                raise RuntimeError(
+                    f"FAIL-CLOSED BREACH: Contaminated R1234yf (HFP C3F6) detected in {xtb_path}! "
+                    f"Execution halted to protect scientific integrity. Please use xTB_Physics_Descriptors_v7_clean.csv."
+                )
     for _, row in xtb_df[xtb_df['Category'] == 'Refrigerant'].iterrows():
         xtb_lookup[str(row['Molecule']).strip().upper()] = (row['Dipole_Debye'], row['Polarizability_au'], row['Volume_A3'])
 else:
     print(f"[警告] 找不到 xTB 文件: {xtb_path}")
 
 # ==========================================
-# 4. 加载 xTB 离子-制冷剂 配对结合能 (Delta E)
+# 4. 加载 xTB 离子-制冷剂 配对结合能 (Delta E) [Fail-Closed 安全门禁]
 # ==========================================
 pair_lookup = {}
-pair_csv = 'Phase4_Scientific_Validation/full_pair_interaction_results.csv'
+clean_pair_csv = 'Phase4_Scientific_Validation/full_pair_interaction_results_v7_clean.csv'
+legacy_pair_csv = 'Phase4_Scientific_Validation/full_pair_interaction_results.csv'
+pair_csv = clean_pair_csv if os.path.exists(clean_pair_csv) else legacy_pair_csv
+
 if os.path.exists(pair_csv):
     df_pair = pd.read_csv(pair_csv)
     for _, r in df_pair.iterrows():

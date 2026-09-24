@@ -1,0 +1,41 @@
+{
+  "artifact_type": "provenance_bound_split_artifact",
+  "split_file": "HFC_grouped_state_split.npz",
+  "split_version": "grouped_state_v1",
+  "state_key_version": "state_key_v1",
+  "random_seed": 42,
+  "algorithm": "sklearn.model_selection.GroupShuffleSplit(n_splits=1, test_size=0.10, random_state=42)",
+  "test_size": 0.1,
+  "requested_test_fraction": 0.1,
+  "actual_test_fraction": 0.10040160642570281,
+  "n_total": 2739,
+  "n_train": 2464,
+  "n_val": 275,
+  "n_unique_groups": 2726,
+  "n_train_groups": 2453,
+  "n_val_groups": 273,
+  "split_selection_rule": "A priori single realization with seed=42; post-hoc seed search prohibited",
+  "overlapping_indices": 0,
+  "overlapping_states": 0,
+  "component_closure": {
+    "refrigerants_in_train": 12,
+    "anions_in_train": 23,
+    "cations_in_train": 17,
+    "refrigerants_in_val": 12,
+    "anions_in_val": 23
+  },
+  "runtime_environment": {
+    "python_version": "3.11.9",
+    "numpy_version": "2.4.4",
+    "sklearn_version": "1.9.0",
+    "pandas_version": "3.0.2"
+  },
+  "source_dataset": {
+    "name": "hfc_2739_v7",
+    "meta_info_csv": "datasets/hfc_2739_v7/meta_info.csv",
+    "meta_info_sha256": "6247d6ae4382a47d60066ef1514bb7ed00f0b9f4bcf6e0a3e873be4b3860911e",
+    "data_npy_sha256": "a408c2832352d69799d1c0a8b7151dd7535fe2edf34d171992b9385b1bd3e6bb",
+    "label_npy_sha256": "f8cd8f4e58c746c2b41122466cebcee0a08929fe3c94f349d4cd34a51b3c2f3a"
+  },
+  "split_npz_sha256": "04f52d330f929c622187ff07b9bce2a7a5061992d04fd3385044a9245e67b56b"
+}

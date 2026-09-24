@@ -1,0 +1,512 @@
+{
+  "epistemological_disclaimer": "Two-sample Kolmogorov-Smirnov p-values and Wasserstein distances are presented strictly as descriptive empirical diagnostics and practical equivalence checks. They do not constitute a formal mathematical proof of identical parent generating distributions. In this study, the 100-run Random-L0 null reference distribution demonstrates that the grouped validation set exhibited marginal-distribution distances within the empirical range observed under 100 random 10% splits, confirming that no abnormal marginal distortion was introduced beyond standard random sampling noise. Cluster-bootstrap confidence intervals spanning zero demonstrate the absence of systematic directional bias.",
+  "context_metadata": {
+    "source_sheet": "Table S3. VLE HFCs",
+    "measurement_type": "Vapor_Liquid_Equilibrium_VLE",
+    "phase_regime": "saturated_liquid_solution",
+    "composition_basis": "liquid_mole_fraction_x1",
+    "n_samples": "2739",
+    "is_homogeneous": "True"
+  },
+  "equivalence_bounds_rationale": {
+    "T_K": {
+      "bound": 1.0,
+      "unit": "K",
+      "rationale": "Predefined study-specific practical tolerance, informed by reported measurement precision and inter-study variability in the source literature (+/- 0.5 to 1.0 K)"
+    },
+    "P_MPa": {
+      "bound": 0.05,
+      "unit": "MPa",
+      "rationale": "Predefined study-specific practical tolerance, informed by reported transducer precision and baric control tolerance in equilibrium apparatus (50 kPa)"
+    },
+    "x1": {
+      "bound": 0.03,
+      "unit": "mole fraction",
+      "rationale": "Predefined study-specific practical tolerance, informed by inter-laboratory replicate experimental uncertainty in solubility determination (+/- 0.02 to 0.03)"
+    }
+  },
+  "coverage_summary": {
+    "Random-L0": {
+      "train_n": 2465,
+      "val_n": 274,
+      "n_refrigerants_train": 12,
+      "n_refrigerants_val": 12,
+      "n_anions_train": 23,
+      "n_anions_val": 20,
+      "n_cations_train": 17,
+      "n_cations_val": 14,
+      "n_systems_train": 134,
+      "n_systems_val": 105,
+      "unique_states_train": 2457,
+      "unique_states_val": 274,
+      "overlapping_states_count": 5
+    },
+    "Grouped-L0": {
+      "train_n": 2464,
+      "val_n": 275,
+      "n_refrigerants_train": 12,
+      "n_refrigerants_val": 12,
+      "n_anions_train": 23,
+      "n_anions_val": 23,
+      "n_cations_train": 17,
+      "n_cations_val": 14,
+      "n_systems_train": 134,
+      "n_systems_val": 102,
+      "unique_states_train": 2453,
+      "unique_states_val": 273,
+      "overlapping_states_count": 0
+    }
+  },
+  "distance_diagnostics": {
+    "Random-L0_T_K_train_vs_val": {
+      "mean_diff_raw": 0.3032857523578514,
+      "median_diff_raw": 0.6500000000000341,
+      "cohen_d": 0.015077006256153753,
+      "wasserstein_1d": 0.9555196162331041,
+      "ks_distance_D": 0.039944626227032466,
+      "ks_pvalue_diagnostic": 0.8095444719184741,
+      "practical_equivalence_bound": 1.0,
+      "satisfies_practical_equivalence": true
+    },
+    "Random-L0_P_MPa_train_vs_val": {
+      "mean_diff_raw": -0.021277793180438542,
+      "median_diff_raw": -0.01050000000000001,
+      "cohen_d": -0.06194402863272347,
+      "wasserstein_1d": 0.03842114575146946,
+      "ks_distance_D": 0.0913726477250855,
+      "ks_pvalue_diagnostic": 0.03058620293703598,
+      "practical_equivalence_bound": 0.05,
+      "satisfies_practical_equivalence": true
+    },
+    "Random-L0_x1_train_vs_val": {
+      "mean_diff_raw": -0.020845631631157352,
+      "median_diff_raw": -0.024800000000000016,
+      "cohen_d": -0.11564282504870443,
+      "wasserstein_1d": 0.022763898343228558,
+      "ks_distance_D": 0.08079981048548289,
+      "ks_pvalue_diagnostic": 0.07567007828655573,
+      "practical_equivalence_bound": 0.03,
+      "satisfies_practical_equivalence": true
+    },
+    "Grouped-L0_T_K_train_vs_val": {
+      "mean_diff_raw": -0.03875443181823357,
+      "median_diff_raw": 0.3300000000000409,
+      "cohen_d": -0.0019265492074158964,
+      "wasserstein_1d": 1.1804900487012973,
+      "ks_distance_D": 0.03707792207792208,
+      "ks_pvalue_diagnostic": 0.871782212539322,
+      "practical_equivalence_bound": 1.0,
+      "satisfies_practical_equivalence": false
+    },
+    "Grouped-L0_P_MPa_train_vs_val": {
+      "mean_diff_raw": 0.007953058506493471,
+      "median_diff_raw": 0.005099999999999993,
+      "cohen_d": 0.023149547389817695,
+      "wasserstein_1d": 0.01886756061688312,
+      "ks_distance_D": 0.03965909090909091,
+      "ks_pvalue_diagnostic": 0.8149843143643,
+      "practical_equivalence_bound": 0.05,
+      "satisfies_practical_equivalence": true
+    },
+    "Grouped-L0_x1_train_vs_val": {
+      "mean_diff_raw": 0.012564529870129876,
+      "median_diff_raw": 0.019850000000000007,
+      "cohen_d": 0.06967607311493333,
+      "wasserstein_1d": 0.012747766883116877,
+      "ks_distance_D": 0.053246753246753244,
+      "ks_pvalue_diagnostic": 0.4671960700260179,
+      "practical_equivalence_bound": 0.03,
+      "satisfies_practical_equivalence": true
+    },
+    "Val_Grouped_vs_Random_T_K": {
+      "mean_diff_raw": 0.3078095288653344,
+      "median_diff_raw": 0.12000000000000455,
+      "cohen_d": 0.015016474612156083,
+      "wasserstein_1d": 1.4460539084273385,
+      "ks_distance_D": 0.061446582614465825,
+      "ks_pvalue_diagnostic": 0.6376453284396607,
+      "practical_equivalence_bound": 1.0,
+      "satisfies_practical_equivalence": false
+    },
+    "Val_Grouped_vs_Random_P_MPa": {
+      "mean_diff_raw": -0.026303795673523533,
+      "median_diff_raw": -0.01050000000000001,
+      "cohen_d": -0.07849921758741658,
+      "wasserstein_1d": 0.04834482871930986,
+      "ks_distance_D": 0.08642335766423358,
+      "ks_pvalue_diagnostic": 0.23127574970154038,
+      "practical_equivalence_bound": 0.05,
+      "satisfies_practical_equivalence": true
+    },
+    "Val_Grouped_vs_Random_x1": {
+      "mean_diff_raw": -0.030063338287989377,
+      "median_diff_raw": -0.04100000000000001,
+      "cohen_d": -0.1677793599517251,
+      "wasserstein_1d": 0.03057725467816854,
+      "ks_distance_D": 0.1046449900464499,
+      "ks_pvalue_diagnostic": 0.08613424191129535,
+      "practical_equivalence_bound": 0.03,
+      "satisfies_practical_equivalence": false
+    }
+  },
+  "cluster_bootstrap_sensitivity": {
+    "Val_Grouped_vs_Random_T_K": {
+      "cluster_bootstrap_mean_diff_ci95": [
+        -2.9532203603306,
+        3.0738656678056753
+      ],
+      "cluster_bootstrap_w1_median": 2.1229272270742996,
+      "cluster_bootstrap_w1_ci95": [
+        1.160483746081503,
+        4.048334131420194
+      ]
+    },
+    "Val_Grouped_vs_Random_P_MPa": {
+      "cluster_bootstrap_mean_diff_ci95": [
+        -0.07928215120333561,
+        0.027184356382917482
+      ],
+      "cluster_bootstrap_w1_median": 0.05224692376863152,
+      "cluster_bootstrap_w1_ci95": [
+        0.02745585522612161,
+        0.0924908800733945
+      ]
+    },
+    "Val_Grouped_vs_Random_x1": {
+      "cluster_bootstrap_mean_diff_ci95": [
+        -0.057906424481922396,
+        -0.00545846052503408
+      ],
+      "cluster_bootstrap_w1_median": 0.03152085722711659,
+      "cluster_bootstrap_w1_ci95": [
+        0.014078966134958177,
+        0.05883881814032518
+      ]
+    }
+  },
+  "random_l0_null_reference_distribution": {
+    "T_K": {
+      "n_runs": 100,
+      "seed_range": [
+        1001,
+        1100
+      ],
+      "prespecified_study_tolerance": {
+        "bound": 1.0,
+        "unit": "K",
+        "rationale": "Predefined study-specific practical tolerance, informed by reported measurement precision and inter-study variability in the source literature (+/- 0.5 to 1.0 K)"
+      },
+      "random_null_val_vs_all": {
+        "w1_mean": 1.2307014765498625,
+        "w1_std": 0.5121430643540968,
+        "w1_q05": 0.5725441031544897,
+        "w1_median": 1.1374448777192376,
+        "w1_q95": 2.146292351822685,
+        "ks_d_median": 0.04377629962450998,
+        "ks_d_q95": 0.07029424932643646
+      },
+      "random_null_train_vs_val": {
+        "w1_mean": 1.3675015595416125,
+        "w1_std": 0.5690709343877773,
+        "w1_q05": 0.6361859223286612,
+        "w1_median": 1.2638789128085164,
+        "w1_q95": 2.384866025007033,
+        "ks_d_median": 0.04864230615478006,
+        "ks_d_q95": 0.0781078900223568
+      },
+      "grouped_observed_val_vs_all": {
+        "w1": 1.0619669514421304,
+        "mean_diff": 0.03486342460752212,
+        "ks_d": 0.03335523913837167,
+        "empirical_percentile_rank_in_random_null": 42.0,
+        "falls_within_95pct_random_noise": true,
+        "within_random_reference_envelope": true,
+        "within_prespecified_physical_margin": false
+      },
+      "grouped_observed_train_vs_val": {
+        "w1": 1.1804900487012973,
+        "ks_d": 0.03707792207792208,
+        "empirical_percentile_rank_in_random_null": 42.0,
+        "falls_within_95pct_random_noise": true,
+        "within_random_reference_envelope": true
+      },
+      "scientific_interpretation": "在 100 次独立随机 10% 划分形成的经验参考分布下，Grouped-L0 验证集在 T_K 上的 Wasserstein 距离 (1.0620) 处于该随机参考分布的常规波动范围内 (分位排名: 42.0%, 95% 噪声上限: 2.1463)。 尽管其 W1 位移略超出预设研究容差 (1.00)，但在随机抽样中仅相当于 42.0% 分位水平，证明未引入超出随机噪声的异常边缘偏离。"
+    },
+    "P_MPa": {
+      "n_runs": 100,
+      "seed_range": [
+        1001,
+        1100
+      ],
+      "prespecified_study_tolerance": {
+        "bound": 0.05,
+        "unit": "MPa",
+        "rationale": "Predefined study-specific practical tolerance, informed by reported transducer precision and baric control tolerance in equilibrium apparatus (50 kPa)"
+      },
+      "random_null_val_vs_all": {
+        "w1_mean": 0.023768616446955698,
+        "w1_std": 0.009154867455577878,
+        "w1_q05": 0.013601391192240743,
+        "w1_median": 0.02184640454652051,
+        "w1_q95": 0.04209940570576932,
+        "ks_d_median": 0.04572037319816759,
+        "ks_d_q95": 0.0718363167334234
+      },
+      "random_null_train_vs_val": {
+        "w1_mean": 0.026410645212256254,
+        "w1_std": 0.010172487610883487,
+        "w1_q05": 0.015113269969796112,
+        "w1_median": 0.02427476756710737,
+        "w1_q95": 0.04677901510267835,
+        "ks_d_median": 0.05080247553337973,
+        "ks_d_q95": 0.07982136776180393
+      },
+      "grouped_observed_val_vs_all": {
+        "w1": 0.01697322722161373,
+        "mean_diff": 0.007154558656443932,
+        "ks_d": 0.035677254472435194,
+        "empirical_percentile_rank_in_random_null": 24.0,
+        "falls_within_95pct_random_noise": true,
+        "within_random_reference_envelope": true,
+        "within_prespecified_physical_margin": true
+      },
+      "grouped_observed_train_vs_val": {
+        "w1": 0.01886756061688312,
+        "ks_d": 0.03965909090909091,
+        "empirical_percentile_rank_in_random_null": 24.0,
+        "falls_within_95pct_random_noise": true,
+        "within_random_reference_envelope": true
+      },
+      "scientific_interpretation": "在 100 次独立随机 10% 划分形成的经验参考分布下，Grouped-L0 验证集在 P_MPa 上的 Wasserstein 距离 (0.0170) 处于该随机参考分布的常规波动范围内 (分位排名: 24.0%, 95% 噪声上限: 0.0421)。 同时满足预设容差要求 (< 0.05)。"
+    },
+    "x1": {
+      "n_runs": 100,
+      "seed_range": [
+        1001,
+        1100
+      ],
+      "prespecified_study_tolerance": {
+        "bound": 0.03,
+        "unit": "mole fraction",
+        "rationale": "Predefined study-specific practical tolerance, informed by inter-laboratory replicate experimental uncertainty in solubility determination (+/- 0.02 to 0.03)"
+      },
+      "random_null_val_vs_all": {
+        "w1_mean": 0.011985060928251827,
+        "w1_std": 0.0047547772716508225,
+        "w1_q05": 0.0063189521956438875,
+        "w1_median": 0.011408934437151396,
+        "w1_q95": 0.02029813617642434,
+        "ks_d_median": 0.04582164091002364,
+        "ks_d_q95": 0.07090978379343518
+      },
+      "random_null_train_vs_val": {
+        "w1_mean": 0.01331727459735568,
+        "w1_std": 0.005283300181359675,
+        "w1_q05": 0.007021342825098825,
+        "w1_median": 0.01267710808249804,
+        "w1_q95": 0.022554399589138446,
+        "ks_d_median": 0.05091499977791268,
+        "ks_d_q95": 0.07879184495343568
+      },
+      "grouped_observed_val_vs_all": {
+        "w1": 0.011467870609711564,
+        "mean_diff": 0.011303030887185123,
+        "ks_d": 0.04790069368382621,
+        "empirical_percentile_rank_in_random_null": 51.0,
+        "falls_within_95pct_random_noise": true,
+        "within_random_reference_envelope": true,
+        "within_prespecified_physical_margin": true
+      },
+      "grouped_observed_train_vs_val": {
+        "w1": 0.012747766883116877,
+        "ks_d": 0.053246753246753244,
+        "empirical_percentile_rank_in_random_null": 51.0,
+        "falls_within_95pct_random_noise": true,
+        "within_random_reference_envelope": true
+      },
+      "scientific_interpretation": "在 100 次独立随机 10% 划分形成的经验参考分布下，Grouped-L0 验证集在 x1 上的 Wasserstein 距离 (0.0115) 处于该随机参考分布的常规波动范围内 (分位排名: 51.0%, 95% 噪声上限: 0.0203)。 同时满足预设容差要求 (< 0.03)。"
+    }
+  },
+  "continuous_stats": [
+    {
+      "split": "Random-L0",
+      "partition": "train",
+      "variable": "T_K",
+      "n": 2465,
+      "mean": 313.3096653144016,
+      "std": 20.13476125112909,
+      "min": 273.13,
+      "q05": 283.15,
+      "q25": 298.15,
+      "median": 303.8,
+      "q75": 323.2,
+      "q95": 348.1,
+      "max": 353.15
+    },
+    {
+      "split": "Random-L0",
+      "partition": "val",
+      "variable": "T_K",
+      "n": 274,
+      "mean": 313.0063795620438,
+      "std": 19.943652392774748,
+      "min": 273.14,
+      "q05": 283.15,
+      "q25": 298.15,
+      "median": 303.15,
+      "q75": 323.2,
+      "q95": 348.1,
+      "max": 353.15
+    },
+    {
+      "split": "Random-L0",
+      "partition": "train",
+      "variable": "P_MPa",
+      "n": 2465,
+      "mean": 0.33650801703853955,
+      "std": 0.3459022995508868,
+      "min": 0.0095,
+      "q05": 0.019200000000000002,
+      "q25": 0.1,
+      "median": 0.2399,
+      "q75": 0.4342,
+      "q95": 1.0,
+      "max": 2.16
+    },
+    {
+      "split": "Random-L0",
+      "partition": "val",
+      "variable": "P_MPa",
+      "n": 274,
+      "mean": 0.3577858102189781,
+      "std": 0.32100868848594377,
+      "min": 0.0094,
+      "q05": 0.0248822,
+      "q25": 0.11555,
+      "median": 0.2504,
+      "q75": 0.5242,
+      "q95": 1.000084,
+      "max": 1.9992
+    },
+    {
+      "split": "Random-L0",
+      "partition": "train",
+      "variable": "x1",
+      "n": 2465,
+      "mean": 0.21439239756592293,
+      "std": 0.1799838314797404,
+      "min": 0.0,
+      "q05": 0.0139999999999999,
+      "q25": 0.0686,
+      "median": 0.1712,
+      "q75": 0.32,
+      "q95": 0.575,
+      "max": 0.98
+    },
+    {
+      "split": "Random-L0",
+      "partition": "val",
+      "variable": "x1",
+      "n": 274,
+      "mean": 0.23523802919708028,
+      "std": 0.18272139860907047,
+      "min": 0.0,
+      "q05": 0.013299999999999935,
+      "q25": 0.088225,
+      "median": 0.196,
+      "q75": 0.356925,
+      "q95": 0.614639999999999,
+      "max": 0.823
+    },
+    {
+      "split": "Grouped-L0",
+      "partition": "train",
+      "variable": "T_K",
+      "n": 2464,
+      "mean": 313.2754346590909,
+      "std": 20.01101599173084,
+      "min": 273.13,
+      "q05": 283.15,
+      "q25": 298.15,
+      "median": 303.6,
+      "q75": 323.2,
+      "q95": 348.1,
+      "max": 353.15
+    },
+    {
+      "split": "Grouped-L0",
+      "partition": "val",
+      "variable": "T_K",
+      "n": 275,
+      "mean": 313.3141890909091,
+      "std": 21.03603820195683,
+      "min": 273.24,
+      "q05": 283.15,
+      "q25": 298.15,
+      "median": 303.27,
+      "q75": 323.2,
+      "q95": 348.106,
+      "max": 353.15
+    },
+    {
+      "split": "Grouped-L0",
+      "partition": "train",
+      "variable": "P_MPa",
+      "n": 2464,
+      "mean": 0.33943507305194803,
+      "std": 0.34299165699918804,
+      "min": 0.0094,
+      "q05": 0.024811100000000003,
+      "q25": 0.1,
+      "median": 0.245,
+      "q75": 0.4493,
+      "q95": 1.0,
+      "max": 2.16
+    },
+    {
+      "split": "Grouped-L0",
+      "partition": "val",
+      "variable": "P_MPa",
+      "n": 275,
+      "mean": 0.33148201454545456,
+      "std": 0.3485422163109495,
+      "min": 0.0095,
+      "q05": 0.0103,
+      "q25": 0.100075,
+      "median": 0.2399,
+      "q75": 0.40285000000000004,
+      "q95": 0.99972,
+      "max": 2.0007
+    },
+    {
+      "split": "Grouped-L0",
+      "partition": "train",
+      "variable": "x1",
+      "n": 2464,
+      "mean": 0.21773922077922078,
+      "std": 0.1808473383971141,
+      "min": 0.0,
+      "q05": 0.0139999999999999,
+      "q25": 0.07196999999999999,
+      "median": 0.17485,
+      "q75": 0.323575,
+      "q95": 0.5808499999999999,
+      "max": 0.98
+    },
+    {
+      "split": "Grouped-L0",
+      "partition": "val",
+      "variable": "x1",
+      "n": 275,
+      "mean": 0.2051746909090909,
+      "std": 0.17558818330467524,
+      "min": 0.0,
+      "q05": 0.011995000000000002,
+      "q25": 0.06225,
+      "median": 0.155,
+      "q75": 0.314,
+      "q95": 0.5576000000000003,
+      "max": 0.803
+    }
+  ]
+}

@@ -1,102 +1,120 @@
 """
-v6_metadata_utils.py — 纯轻量分子物性元数据工具模块 (Zero Side-Effects)
-===================================================================
-【功能说明】
-提供论文机制探针与图构建所需的基础物理/化学查表工具：
-1. lookup_smiles: 离子液体与制冷剂 SMILES 查询
-2. xtb_lookup: xTB 量化物理描述符 (mu, alpha, V)
-3. NIST_CRITICAL: NIST 临界参数 (Tc, Pc, omega)
-4. compute_tanimoto_dist: 分子指纹谷本距离
-严禁包含任何数据读写、npy 生成或模型训练的顶层执行逻辑！
+v6_metadata_utils.py — Central Molecular Property & Metadata Interface
+======================================================================
+Protocol: Scientific Integrity Framework (v1.0)
+Rule: Code NEVER defines chemistry; code CONSUMES chemistry from the
+      central Chemical Identity Registry.
+======================================================================
 """
+
 import os
+import sys
 import pandas as pd
+from pathlib import Path
 from rdkit import Chem
 from rdkit.Chem import AllChem, DataStructs
 
-base_dir = os.path.dirname(os.path.abspath(__file__))
+base_dir = Path(__file__).resolve().parent
+
+# 引入中央化学身份契约引擎
+sys.path.insert(0, str(base_dir / "Phase4_Scientific_Validation"))
+from chemical_identity_contract import (
+    get_refrigerant_identity,
+    assert_refrigerant_contract,
+    _df_registry
+)
 
 # ==========================================
-# 1. 加载 SMILES 字典
+# 1. 动态生成 NIST 临界参数 (Tc, Pc, omega)
 # ==========================================
-smiles_dict = {}
-smiles_csv_candidates = [
-    os.path.join(base_dir, 'Original_Data', 'IL_smiles.csv'),
-    os.path.join(base_dir, '..', 'Original_Data', 'IL_smiles.csv'),
-    'Original_Data/IL_smiles.csv',
-]
-smiles_csv_path = None
-for p in smiles_csv_candidates:
-    if os.path.exists(p):
-        smiles_csv_path = p
-        break
-
-if smiles_csv_path:
-    il_df = pd.read_csv(smiles_csv_path)
-    il_df.columns = [c.strip() for c in il_df.columns]
-    for idx, row in il_df.iterrows():
-        abbr = str(row['Abbreviation']).strip().upper()
-        smiles_dict[abbr] = str(row['Smiles']).strip()
-        smiles_dict[abbr.replace('[', '').replace(']', '')] = str(row['Smiles']).strip()
-
-extra_smiles = {
-    'R32':'C(F)F', 'R134A':'C(C(F)(F)F)F', 'R143A':'CC(F)(F)F', 'R125':'C(F)(F)(C(F)(F)F)',
-    'R152A':'CC(F)F', 'R23':'C(F)(F)F', 'R41':'CF', 'R134':'FC(F)C(F)F', 'R161':'CCF',
-    'R227EA':'FC(F)(F)C(F)C(F)(F)F', 'R236FA':'FC(F)(F)CC(F)(F)F', 'R245FA':'FC(F)(F)CC(F)F',
-    'R114': 'C(C(F)(F)Cl)(F)(F)Cl',
-    'R1234YF': 'C=C(F)C(F)(F)F',
-    'R1234ZE(E)': 'F/C=C/C(F)(F)F',
-}
-for k, v in extra_smiles.items():
-    smiles_dict[k] = v
-    smiles_dict[k.replace('[', '').replace(']', '')] = v
-
-def lookup_smiles(name):
-    clean = str(name).strip().upper().replace('[', '').replace(']', '')
-    return smiles_dict.get(clean, smiles_dict.get(str(name).strip().upper(), None))
+# 彻底消除硬编码！完全从中央注册表 _df_registry 动态投影
+NIST_CRITICAL = {}
+for _, row in _df_registry.iterrows():
+    cname_clean = str(row['canonical_name']).strip().upper().replace('[', '').replace(']', '')
+    tc = float(row['Tc_K'])
+    pc = float(row['Pc_MPa'])
+    om = float(row['omega'])
+    NIST_CRITICAL[cname_clean] = (tc, pc, om)
+    # 额外兼容无连字符 key (如 R1234ZEE)
+    NIST_CRITICAL[cname_clean.replace('-', '').replace('_', '')] = (tc, pc, om)
 
 # ==========================================
-# 2. 加载 xTB 单分子物理描述符 (mu, alpha, V)
+# 2. 动态生成 xTB 单分子物理描述符 (mu, alpha, V)
 # ==========================================
 xtb_lookup = {}
-xtb_candidates = [
-    os.path.join(base_dir, 'Phase4_Scientific_Validation', 'xTB_Physics_Descriptors.csv'),
-    os.path.join(base_dir, '..', 'Phase4_Scientific_Validation', 'xTB_Physics_Descriptors.csv'),
-    'Phase4_Scientific_Validation/xTB_Physics_Descriptors.csv',
-]
-xtb_path = None
-for p in xtb_candidates:
-    if os.path.exists(p):
-        xtb_path = p
-        break
-
-if xtb_path:
-    xtb_df = pd.read_csv(xtb_path)
-    for _, row in xtb_df[xtb_df['Category'] == 'Refrigerant'].iterrows():
-        xtb_lookup[str(row['Molecule']).strip().upper()] = (
-            float(row['Dipole_Debye']), 
-            float(row['Polarizability_au']), 
+for _, row in _df_registry.iterrows():
+    cname_clean = str(row['canonical_name']).strip().upper().replace('[', '').replace(']', '')
+    if pd.notna(row.get('Dipole_Debye')) and pd.notna(row.get('Polarizability_au')) and pd.notna(row.get('Volume_A3')):
+        xtb_lookup[cname_clean] = (
+            float(row['Dipole_Debye']),
+            float(row['Polarizability_au']),
             float(row['Volume_A3'])
         )
+        xtb_lookup[cname_clean.replace('-', '').replace('_', '')] = xtb_lookup[cname_clean]
 
 # ==========================================
-# 3. 加载 NIST 临界参数 (Tc, Pc, omega)
+# 3. 离子液体 SMILES 字典加载 (消费自中央 IL 注册表)
 # ==========================================
-NIST_CRITICAL = {
-    'R23': (299.29, 4.832, 0.263), 'R32': (351.26, 5.782, 0.277), 'R41': (317.28, 5.897, 0.201),
-    'R125': (339.17, 3.618, 0.305), 'R134A': (374.21, 4.059, 0.327), 'R134': (391.75, 4.641, 0.312),
-    'R143A': (345.86, 3.761, 0.262), 'R152A': (386.41, 4.517, 0.275), 'R161': (375.25, 5.091, 0.217),
-    'R227EA': (374.90, 2.925, 0.357), 'R236FA': (398.07, 3.200, 0.377), 'R245FA': (427.16, 3.651, 0.378),
-    'R1234YF': (367.85, 3.382, 0.276), 'R1234ZE(E)': (382.51, 3.635, 0.313)
-}
+_il_manifest_path = base_dir / "Phase4_Scientific_Validation" / "ionic_liquid_identity_manifest.csv"
+if not _il_manifest_path.exists():
+    raise FileNotFoundError(f"未找到离子液体权威注册表: {_il_manifest_path}")
+
+_df_il = pd.read_csv(_il_manifest_path)
+_il_smiles_dict = {}
+for _, r in _df_il.iterrows():
+    cname = str(r['canonical_name']).strip().upper()
+    cname_nb = cname.replace('[', '').replace(']', '')
+    smi = str(r['canonical_smiles']).strip()
+    _il_smiles_dict[cname] = smi
+    _il_smiles_dict[cname_nb] = smi
+    _il_smiles_dict[cname.replace('-', '').replace('_', '')] = smi
+
+def lookup_smiles(name: str) -> str:
+    """
+    统一查询物种规范 SMILES:
+    1. 优先在中央制冷剂注册表中消费 (强校验)
+    2. 其次在中央离子液体注册表中消费 (强校验)
+    3. 若均未查到，抛出 KeyError 熔断，严禁静默返回 None！
+    """
+    clean = str(name).strip().upper()
+    clean_no_bracket = clean.replace('[', '').replace(']', '')
+
+    # 优先查制冷剂中央注册表
+    try:
+        ident = get_refrigerant_identity(clean_no_bracket)
+        return ident['canonical_smiles']
+    except KeyError:
+        pass
+
+    # 查离子液体中央注册表
+    if clean in _il_smiles_dict:
+        return _il_smiles_dict[clean]
+    if clean_no_bracket in _il_smiles_dict:
+        return _il_smiles_dict[clean_no_bracket]
+
+    raise KeyError(f"🚨 [Lookup Error] 物种 '{name}' 既不在制冷剂注册表，也不在离子液体注册表中！")
 
 # ==========================================
 # 4. Morgan 指纹 Tanimoto 距离计算
 # ==========================================
-def compute_tanimoto_dist(smi1, smi2):
+def compute_tanimoto_dist(smi1: str, smi2: str) -> float:
     m1 = Chem.MolFromSmiles(smi1)
     m2 = Chem.MolFromSmiles(smi2)
+    if m1 is None or m2 is None:
+        raise ValueError(f"Invalid SMILES for Tanimoto computation: '{smi1}' or '{smi2}'")
     fp1 = AllChem.GetMorganFingerprintAsBitVect(m1, 2, nBits=1024)
     fp2 = AllChem.GetMorganFingerprintAsBitVect(m2, 2, nBits=1024)
     sim = DataStructs.TanimotoSimilarity(fp1, fp2)
     return 1.0 - sim
+
+if __name__ == '__main__':
+    print("🧪 正在测试重构后的 v6_metadata_utils...")
+    r1234_smi = lookup_smiles('R1234yf')
+    print(f"✅ R1234yf 消费自中央注册表: {r1234_smi} (期望: C=C(F)C(F)(F)F)")
+    assert r1234_smi == 'C=C(F)C(F)(F)F', "🚨 R1234yf SMILES 严重错位！"
+    
+    tc, pc, om = NIST_CRITICAL['R1234YF']
+    print(f"✅ R1234yf NIST 临界参数: Tc={tc} K, Pc={pc} MPa, omega={om}")
+    assert abs(tc - 367.85) < 0.1, "🚨 R1234yf Tc 不符！"
+    
+    print("✅ v6_metadata_utils 全部测试通过，硬编码已彻底消除！")

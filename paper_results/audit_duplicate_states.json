@@ -1,5 +1,5 @@
 {
-  "audit_timestamp": "2026-09-20T00:00:53.182213",
+  "audit_timestamp": "2026-09-24T14:29:41.059065",
   "summary": {
     "hfc_total_records": 2739,
     "exact_duplicate_groups": 13,
@@ -1236,7 +1236,7 @@
     {
       "split_name": "LORO_R152a",
       "train_size": 3804,
-      "test_size": 217,
+      "eval_size": 217,
       "exact_groups_tested": 13,
       "exact_split_crossing_leaks": 0,
       "tol_groups_tested": 35,
@@ -1246,7 +1246,7 @@
     {
       "split_name": "B1_Fam2",
       "train_size": 2003,
-      "test_size": 513,
+      "eval_size": 513,
       "exact_groups_tested": 13,
       "exact_split_crossing_leaks": 0,
       "tol_groups_tested": 35,
@@ -1256,7 +1256,7 @@
     {
       "split_name": "B2_Fam3",
       "train_size": 1927,
-      "test_size": 598,
+      "eval_size": 598,
       "exact_groups_tested": 13,
       "exact_split_crossing_leaks": 0,
       "tol_groups_tested": 35,
@@ -1266,7 +1266,7 @@
     {
       "split_name": "L2_Composition",
       "train_size": 2129,
-      "test_size": 374,
+      "eval_size": 374,
       "exact_groups_tested": 13,
       "exact_split_crossing_leaks": 0,
       "tol_groups_tested": 35,
@@ -1274,14 +1274,24 @@
       "status": "PASS"
     },
     {
-      "split_name": "HFC_all",
+      "split_name": "HFC_all_random",
       "train_size": 2465,
-      "test_size": 0,
+      "eval_size": 274,
+      "exact_groups_tested": 13,
+      "exact_split_crossing_leaks": 5,
+      "tol_groups_tested": 35,
+      "tol_split_crossing_leaks": 11,
+      "status": "REPLICATE_INPUT_OVERLAP"
+    },
+    {
+      "split_name": "HFC_grouped_state",
+      "train_size": 2464,
+      "eval_size": 275,
       "exact_groups_tested": 13,
       "exact_split_crossing_leaks": 0,
       "tol_groups_tested": 35,
-      "tol_split_crossing_leaks": 0,
-      "status": "PASS"
+      "tol_split_crossing_leaks": 4,
+      "status": "REPLICATE_INPUT_OVERLAP"
     }
   ]
 }

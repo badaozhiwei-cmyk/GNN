@@ -1,0 +1,188 @@
+{
+  "certificate_title": "Split-Aware Structure Disjointness & Chemical Identity Certificate",
+  "standard": "Nature Machine Intelligence / JACS Rigorous Audit Protocol",
+  "verdict": "PROVEN_DISJOINT_ACROSS_ALL_AXES",
+  "axes_certified": [
+    "Axis 1: HFO Scaffold Hard OOD (Scaffold/InChIKey/GraphHash Disjoint, Zero R1234yf/HFP)",
+    "Axis 2: HFC LORO (12-Fold Refrigerant Holdout Disjoint)",
+    "Axis 3: Split B1/B2 (Anion Family OOD Disjoint)",
+    "Axis 4: Split L2 (Pair-Blind Recombination Disjoint)",
+    "Axis 5: Split L0 (Exact Thermodynamic State Disjoint)"
+  ],
+  "audit_sections": {
+    "axis_1_hfo_scaffold_ood": {
+      "status": "PASSED",
+      "description": "Scaffold-level disjointness between saturated HFC training universe and unsaturated HFO evaluation set",
+      "n_train_refrigerants": 12,
+      "n_ood_refrigerants": 14,
+      "inchikey_intersection_size": 0,
+      "graph_hash_intersection_size": 0,
+      "r1234yf_in_training_count": 0,
+      "hfp_in_training_count": 0
+    },
+    "axis_2_hfc_loro": {
+      "status": "PASSED",
+      "description": "Leave-One-Refrigerant-Out 12-fold cross-validation strict refrigerant exclusion",
+      "n_folds_audited": 12,
+      "all_folds_strictly_disjoint": true,
+      "folds": [
+        {
+          "target_refrigerant": "R125",
+          "train_samples": 2324,
+          "test_samples": 260,
+          "train_ref_count": 10,
+          "disjoint": true
+        },
+        {
+          "target_refrigerant": "R134",
+          "train_samples": 1905,
+          "test_samples": 185,
+          "train_ref_count": 10,
+          "disjoint": true
+        },
+        {
+          "target_refrigerant": "R134a",
+          "train_samples": 1418,
+          "test_samples": 649,
+          "train_ref_count": 10,
+          "disjoint": true
+        },
+        {
+          "target_refrigerant": "R143a",
+          "train_samples": 2552,
+          "test_samples": 118,
+          "train_ref_count": 10,
+          "disjoint": true
+        },
+        {
+          "target_refrigerant": "R152a",
+          "train_samples": 2437,
+          "test_samples": 217,
+          "train_ref_count": 10,
+          "disjoint": true
+        },
+        {
+          "target_refrigerant": "R161",
+          "train_samples": 2367,
+          "test_samples": 155,
+          "train_ref_count": 10,
+          "disjoint": true
+        },
+        {
+          "target_refrigerant": "R227ea",
+          "train_samples": 2474,
+          "test_samples": 80,
+          "train_ref_count": 10,
+          "disjoint": true
+        },
+        {
+          "target_refrigerant": "R236fa",
+          "train_samples": 2585,
+          "test_samples": 85,
+          "train_ref_count": 10,
+          "disjoint": true
+        },
+        {
+          "target_refrigerant": "R23",
+          "train_samples": 2495,
+          "test_samples": 164,
+          "train_ref_count": 10,
+          "disjoint": true
+        },
+        {
+          "target_refrigerant": "R245fa",
+          "train_samples": 2490,
+          "test_samples": 85,
+          "train_ref_count": 10,
+          "disjoint": true
+        },
+        {
+          "target_refrigerant": "R32",
+          "train_samples": 1998,
+          "test_samples": 672,
+          "train_ref_count": 10,
+          "disjoint": true
+        },
+        {
+          "target_refrigerant": "R41",
+          "train_samples": 2590,
+          "test_samples": 69,
+          "train_ref_count": 10,
+          "disjoint": true
+        }
+      ]
+    },
+    "axis_3_split_b_anion_ood": {
+      "status": "PASSED",
+      "b1_fluorosulfonate": {
+        "n_train": 2003,
+        "n_test": 513,
+        "test_anions": [
+          "FS",
+          "HFPS",
+          "OTF",
+          "PFBS",
+          "TFES",
+          "TPES",
+          "TTES"
+        ],
+        "anion_intersection_size": 0
+      },
+      "b2_inorganic_fluoride": {
+        "n_train": 1927,
+        "n_test": 598,
+        "test_anions": [
+          "BF4",
+          "PF6"
+        ],
+        "anion_intersection_size": 0
+      }
+    },
+    "axis_4_split_l2_pair_recombination": {
+      "status": "PASSED",
+      "description": "Component recombination: individual ions seen in training, ionic pairs strictly unseen",
+      "n_train": 2129,
+      "n_test": 374,
+      "test_cations_subset_of_train": true,
+      "test_anions_subset_of_train": true,
+      "test_pairs": [
+        "BMIM__OTF",
+        "EMIM__BF4",
+        "EMIM__OTF",
+        "HMIM__BF4"
+      ],
+      "pair_intersection_size": 0
+    },
+    "axis_5_split_l0_interpolation": {
+      "status": "PASSED",
+      "description": "State-point interpolation audit: evaluated under both standard random 90/10 and grouped-state zero-input-leakage protocols",
+      "standard_random_l0": {
+        "n_train_rows": 2465,
+        "n_val_rows": 274,
+        "index_intersection_size": 0,
+        "components_closed": true,
+        "n_literature_replicate_crossing_states": 5,
+        "literature_replicate_detail": "5 duplicate state points of [emim][Tf2N]+R152a measured by independent literature sources (mean Delta_x1=0.0006)"
+      },
+      "grouped_state_l0": {
+        "n_train_rows": 2464,
+        "n_val_rows": 275,
+        "index_intersection_size": 0,
+        "state_tuple_intersection_size": 0,
+        "components_closed": true,
+        "is_strictly_state_disjoint": true
+      }
+    }
+  },
+  "cryptographic_manifest": {
+    "datasets/hfc_2739_v7/data.npy": "a408c2832352d69799d1c0a8b7151dd7535fe2edf34d171992b9385b1bd3e6bb",
+    "datasets/hfc_2739_v7/dataset_manifest.json": "159f673dabced72f6da7d2c5c17a9855b5d7a2129422657d900b1a11cc4f6100",
+    "datasets/full_4444_v7/dataset_manifest.json": "8545a8a16fd665cf83b8b78daa70d55ba7389c2acb3ef834869ec06c5f1d8dec",
+    "splits/HFC_all_split.npz": "9334c4d3b0419a79972b258152f989daa0cc15c77306242826cabe2d381fe54e",
+    "splits/HFC_grouped_state_split.npz": "0f8f0d51c6b1b7f008d2bf7b0a5811a34751ab88f5a0452c6057abc812680d2b",
+    "splits/L2_controlled_composite.npz": "3ed5154fab02ffb56e700572f9577c3a68d8dfa659b306dfb25e88b9b41d43c6",
+    "splits_anion_ood/split_B1_Fam2_Fluorosulfonate.npz": "f36b83802722f22f8947c68170faf03076783ddb934be37b0409cc80b804b094",
+    "splits_anion_ood/split_B2_Fam3_InorganicFluoride.npz": "09ddb00349c3b77bca490a5d5ab5a22a0c76e6be8abf329862ee711a32f67180"
+  },
+  "certificate_sha256": "debbd7e0ea4a8cb3dd624bbe1fadc443478ac89dbc48143e7b9d0b9a63870856"
+}

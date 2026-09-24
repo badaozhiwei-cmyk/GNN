@@ -1,0 +1,123 @@
+{
+  "dataset_id": "HFC_2739_V7_CANONICAL",
+  "version": "v7.0",
+  "description": "Pure saturated HFC training universe (2,739 rows, zero HFOs, 100% verified clean)",
+  "row_count": 2739,
+  "num_species": 12,
+  "refrigerant_species": [
+    "R125",
+    "R134",
+    "R134a",
+    "R143a",
+    "R152a",
+    "R161",
+    "R227ea",
+    "R23",
+    "R236fa",
+    "R245fa",
+    "R32",
+    "R41"
+  ],
+  "species_fingerprints": [
+    {
+      "name": "R125",
+      "species_id": "REF_R125",
+      "CAS": "354-33-6",
+      "formula": "C2HF5",
+      "inchi_key": "GTLACDSXYULKMZ-UHFFFAOYSA-N"
+    },
+    {
+      "name": "R134",
+      "species_id": "REF_R134",
+      "CAS": "359-35-3",
+      "formula": "C2H2F4",
+      "inchi_key": "WXGNWUVNYMJENI-UHFFFAOYSA-N"
+    },
+    {
+      "name": "R134a",
+      "species_id": "REF_R134A",
+      "CAS": "811-97-2",
+      "formula": "C2H2F4",
+      "inchi_key": "LVGUZGTVOIAKKC-UHFFFAOYSA-N"
+    },
+    {
+      "name": "R143a",
+      "species_id": "REF_R143A",
+      "CAS": "420-46-2",
+      "formula": "C2H3F3",
+      "inchi_key": "UJPMYEOUBPIPHQ-UHFFFAOYSA-N"
+    },
+    {
+      "name": "R152a",
+      "species_id": "REF_R152A",
+      "CAS": "75-37-6",
+      "formula": "C2H4F2",
+      "inchi_key": "NPNPZTNLOVBDOC-UHFFFAOYSA-N"
+    },
+    {
+      "name": "R161",
+      "species_id": "REF_R161",
+      "CAS": "353-36-6",
+      "formula": "C2H5F",
+      "inchi_key": "UHCBBWUQDAVSMS-UHFFFAOYSA-N"
+    },
+    {
+      "name": "R227ea",
+      "species_id": "REF_R227EA",
+      "CAS": "431-89-0",
+      "formula": "C3HF7",
+      "inchi_key": "YFMFNYKEUDLDTL-UHFFFAOYSA-N"
+    },
+    {
+      "name": "R23",
+      "species_id": "REF_R23",
+      "CAS": "75-46-7",
+      "formula": "CHF3",
+      "inchi_key": "XPDWGBQVDMORPB-UHFFFAOYSA-N"
+    },
+    {
+      "name": "R236fa",
+      "species_id": "REF_R236FA",
+      "CAS": "690-39-1",
+      "formula": "C3H2F6",
+      "inchi_key": "NSGXIBWMJZWTPY-UHFFFAOYSA-N"
+    },
+    {
+      "name": "R245fa",
+      "species_id": "REF_R245FA",
+      "CAS": "460-73-1",
+      "formula": "C3H3F5",
+      "inchi_key": "MSSNHSVIGIHOJA-UHFFFAOYSA-N"
+    },
+    {
+      "name": "R32",
+      "species_id": "REF_R32",
+      "CAS": "75-10-5",
+      "formula": "CH2F2",
+      "inchi_key": "RWRIWBAIICGTTQ-UHFFFAOYSA-N"
+    },
+    {
+      "name": "R41",
+      "species_id": "REF_R41",
+      "CAS": "593-53-3",
+      "formula": "CH3F",
+      "inchi_key": "NBVXSUQYWXRMNV-UHFFFAOYSA-N"
+    }
+  ],
+  "files": {
+    "data.npy": {
+      "sha256": "a408c2832352d69799d1c0a8b7151dd7535fe2edf34d171992b9385b1bd3e6bb",
+      "size_bytes": 4043831
+    },
+    "label.npy": {
+      "sha256": "f8cd8f4e58c746c2b41122466cebcee0a08929fe3c94f349d4cd34a51b3c2f3a",
+      "size_bytes": 11084
+    },
+    "meta_info.csv": {
+      "sha256": "6247d6ae4382a47d60066ef1514bb7ed00f0b9f4bcf6e0a3e873be4b3860911e",
+      "size_bytes": 470884
+    }
+  },
+  "created_at": "2026-09-24T11:15:00",
+  "chemical_registry_version": "v1.0"
+}

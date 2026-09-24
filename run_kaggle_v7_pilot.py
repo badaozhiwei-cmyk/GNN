@@ -1,9 +1,9 @@
 """
 run_kaggle_v7_pilot.py — Master One-Click Kaggle GPU Controller for V7 Shadow Pilot
 ===================================================================================
-【在 Kaggle Notebook (开启 T4 GPU) 中执行】:
+【在 Kaggle Notebook (开启 T4 x2 GPU) 中执行】:
     %cd /kaggle/working
-    # 1. 浅克隆仓库最新 Commit (极速下载，不下载多余历史):
+    # 1. 浅克隆仓库最新 Commit:
     !git clone --depth 1 https://github.com/badaozhiwei-cmyk/GNN.git
     %cd /kaggle/working/GNN
     !git pull origin main
@@ -11,14 +11,18 @@ run_kaggle_v7_pilot.py — Master One-Click Kaggle GPU Controller for V7 Shadow 
     # 2. 仅安装真正必需的轻量图神经网络库 (训练无需 rdkit):
     !pip install -q torch_geometric
 
-    # 3. 一键启动 V7-A Seed 42 训练:
-    !python run_kaggle_v7_pilot.py --model V7-A --seeds 42
+    # 3. 一键启动 V7-A (5 种子 42..46) 训练 (默认 Grouped-L0 零泄漏物理基准切分):
+    !python run_kaggle_v7_pilot.py --model V7-A --seeds 42,43,44,45,46
 
-【流水线说明】:
+    # 4. 一键启动 V7-B (5 种子 42..46) 训练:
+    !python run_kaggle_v7_pilot.py --model V7-B --seeds 42,43,44,45,46
+
+【流水线特性】:
 1. 自动检测 GPU 硬件与 CUDA 环境；
-2. 调度执行 V7 试点训练 (支持 V7-A 或 V7-B, 默认执行 Seed 42 完整收敛训练)；
-3. 伴随记录 Huber Loss、Val MAE/R2、Median Δy_graph、Graph-Active Rate；
-4. 自动将权重、Scaler、预测表与评估历史打包为 v7_pilot_gpu_results.zip，供一键下载至本地。
+2. 强绑定 Grouped-L0 物理状态切分 (splits/HFC_grouped_state_split.npz, 0 重复状态输入泄漏)；
+3. 严格在训练集拟合 StandardScaler，持久化保存划分哈希与样本计数；
+4. 伴随记录 Huber Loss、Val MAE/R2、Median Δy_graph、Graph-Active Rate；
+5. 自动将权重、Scaler、预测表与评估历史打包为 v7_pilot_gpu_results.zip，供一键下载至本地。
 """
 
 from __future__ import annotations
@@ -40,6 +44,7 @@ def main():
     parser = argparse.ArgumentParser(description="Kaggle GPU V7 Pilot Controller")
     parser.add_argument('--model', type=str, default='V7-A', choices=['V7-A', 'V7-B'], help="Target V7 variant")
     parser.add_argument('--seeds', type=str, default='42', help="Target seed(s), e.g. '42' or '42,43,44,45,46'")
+    parser.add_argument('--split-file', type=str, default='splits/HFC_grouped_state_split.npz', help="Path to split npz file (default: Grouped-L0 split)")
     parser.add_argument('--epoch', type=int, default=100)
     parser.add_argument('--patience', type=int, default=15)
     parser.add_argument('--batch_size', type=int, default=32)
@@ -60,6 +65,7 @@ def main():
         sys.executable, "v7_shadow_experiment/run_v7_pilot.py",
         "--model", args.model,
         "--seeds", args.seeds,
+        "--split-file", args.split_file,
         "--epoch", str(args.epoch),
         "--patience", str(args.patience),
         "--batch_size", str(args.batch_size),

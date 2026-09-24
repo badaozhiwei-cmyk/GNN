@@ -25,6 +25,7 @@ import sys
 import json
 import random
 import time
+import hashlib
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -126,18 +127,55 @@ def run_training_seed(seed: int, model_name: str, args):
     set_seed(seed)
 
     device = torch.device(args.device if torch.cuda.is_available() and args.device == "cuda" else "cpu")
-    print(f"  [Device]: {device}")
-
-    # Output directory
-    run_dir = ROOT / "v7_shadow_experiment" / "checkpoints" / model_name
+    # Output directory versioned by split variant to prevent mixing with legacy checkpoints
+    split_tag = "grouped_state_v1" if "grouped" in str(args.split_file).lower() else "custom_split"
+    run_dir = ROOT / "v7_shadow_experiment" / "checkpoints" / f"{model_name}_{split_tag}"
     run_dir.mkdir(parents=True, exist_ok=True)
+    print(f"  [Output Dir]: {run_dir.name}")
 
     # 1. Load Dataset & Splits
     data_root = ROOT / "processed_tri_data_hfc2739"
-    split_path = ROOT / "splits" / "HFC_all_split.npz"
+    split_path = Path(args.split_file)
+    if not split_path.is_absolute():
+        split_path = ROOT / split_path
+    if not split_path.exists():
+        raise FileNotFoundError(f"Specified split file not found: {split_path}")
+
+    split_bytes = split_path.read_bytes()
+    split_sha256 = hashlib.sha256(split_bytes).hexdigest()
+    split_rel_str = str(split_path.relative_to(ROOT)) if split_path.is_relative_to(ROOT) else split_path.name
+    print(f"  [Split File]: {split_rel_str} (SHA256: {split_sha256[:16]}...)")
+
     sp_data = np.load(split_path)
     train_idx = sp_data['train'].astype(int)
     val_idx = sp_data['val'].astype(int)
+
+    # 严格断言索引完全不相交
+    idx_overlap = set(train_idx) & set(val_idx)
+    assert len(idx_overlap) == 0, f"Split leakage breach: found {len(idx_overlap)} overlapping indices!"
+
+    # [Lineage Contract Consumption] 运行时强制校验血统绑定契约 JSON
+    bound_json_p = split_path.parent / f"{split_path.stem}_bound.json"
+    if bound_json_p.exists():
+        import json
+        with open(bound_json_p, "r", encoding="utf-8") as f_bj:
+            bound_meta = json.load(f_bj)
+        assert bound_meta.get("split_npz_sha256") == split_sha256, (
+            f"SPLIT PROVENANCE BREACH: SHA256 of {split_path.name} does not match {bound_json_p.name}!"
+        )
+        assert bound_meta.get("n_train") == len(train_idx), (
+            f"SPLIT ROW COUNT BREACH: Train count {len(train_idx)} != bound {bound_meta.get('n_train')}"
+        )
+        assert bound_meta.get("n_val") == len(val_idx), (
+            f"SPLIT ROW COUNT BREACH: Val count {len(val_idx)} != bound {bound_meta.get('n_val')}"
+        )
+        meta_csv = data_root / "meta_info.csv"
+        if meta_csv.exists() and "source_dataset" in bound_meta:
+            m_sha = hashlib.sha256(meta_csv.read_bytes()).hexdigest()
+            expected_m_sha = bound_meta["source_dataset"].get("meta_info_sha256")
+            if expected_m_sha and expected_m_sha != "N/A":
+                assert m_sha == expected_m_sha, f"DATASET HASH MISMATCH: meta_info.csv SHA does not match split contract!"
+        print(f"  [Lineage Gate]: Successfully consumed and verified provenance contract from {bound_json_p.name}")
 
     ds_train = DecoupledTriDataset_v7(str(data_root), valid_indices=train_idx)
     ds_train.fit_scalers(train_indices=list(range(len(train_idx))), save_dir=str(run_dir))
@@ -241,6 +279,10 @@ def run_training_seed(seed: int, model_name: str, args):
                 'best_val_loss': best_val_loss,
                 'val_metrics': val_metrics,
                 'model_args': model_args,
+                'split_file': split_rel_str,
+                'split_sha256': split_sha256,
+                'n_train': len(train_idx),
+                'n_val': len(val_idx),
             }, ckpt_path)
 
             # Save best validation predictions
@@ -260,6 +302,10 @@ def run_training_seed(seed: int, model_name: str, args):
     best_metrics['duration_sec'] = duration
     best_metrics['seed'] = seed
     best_metrics['model'] = model_name
+    best_metrics['split_file'] = split_rel_str
+    best_metrics['split_sha256'] = split_sha256[:16]
+    best_metrics['n_train'] = len(train_idx)
+    best_metrics['n_val'] = len(val_idx)
 
     # Save epoch history
     pd.DataFrame(history).to_csv(run_dir / f"history_seed_{seed}.csv", index=False)
@@ -276,6 +322,7 @@ def main():
     parser = argparse.ArgumentParser(description="V7 Hypothesis-Driven Shadow Experiment Pilot Runner")
     parser.add_argument('--model', type=str, default='V7-A', choices=['V7-A', 'V7-B'], help="Target V7 variant")
     parser.add_argument('--seeds', type=str, default='42', help="Comma-separated seeds, e.g. '42' or '42,43,44,45,46'")
+    parser.add_argument('--split-file', type=str, default='splits/HFC_grouped_state_split.npz', help="Path to split npz file (default: Grouped-L0 split)")
     parser.add_argument('--epoch', type=int, default=100)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--lr', type=float, default=0.001)
@@ -292,6 +339,7 @@ def main():
     print("  V7 SHADOW EXPERIMENT: HYPOTHESIS-DRIVEN PILOT RUNNER")
     print(f"  Target Variant : {args.model}")
     print(f"  Seeds ({len(seeds)})    : {seeds}")
+    print(f"  Split File     : {args.split_file}")
     print(f"  Epochs / Pat   : {args.epoch} / {args.patience}")
     print(f"  Batch Size     : {args.batch_size} | LR = {args.lr}")
     print(f"  Device         : {args.device}")
@@ -302,7 +350,8 @@ def main():
         res = run_training_seed(s, args.model, args)
         all_seed_summaries.append(res)
 
-    out_summary_file = ROOT / "v7_shadow_experiment" / f"pilot_summary_{args.model}.csv"
+    split_tag = "grouped_state_v1" if "grouped" in str(args.split_file).lower() else "custom_split"
+    out_summary_file = ROOT / "v7_shadow_experiment" / f"pilot_summary_{args.model}_{split_tag}.csv"
     df_new = pd.DataFrame(all_seed_summaries)
     if out_summary_file.exists():
         try:
