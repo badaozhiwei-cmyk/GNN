@@ -1,0 +1,80 @@
+{
+  "certificate_title": "xTB Batch Continuity & Sentinel Seam Audit Certificate",
+  "standard": "Nature Machine Intelligence / JACS Rigorous Audit Protocol",
+  "verdict": "SEAM_ANOMALY_DETECTED",
+  "xtb_environment": {
+    "declared_manifest_version": "6.6.1",
+    "runtime_detected_version": "6.6.1",
+    "version_matches_manifest": true,
+    "full_version_banner": "-----------------------------------------------------------      ",
+    "executable_path": "/kaggle/working/xtb-dist/bin/xtb",
+    "command_line": "xtb <xyz> --opt tight --gfn 2 -c <charge>",
+    "formal_charges": {
+      "Anion-Ref": -1,
+      "Cation-Ref": 1,
+      "Monomer_neutral": 0
+    },
+    "multiplicity": 1,
+    "n_initial_orientations": 4,
+    "selection_rule": "argmin(Delta_E_assoc) among converged",
+    "os": "linux"
+  },
+  "sentinel_metrics": {
+    "n_sentinels": 16,
+    "mae_d_kcal_mol": 0.16394587108028205,
+    "median_d_kcal_mol": 0.001301130226377012,
+    "max_d_kcal_mol": 2.333303762657989,
+    "mean_systemic_bias_kcal_mol": 0.1306820419834426,
+    "std_d_kcal_mol": 0.5909232182399927,
+    "ci_95_bias_kcal_mol": [
+      -0.15887033495415384,
+      0.4202344189210391
+    ],
+    "bland_altman_limits_of_agreement_kcal_mol": [
+      -1.027527465766943,
+      1.2888915497338285
+    ],
+    "correlation_r2": 0.9935659365624276,
+    "regime_stratified_analysis": {
+      "Strong (-17 ~ -26 kcal/mol)": {
+        "n_pairs": 4,
+        "mae_kcal_mol": 0.005220756301911322,
+        "mean_bias_kcal_mol": 0.004439189173412572,
+        "max_d_kcal_mol": 0.009613224882532023
+      },
+      "Medium (-8 ~ -13 kcal/mol)": {
+        "n_pairs": 4,
+        "mae_kcal_mol": 0.06561121213784515,
+        "mean_bias_kcal_mol": -0.06341141712250797,
+        "max_d_kcal_mol": 0.25804525852070626
+      },
+      "Weak   (-2.7 ~ -3.5 kcal/mol)": {
+        "n_pairs": 4,
+        "mae_kcal_mol": 0.0007715607063235597,
+        "mean_bias_kcal_mol": -0.0007715302710805672,
+        "max_d_kcal_mol": 0.0030743653223130885
+      },
+      "Mixed  (-5 ~ -17 kcal/mol)": {
+        "n_pairs": 4,
+        "mae_kcal_mol": 0.5841799551750482,
+        "mean_bias_kcal_mol": 0.5824719261539464,
+        "max_d_kcal_mol": 2.333303762657989
+      }
+    }
+  },
+  "target_r1234yf_recomputed": {
+    "canonical_formula": "C3H2F4",
+    "canonical_smiles": "C=C(F)C(F)(F)F",
+    "monomer_energy_Eh": -26.338870365729,
+    "dipole_Debye": 3.175,
+    "polarizability_au": 43.654541,
+    "volume_A3": 77.00800000000002,
+    "n_pairs": 12
+  },
+  "clean_artifacts": {
+    "full_pair_interaction_results_v7_clean_sha256": "b945c5c729a2a92860fd653219a7f892a87e64f87182d9b798ddd0f360523cfc",
+    "xTB_Physics_Descriptors_v7_clean_sha256": "1db7eb404c9264a06237972462f65303b5a2788d1c2bc97927be696ce61844a8",
+    "sentinel_seam_audit_results_sha256": "51976eb19565ad5653e8bf2f305d5be50d669884f8801e09df701724c78af78a",
+    "sentinel_orientation_trajectories_sha256": "c6859944764d06c6f224bf1b9ecc24c594f6286382d86a0fbe722aa65d5f9511"
+  }
+}

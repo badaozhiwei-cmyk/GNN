@@ -35,12 +35,27 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = SCRIPT_DIR.parent
 
 CLEAN_PAIR_CSV = SCRIPT_DIR / "full_pair_interaction_results_v7_clean.csv"
-XTB_PAIR_CSV = CLEAN_PAIR_CSV if CLEAN_PAIR_CSV.exists() else SCRIPT_DIR / "full_pair_interaction_results.csv"
+if not CLEAN_PAIR_CSV.exists():
+    raise FileNotFoundError(
+        f"🚨 [F2 FAIL-CLOSED BREACH] Required clean pair artifact missing: {CLEAN_PAIR_CSV}\n"
+        f"Refusing to execute alignment without certified clean production artifact."
+    )
+XTB_PAIR_CSV = CLEAN_PAIR_CSV
+
+CLEAN_DESC_CSV = SCRIPT_DIR / "xTB_Physics_Descriptors_v7_clean.csv"
+if not CLEAN_DESC_CSV.exists():
+    raise FileNotFoundError(
+        f"🚨 [F2 FAIL-CLOSED BREACH] Required clean descriptor artifact missing: {CLEAN_DESC_CSV}\n"
+        f"Refusing to execute alignment without certified clean descriptor artifact."
+    )
+XTB_DESC_CSV = CLEAN_DESC_CSV
 
 CORE10_PHYSICS_CSV = SCRIPT_DIR / "core10_system_physics_summary.csv"
 
-CLEAN_DESC_CSV = SCRIPT_DIR / "xTB_Physics_Descriptors_v7_clean.csv"
-XTB_DESC_CSV = CLEAN_DESC_CSV if CLEAN_DESC_CSV.exists() else SCRIPT_DIR / "xTB_Physics_Descriptors.csv"
+def compute_file_sha256(filepath: Path) -> str:
+    import hashlib
+    with open(filepath, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
 
 def _assert_uncorrupted_descriptors(desc_csv: Path):
     if desc_csv.exists():
@@ -50,9 +65,93 @@ def _assert_uncorrupted_descriptors(desc_csv: Path):
             for smi in yf['SMILES']:
                 if str(smi).strip() == "C(=C(F)F)(C(F)(F)F)F":
                     raise RuntimeError(
-                        f"FAIL-CLOSED BREACH: {desc_csv} contains historical HFP C3F6 alias under R1234yf! "
+                        f"🚨 [FAIL-CLOSED BREACH] {desc_csv} contains historical HFP C3F6 alias under R1234yf! "
                         f"Refusing to execute alignment on contaminated descriptors."
                     )
+
+def _assert_uncorrupted_pair_identity(df_pairs: pd.DataFrame):
+    """Gate 4: Prohibit old HFP identity from leaking into clean pair artifact."""
+    yf_pairs = df_pairs[df_pairs['Refrigerant'] == 'R1234yf']
+    if len(yf_pairs) == 0:
+        raise RuntimeError("🚨 [FAIL-CLOSED BREACH] No R1234yf records found in clean pair pool!")
+    if len(yf_pairs) != 12:
+        raise RuntimeError(f"🚨 [FAIL-CLOSED BREACH] Expected 12 clean R1234yf pairs, found {len(yf_pairs)}!")
+    
+    # Check [Ac] + R1234yf clean binding energy (~ -21.90 kcal/mol, NOT the corrupted -47.59 kcal/mol)
+    ac_yf = yf_pairs[yf_pairs['Ion_Name'] == '[Ac]']
+    if len(ac_yf) > 0:
+        d_e = float(ac_yf['Delta_E_assoc_kcal_mol'].iloc[0])
+        if abs(d_e) > 35.0:
+            raise RuntimeError(
+                f"🚨 [FAIL-CLOSED BREACH] [Ac]+R1234yf has unphysical energy {d_e:.2f} kcal/mol! "
+                f"Historical HFP contamination detected in pair artifact."
+            )
+        if abs(d_e - (-21.900483)) > 0.05:
+            raise RuntimeError(
+                f"🚨 [FAIL-CLOSED BREACH] [Ac]+R1234yf energy mismatch: expected -21.900483, got {d_e:.6f}!"
+            )
+
+def derive_core10_physics_summary(df_pairs: pd.DataFrame, expected_contexts: list, output_csv: Path) -> pd.DataFrame:
+    """
+    Gate 1, 2, 3: Direct Core-10 Auto-Derivation from clean pair pool.
+    - Validates exact 10 system contexts.
+    - Ensures exactly 2 physical links (1 Cation-Ref, 1 Anion-Ref) per system (total 20 links).
+    - Automatically pulls energies from certified clean pair artifact.
+    """
+    # Gate 1: Exact 10 systems check
+    if len(expected_contexts) != 10:
+        raise RuntimeError(f"🚨 [GATE 1 BREACH] Expected exactly 10 systems, got {len(expected_contexts)}")
+    
+    derived_rows = []
+    total_links = 0
+
+    for idx, (cat, ani, ref) in enumerate(expected_contexts, 1):
+        c_sub = df_pairs[(df_pairs['Pair_Type'] == 'Cation-Ref') & (df_pairs['Ion_Name'] == cat) & (df_pairs['Refrigerant'] == ref)]
+        a_sub = df_pairs[(df_pairs['Pair_Type'] == 'Anion-Ref') & (df_pairs['Ion_Name'] == ani) & (df_pairs['Refrigerant'] == ref)]
+        
+        # Gate 2: Exactly 1 C-R and 1 A-R link
+        if len(c_sub) != 1:
+            raise RuntimeError(f"🚨 [GATE 2 BREACH] System {cat}+{ani}+{ref}: Expected 1 Cation link, found {len(c_sub)}")
+        if len(a_sub) != 1:
+            raise RuntimeError(f"🚨 [GATE 2 BREACH] System {cat}+{ani}+{ref}: Expected 1 Anion link, found {len(a_sub)}")
+        
+        c_row = c_sub.iloc[0]
+        a_row = a_sub.iloc[0]
+        total_links += 2
+
+        # Gate 3: Pull verified energies
+        d_e_cat = float(c_row['Delta_E_assoc_kcal_mol'])
+        d_e_ani = float(a_row['Delta_E_assoc_kcal_mol'])
+        comb_sum = abs(d_e_cat) + abs(d_e_ani)
+        max_str = max(abs(d_e_cat), abs(d_e_ani))
+        d_min_cat = float(c_row['d_min_Angstrom'])
+        d_min_ani = float(a_row['d_min_Angstrom'])
+        n_conv_cat = int(c_row['N_Converged_Orientations'])
+        n_conv_ani = int(a_row['N_Converged_Orientations'])
+
+        derived_rows.append({
+            'System_Idx': idx,
+            'System_Context': f"{cat} + {ani} + {ref}",
+            'Cation': cat,
+            'Anion': ani,
+            'Refrigerant': ref,
+            'Delta_E_assoc_cat_kcal_mol': d_e_cat,
+            'Delta_E_assoc_ani_kcal_mol': d_e_ani,
+            'Combined_Strength_Sum_kcal_mol': comb_sum,
+            'Max_Strength_kcal_mol': max_str,
+            'd_min_cat_Angstrom': d_min_cat,
+            'd_min_ani_Angstrom': d_min_ani,
+            'N_conv_cat': n_conv_cat,
+            'N_conv_ani': n_conv_ani
+        })
+
+    if total_links != 20:
+        raise RuntimeError(f"🚨 [GATE 2 BREACH] Expected 20 total physical links, found {total_links}")
+
+    df_derived = pd.DataFrame(derived_rows)
+    df_derived.to_csv(output_csv, index=False)
+    print(f"[*] [GATE 1-3 PASS] 成功从 Clean Pair Pool 直接派生 Core-10 物理表并持久化至 {output_csv.name}")
+    return df_derived
 
 GROUPS_ATTR_CSV = ROOT_DIR / "v7_shadow_experiment" / "results_attribution" / "v7_graph_attribution_groups.csv"
 
@@ -76,9 +175,9 @@ def parse_system(sample_id):
 
 def run_permutation_test_phipson_smyth(x, y, n_perm=10000, seed=42):
     """
-    置换检验（Permutation Null Test），严格采用 Phipson & Smyth (2010) 有限抽样校正公式:
-    p = (n_extreme + 1) / (n_perm + 1)
-    记录完整的 n_perm, n_extreme 与精确经验 p 值。
+    Monte Carlo 置换检验，严格采用 Phipson & Smyth (2010) 有限抽样保守估计公式:
+    p_mc = (n_extreme + 1) / (n_perm + 1)
+    记录完整的 n_perm, n_extreme 与 Monte Carlo 经验 p 值。
     """
     np.random.seed(seed)
     r_obs, _ = stats.spearmanr(x, y)
@@ -90,9 +189,33 @@ def run_permutation_test_phipson_smyth(x, y, n_perm=10000, seed=42):
         r_p, _ = stats.spearmanr(x_arr, y_perm)
         if abs(r_p) >= abs(r_obs):
             n_extreme += 1
-    p_exact = (n_extreme + 1.0) / (n_perm + 1.0)
-    p_formatted = f"< 10^-4" if n_extreme == 0 else f"{p_exact:.4f}"
-    return float(r_obs), float(p_exact), p_formatted, n_perm, n_extreme
+    p_mc = (n_extreme + 1.0) / (n_perm + 1.0)
+    p_formatted = f"< 10^-4" if n_extreme == 0 else f"{p_mc:.4f}"
+    return float(r_obs), float(p_mc), p_formatted, n_perm, n_extreme
+
+def run_delta_rho_bootstrap(df_systems, x_col, y_raw_col, y_norm_col, n_boot=10000, seed=42):
+    """
+    Tier 4 灵敏度配对 Bootstrap 检验:
+    直接检验 Δρ = ρ(raw A_ref, E) - ρ(norm P_ref, E) 在 10 个体系上的差值分布与 95% CI。
+    """
+    np.random.seed(seed)
+    n = len(df_systems)
+    boot_deltas = []
+    for _ in range(n_boot):
+        idx = np.random.choice(n, size=n, replace=True)
+        sample = df_systems.iloc[idx]
+        if len(sample[x_col].unique()) > 1 and len(sample[y_raw_col].unique()) > 1 and len(sample[y_norm_col].unique()) > 1:
+            r_raw, _ = stats.spearmanr(sample[x_col], sample[y_raw_col])
+            r_norm, _ = stats.spearmanr(sample[x_col], sample[y_norm_col])
+            if np.isfinite(r_raw) and np.isfinite(r_norm):
+                boot_deltas.append(r_raw - r_norm)
+    boot_deltas = np.array(boot_deltas)
+    r_raw_obs, _ = stats.spearmanr(df_systems[x_col], df_systems[y_raw_col])
+    r_norm_obs, _ = stats.spearmanr(df_systems[x_col], df_systems[y_norm_col])
+    delta_obs = float(r_raw_obs - r_norm_obs)
+    ci_delta = [float(np.percentile(boot_deltas, 2.5)), float(np.percentile(boot_deltas, 97.5))]
+    p_greater_zero = float(np.mean(boot_deltas <= 0)) # 单侧：未出现掩盖的概率
+    return delta_obs, ci_delta, p_greater_zero
 
 def run_cluster_bootstrap(df_systems, x_col, y_col, cluster_col='system_key', n_boot=10000, seed=42):
     """
@@ -129,19 +252,31 @@ def run_cluster_bootstrap(df_systems, x_col, y_col, cluster_col='system_key', n_
 
 def main():
     print("=" * 115)
-    print("  MASTER F2 PHYSICS ALIGNMENT & DECOUPLED STATISTICAL RE-AUDIT PIPELINE (v2.4)")
+    print("  MASTER F2 PHYSICS ALIGNMENT & DECOUPLED STATISTICAL RE-AUDIT PIPELINE (v2.4 - CLEAN PROVENANCE BOUND)")
     print("=" * 115)
 
-    # 1. 读取基础数据
+    # 1. 读取基础数据与防篡改硬门禁 (Gates 1-5)
+    pair_sha = compute_file_sha256(XTB_PAIR_CSV)
+    desc_sha = compute_file_sha256(XTB_DESC_CSV)
+    print(f"[*] [GATE 5] 认证 Clean Pair 产物: {XTB_PAIR_CSV.name} (SHA256: {pair_sha[:16]}...)")
+    print(f"[*] [GATE 5] 认证 Clean Desc 产物: {XTB_DESC_CSV.name} (SHA256: {desc_sha[:16]}...)")
+
     df_xtb_pairs = pd.read_csv(XTB_PAIR_CSV)
-    df_core_phys = pd.read_csv(CORE10_PHYSICS_CSV)
-    _assert_uncorrupted_descriptors(XTB_DESC_CSV)
+    _assert_uncorrupted_pair_identity(df_xtb_pairs) # Gate 4
+    _assert_uncorrupted_descriptors(XTB_DESC_CSV)   # Gate 4
     df_desc = pd.read_csv(XTB_DESC_CSV)
     df_groups = pd.read_csv(GROUPS_ATTR_CSV)
 
+    # 自动从 Clean Pair Pool 派生 Core-10 物理表 (Gates 1, 2, 3)
+    df_core_phys = derive_core10_physics_summary(
+        df_pairs=df_xtb_pairs,
+        expected_contexts=PHASE2_10_SYSTEM_CONTEXTS,
+        output_csv=CORE10_PHYSICS_CSV
+    )
+
     print(f"[*] 成功加载 Phase 2 归因数据: {len(df_groups)} 组基团归因记录 (430 次评估)")
-    print(f"[*] 成功加载 xTB 配对计算数据: {len(df_xtb_pairs)} 对 (Pair级: 218/218 具备优化收敛构型, 构向级: 812/872=93.12% 收敛)")
-    print(f"[*] 成功加载 Core-10 物理能级参数表: {len(df_core_phys)} 个体系")
+    print(f"[*] 成功加载 xTB 配对计算池: {len(df_xtb_pairs)} 对 (12 clean R1234yf + 206 retained historical)")
+    print(f"[*] 成功自动派生 Core-10 物理能级参数表: {len(df_core_phys)} 个体系 (20 条 physical links)")
 
     # 2. 聚合组件级归因份额与原始绝对归因质量
     comp_attr = df_groups.groupby(['model_family', 'seed', 'sample_id', 'component'])['A_g_abs'].sum().unstack(fill_value=0).reset_index()
@@ -195,19 +330,19 @@ def main():
         sub['D_P'] = sub['P_ani_median'] - sub['P_cat_median']
         sub['D_E'] = np.abs(sub['Delta_E_assoc_ani_kcal_mol']) - np.abs(sub['Delta_E_assoc_cat_kcal_mol'])
         
-        r_sp, p_exact_sp, p_str_sp, n_p, n_e = run_permutation_test_phipson_smyth(sub['D_E'], sub['D_P'])
+        r_sp, p_mc_sp, p_str_sp, n_p, n_e = run_permutation_test_phipson_smyth(sub['D_E'], sub['D_P'])
         r_pe, _ = stats.pearsonr(sub['D_E'], sub['D_P'])
         ci_sp, ci_pe = run_cluster_bootstrap(sub, 'D_E', 'D_P')
 
         stat_summary_rows.append({
-            'Evidence_Tier': 'Tier 1: Main Evidence',
+            'Evidence_Tier': 'Tier 1: Primary Inferential Analysis',
             'Model_Track': model,
             'Analysis_Target': '10-System Paired Contrast',
             'Sample_Units': 'N_system=10',
             'Physics_Descriptor': 'D_E = |ΔE_ani| - |ΔE_cat| (kcal/mol)',
             'Attribution_Metric': 'D_P = P_ani - P_cat',
             'Spearman_rho': r_sp,
-            'Permutation_p': p_exact_sp,
+            'Permutation_p': p_mc_sp,
             'Perm_p_formatted': p_str_sp,
             'N_perm': n_p,
             'N_extreme': n_e,
@@ -241,6 +376,8 @@ def main():
     print("【PART 2: 配对身份级证据 —— 16 个唯一物理对分析 (16 Unique Pair Identities)】")
     print("  * 核心定位: removes duplicated pair identities on the physical-energy axis and summarizes")
     print("              context-conditioned attribution at the unique-pair level.")
+    print("  * 审稿人警示: pooled 16-pair 相关性受到阳离子/阴离子两极分离显著影响，within-component 证据较弱。")
+    print("              CI 标注为 N/A，杜绝在 20 link instances 上的错位 Bootstrap 计算。")
     print("=" * 115)
 
     for model in ['V7-A', 'V7-B', 'Pooled (Exploratory only)']:
@@ -271,34 +408,33 @@ def main():
         # 聚合为 16 唯一对 (取中位数)
         df_u16 = df_inst.groupby(['Pair_Identity', 'Link_Type'])[['P_comp', 'abs_Delta_E']].median().reset_index()
         
-        r_sp_16, p_exact_16, p_str_16, n_p16, n_e16 = run_permutation_test_phipson_smyth(df_u16['abs_Delta_E'], df_u16['P_comp'])
+        r_sp_16, p_mc_16, p_str_16, n_p16, n_e16 = run_permutation_test_phipson_smyth(df_u16['abs_Delta_E'], df_u16['P_comp'])
         r_pe_16, _ = stats.pearsonr(df_u16['abs_Delta_E'], df_u16['P_comp'])
-        ci_sp_16, ci_pe_16 = run_cluster_bootstrap(df_inst, 'abs_Delta_E', 'P_comp')
 
         df_ani_16 = df_u16[df_u16['Link_Type'] == 'Anion-Ref']
-        r_sp_ani16, p_exact_ani16, p_str_ani16, n_pa, n_ea = run_permutation_test_phipson_smyth(df_ani_16['abs_Delta_E'], df_ani_16['P_comp'])
+        r_sp_ani16, p_mc_ani16, p_str_ani16, n_pa, n_ea = run_permutation_test_phipson_smyth(df_ani_16['abs_Delta_E'], df_ani_16['P_comp'])
         r_pe_ani16, _ = stats.pearsonr(df_ani_16['abs_Delta_E'], df_ani_16['P_comp'])
 
         df_cat_16 = df_u16[df_u16['Link_Type'] == 'Cation-Ref']
-        r_sp_cat16, p_exact_cat16, p_str_cat16, n_pc, n_ec = run_permutation_test_phipson_smyth(df_cat_16['abs_Delta_E'], df_cat_16['P_comp'])
+        r_sp_cat16, p_mc_cat16, p_str_cat16, n_pc, n_ec = run_permutation_test_phipson_smyth(df_cat_16['abs_Delta_E'], df_cat_16['P_comp'])
         r_pe_cat16, _ = stats.pearsonr(df_cat_16['abs_Delta_E'], df_cat_16['P_comp'])
 
         stat_summary_rows.extend([
             {
-                'Evidence_Tier': 'Tier 2: Pair Identity',
+                'Evidence_Tier': 'Tier 2: Descriptive / Sensitivity',
                 'Model_Track': model,
                 'Analysis_Target': '16 Unique Pairs (Pooled C-R & A-R)',
                 'Sample_Units': 'N_unique=16 (7 C-R, 9 A-R)',
                 'Physics_Descriptor': '|ΔE_assoc| (Pair Identity Median)',
                 'Attribution_Metric': 'P_comp_median',
                 'Spearman_rho': r_sp_16,
-                'Permutation_p': p_exact_16,
+                'Permutation_p': p_mc_16,
                 'Perm_p_formatted': p_str_16,
                 'N_perm': n_p16,
                 'N_extreme': n_e16,
-                'Spearman_95CI': f"[{ci_sp_16[0]:.3f}, {ci_sp_16[1]:.3f}]",
+                'Spearman_95CI': 'N/A (Descriptive; network-shared)',
                 'Pearson_r': r_pe_16,
-                'Pearson_95CI': f"[{ci_pe_16[0]:.3f}, {ci_pe_16[1]:.3f}]"
+                'Pearson_95CI': 'N/A'
             },
             {
                 'Evidence_Tier': 'Tier 2: Pair Identity (Within Anion)',
@@ -308,7 +444,7 @@ def main():
                 'Physics_Descriptor': '|ΔE_assoc(A-R)|',
                 'Attribution_Metric': 'P_ani_median',
                 'Spearman_rho': r_sp_ani16,
-                'Permutation_p': p_exact_ani16,
+                'Permutation_p': p_mc_ani16,
                 'Perm_p_formatted': p_str_ani16,
                 'N_perm': n_pa,
                 'N_extreme': n_ea,
@@ -324,7 +460,7 @@ def main():
                 'Physics_Descriptor': '|ΔE_assoc(C-R)|',
                 'Attribution_Metric': 'P_cat_median',
                 'Spearman_rho': r_sp_cat16,
-                'Permutation_p': p_exact_cat16,
+                'Permutation_p': p_mc_cat16,
                 'Perm_p_formatted': p_str_cat16,
                 'N_perm': n_pc,
                 'N_extreme': n_ec,
@@ -342,7 +478,8 @@ def main():
     # =========================================================================
     print("\n" + "=" * 115)
     print("【PART 3: 辅助证据 (Supporting Evidence) —— 20 链接实例分析 (带组间效应警示)】")
-    print("  * 科学警示: pooled rho=0.819 包含显著的阴阳离子组间分离效应，不能单向解释为微观单调规律")
+    print("  * 科学警示: pooled rho 包含显著的阴阳离子组间分离效应，不能单向解释为微观单调规律。")
+    print("              作为 descriptive supporting analysis，不报告假设独立的 permutation p 值。")
     print("=" * 115)
 
     for model in ['V7-A', 'V7-B', 'Pooled (Exploratory only)']:
@@ -370,22 +507,22 @@ def main():
             })
         df_l1 = pd.DataFrame(inst_rows)
 
-        r_sp_l1, p_exact_l1, p_str_l1, n_pl1, n_el1 = run_permutation_test_phipson_smyth(df_l1['abs_Delta_E'], df_l1['P_comp'])
+        r_sp_l1, _ = stats.spearmanr(df_l1['abs_Delta_E'], df_l1['P_comp'])
         r_pe_l1, _ = stats.pearsonr(df_l1['abs_Delta_E'], df_l1['P_comp'])
         ci_sp_l1, ci_pe_l1 = run_cluster_bootstrap(df_l1, 'abs_Delta_E', 'P_comp')
 
         stat_summary_rows.append({
-            'Evidence_Tier': 'Tier 3: Supporting (Instances)',
+            'Evidence_Tier': 'Tier 3: Supporting Descriptive (Instances)',
             'Model_Track': model,
             'Analysis_Target': '20 Link Instances (Pooled)',
             'Sample_Units': 'N_instance=20',
             'Physics_Descriptor': '|ΔE_assoc| (C-R & A-R)',
             'Attribution_Metric': 'P_comp_median',
             'Spearman_rho': r_sp_l1,
-            'Permutation_p': p_exact_l1,
-            'Perm_p_formatted': p_str_l1,
-            'N_perm': n_pl1,
-            'N_extreme': n_el1,
+            'Permutation_p': None,
+            'Perm_p_formatted': 'N/A (Clustered data; descriptive only)',
+            'N_perm': 'N/A',
+            'N_extreme': 'N/A',
             'Spearman_95CI': f"[{ci_sp_l1[0]:.3f}, {ci_sp_l1[1]:.3f}]",
             'Pearson_r': r_pe_l1,
             'Pearson_95CI': f"[{ci_pe_l1[0]:.3f}, {ci_pe_l1[1]:.3f}]"
@@ -397,11 +534,12 @@ def main():
             df_l1.to_csv(SCRIPT_DIR / "f2_table_layer1_v7b.csv", index=False)
 
     # =========================================================================
-    # PART 4: 【边界证据与敏感性分析】Layer 2 Simplex Normalization Masking Audit
+    # PART 4: 【边界证据与敏感性分析】Layer 2 单纯形归一化掩盖效应审计
     # =========================================================================
     print("\n" + "=" * 115)
     print("【PART 4: 边界证据与敏感性检验 —— Layer 2 单纯形归一化掩盖效应审计】")
-    print("  * 核心对比: 归一化 P_ref (Null) vs 原始绝对归因 A_ref (显著正相关) vs 对数比 logit(P_ref)")
+    print("  * 核心对比: 归一化 P_ref vs 原始绝对归因 A_ref vs 对数比 logit(P_ref)")
+    print("  * 配对 Bootstrap: 直接检验 Δρ = ρ(Raw A_ref) - ρ(Norm P_ref) 及其 95% 置信区间")
     print("=" * 115)
 
     sensitivity_rows = []
@@ -415,7 +553,7 @@ def main():
                                          ('Logit(P_ref)', 'logit_P_ref')]:
             for energy_name, energy_col in [('Combined Sum |ΔE|', 'Combined_Strength_Sum_kcal_mol'),
                                             ('Max |ΔE|', 'Max_Strength_kcal_mol')]:
-                r_sp, p_exact, p_str, n_p, n_e = run_permutation_test_phipson_smyth(sub_sys[energy_col], sub_sys[metric_col])
+                r_sp, p_mc, p_str, n_p, n_e = run_permutation_test_phipson_smyth(sub_sys[energy_col], sub_sys[metric_col])
                 r_pe, _ = stats.pearsonr(sub_sys[energy_col], sub_sys[metric_col])
                 
                 sensitivity_rows.append({
@@ -423,33 +561,57 @@ def main():
                     'Attribution_Form': metric_name,
                     'Energy_Descriptor': energy_name,
                     'Spearman_rho': r_sp,
-                    'Permutation_p': p_exact,
+                    'Permutation_p_mc_nominal': p_mc,
                     'Perm_p_formatted': p_str,
                     'N_perm': n_p,
                     'N_extreme': n_e,
-                    'Pearson_r': r_pe
+                    'Pearson_r': r_pe,
+                    'Multiple_Testing_Note': 'Nominal uncorrected p-value across 3x2x3 grid'
                 })
 
         # 主归一化行进入总表
-        r_sp_l2, p_exact_l2, p_str_l2, n_pl2, n_el2 = run_permutation_test_phipson_smyth(sub_sys['Combined_Strength_Sum_kcal_mol'], sub_sys['P_ref_median'])
+        r_sp_l2, p_mc_l2, p_str_l2, n_pl2, n_el2 = run_permutation_test_phipson_smyth(sub_sys['Combined_Strength_Sum_kcal_mol'], sub_sys['P_ref_median'])
         r_pe_l2, _ = stats.pearsonr(sub_sys['Combined_Strength_Sum_kcal_mol'], sub_sys['P_ref_median'])
         ci_sp_l2, ci_pe_l2 = run_cluster_bootstrap(sub_sys, 'Combined_Strength_Sum_kcal_mol', 'P_ref_median')
 
         stat_summary_rows.append({
-            'Evidence_Tier': 'Tier 4: Boundary (Layer 2)',
+            'Evidence_Tier': 'Tier 4: Boundary (Layer 2 Normalization)',
             'Model_Track': model,
             'Analysis_Target': 'Layer 2: Combined Strength Sum',
             'Sample_Units': 'N_system=10',
             'Physics_Descriptor': '|ΔE(C-R)| + |ΔE(A-R)|',
             'Attribution_Metric': 'P_ref_median',
             'Spearman_rho': r_sp_l2,
-            'Permutation_p': p_exact_l2,
+            'Permutation_p': p_mc_l2,
             'Perm_p_formatted': p_str_l2,
             'N_perm': n_pl2,
             'N_extreme': n_el2,
             'Spearman_95CI': f"[{ci_sp_l2[0]:.3f}, {ci_sp_l2[1]:.3f}]",
             'Pearson_r': r_pe_l2,
             'Pearson_95CI': f"[{ci_pe_l2[0]:.3f}, {ci_pe_l2[1]:.3f}]"
+        })
+
+        # 核心敏感性对比检验：Δρ = ρ(Raw A_ref) - ρ(Norm P_ref)
+        delta_obs, ci_delta, p_attenuation = run_delta_rho_bootstrap(
+            sub_sys, 'Combined_Strength_Sum_kcal_mol', 'A_ref_median', 'P_ref_median'
+        )
+        print(f"[*] [{model}] Tier 4 Simplex Masking: Δρ = {delta_obs:+.3f} (95% CI: [{ci_delta[0]:.3f}, {ci_delta[1]:.3f}], P(Δ<=0)={p_attenuation:.4f})")
+
+        stat_summary_rows.append({
+            'Evidence_Tier': 'Tier 4: Boundary Sensitivity (Δρ Contrast)',
+            'Model_Track': model,
+            'Analysis_Target': 'Simplex Masking: Δρ = ρ(Raw A_ref) - ρ(Norm P_ref)',
+            'Sample_Units': 'N_system=10',
+            'Physics_Descriptor': 'Combined Strength Sum (|ΔE_c| + |ΔE_a|)',
+            'Attribution_Metric': 'Raw A_ref vs Norm P_ref',
+            'Spearman_rho': delta_obs,
+            'Permutation_p': p_attenuation,
+            'Perm_p_formatted': f"P(Δ<=0)={p_attenuation:.4f}",
+            'N_perm': 10000,
+            'N_extreme': int(p_attenuation * 10000),
+            'Spearman_95CI': f"[{ci_delta[0]:.3f}, {ci_delta[1]:.3f}]",
+            'Pearson_r': None,
+            'Pearson_95CI': 'N/A'
         })
 
         if model == 'V7-A':
