@@ -68,6 +68,13 @@ def validate_runtime_contract(data_root: Path, split_path: Path, bound_path: Pat
             raise FileNotFoundError(f"Required source file missing: {path}")
         actual = sha256_file(path)
         if not expected or actual != expected:
+            # Handle cross-platform text line-ending differences (Windows CRLF vs Linux LF)
+            if filename.endswith(".csv"):
+                raw_bytes = path.read_bytes()
+                lf_hash = hashlib.sha256(raw_bytes.replace(b'\r\n', b'\n')).hexdigest()
+                crlf_hash = hashlib.sha256(raw_bytes.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')).hexdigest()
+                if expected in (lf_hash, crlf_hash):
+                    continue
             raise RuntimeError(
                 f"Source hash mismatch for {filename}: expected={expected}, actual={actual}"
             )
