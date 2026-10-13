@@ -42,6 +42,8 @@ checkpoints_ablation/
 !processed_tri_data/*.csv
 !splits_anion_ood/*.npz
 !splits/*.npz
+!splits/**/*.npz
+v7_shadow_experiment/checkpoints*/
 
 # 忽略本地大压缩包
 *.zip

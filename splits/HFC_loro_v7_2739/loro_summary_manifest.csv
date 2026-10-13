@@ -1,0 +1,13 @@
+target_ref,n_train,n_val,n_test,total,file
+R32,1860,207,672,2739,loro_R32.npz
+R134a,1880,210,649,2739,loro_R134a.npz
+R125,2230,249,260,2739,loro_R125.npz
+R134,2296,258,185,2739,loro_R134.npz
+R152a,2268,254,217,2739,loro_R152a.npz
+R23,2316,259,164,2739,loro_R23.npz
+R41,2406,264,69,2739,loro_R41.npz
+R161,2327,257,155,2739,loro_R161.npz
+R143a,2358,263,118,2739,loro_R143a.npz
+R245fa,2387,267,85,2739,loro_R245fa.npz
+R236fa,2390,264,85,2739,loro_R236fa.npz
+R227ea,2395,264,80,2739,loro_R227ea.npz

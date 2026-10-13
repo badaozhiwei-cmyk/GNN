@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "title": "Authoritative 1403 Index Mapping Provenance Contract",
+    "generator_script": "scripts/provenance/generate_historical_1403_mapping.py",
+    "generator_script_sha256": "d44557237885a6fb60bc229c01b675478d82ee00c3b7d00c436617beb2f8a27d",
+    "v6_metadata_path": "processed_tri_data_v6/meta_info.csv",
+    "v6_metadata_raw_sha256": "22bf3cbc32ec8b183f3c2d513dc14144cdc56b486c7a75db05a8132ed318c22b",
+    "v6_metadata_canonical_lf_sha256": "5061c2a4384bd150fce194dc65ce9086b20ac9e179d57b7124636517389452f2",
+    "canonical_2739_metadata_path": "processed_tri_data_hfc2739/meta_info.csv",
+    "canonical_2739_metadata_sha256": "6247d6ae4382a47d60066ef1514bb7ed00f0b9f4bcf6e0a3e873be4b3860911e",
+    "mapping_csv_path": "paper_results/canonical_v7_ood/historical_1403_index_mapping.csv",
+    "mapping_csv_sha256": "682b8e99f67999acd6b73b5aff078d64f94d9d5d9285c7108b9426a75c1ef227",
+    "total_mapped_samples": 1403,
+    "duplicate_measurement_states_count": 13
+  },
+  "m1_loro_split_sha256": {
+    "loro_R125.npz": "51c27583c56411a6d896c38efdfc8ca884aaaaa2c82997f3146b38f1cc4d5798",
+    "loro_R134.npz": "daee3c5e326350b8837c01b28ff2fbc15b25515363516a1ebe20becf9a9d0d17",
+    "loro_R134a.npz": "70cc28d0f669b888375013ca3a47b1b1f928c729aa79a218ae8adc63d0394c21",
+    "loro_R143a.npz": "b6bc466ab3be88d5fc74008b41b1850a3036608598e5428cbb8457806c98d8c1",
+    "loro_R152a.npz": "a3796fa89eec16701bad1fcb488a79192e5ee69d03873100176a4322ca96b7ae",
+    "loro_R161.npz": "c69fb8aaa60a3441aa68e8c9f8ca6f2c0800a4183ea74ce0e163bdd75de7adf7",
+    "loro_R227ea.npz": "02379e0758ba54750cdbaf33029a754625409f791e8420e8580f9ff191cc89da",
+    "loro_R23.npz": "ae661dac89f0e40b5e0d01f1b575741075c07194db9b42d74d282cd5a3fb6002",
+    "loro_R236fa.npz": "3066e1daa038201b284bb9104f95d907983f7e84af96fb9546cb4ed9a874d46c",
+    "loro_R245fa.npz": "58859b4e7d72a4f152e37c568b2bc7a751e7fd590a77eab832b872c34a2b6683",
+    "loro_R32.npz": "7c6cbc2d40d1abd637dc298b6125dd245cc05b48b65707b627fc348dfa004ca9",
+    "loro_R41.npz": "f204d14ba0f9e4733cfba05c0909492312724ea670eaa2c0232e0f43f7104866"
+  }
+}
