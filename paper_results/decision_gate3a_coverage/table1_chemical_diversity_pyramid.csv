@@ -1,0 +1,4 @@
+Dataset,Description,Total_Samples,N_Refrigerants,N_Cations,N_Anions,N_IL_Combinations,N_Triplet_Systems,T_min_K,T_max_K,P_min_MPa,P_max_MPa,x1_min,x1_max
+Core_HFC_1403,当前 LORO 基准闭环集 (纯 HFC-12 强交叉体系),1403,12,5,6,14,51,282.6,353.15,0.0095,2.16,0.0,0.964
+Expanded_HFC_2739,全量 HFC 数据集 (同 12 种冷媒，大幅扩充阳阴离子多样性),2739,12,17,23,50,134,273.13,353.15,0.0094,2.16,0.0,0.98
+UC_RAIL_Full_4444,全量氟化气体数据库 (HFC + HFO + CFC/HCFC 全体系),4444,26,17,23,52,187,273.13,413.3,0.007,9.582,0.0,0.98

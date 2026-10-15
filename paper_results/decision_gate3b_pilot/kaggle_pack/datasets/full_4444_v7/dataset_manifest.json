@@ -1,0 +1,262 @@
+{
+  "dataset_id": "FULL_4444_V7_CANONICAL",
+  "version": "v7.0",
+  "description": "Full 4444-row multi-component dataset with 100% verified chemical identities (zero HFP-corrupted samples)",
+  "row_count": 4444,
+  "num_species": 26,
+  "refrigerant_species": [
+    "R114",
+    "R114a",
+    "R116",
+    "R1233zd(E)",
+    "R1234yf",
+    "R1234ze(E)",
+    "R124",
+    "R124a",
+    "R125",
+    "R1336mzz(E)",
+    "R1336mzz(Z)",
+    "R134",
+    "R134a",
+    "R14",
+    "R143a",
+    "R152a",
+    "R161",
+    "R218",
+    "R22",
+    "R227ea",
+    "R22B1",
+    "R23",
+    "R236fa",
+    "R245fa",
+    "R32",
+    "R41"
+  ],
+  "species_fingerprints": [
+    {
+      "name": "R114",
+      "species_id": "REF_R114",
+      "CAS": "76-14-2",
+      "formula": "C2Cl2F4",
+      "inchi_key": "DDMOUSALMHHKOS-UHFFFAOYSA-N",
+      "n_heavy_atoms": 8
+    },
+    {
+      "name": "R114a",
+      "species_id": "REF_R114A",
+      "CAS": "374-07-2",
+      "formula": "C2Cl2F4",
+      "inchi_key": "BAMUEXIPKSRTBS-UHFFFAOYSA-N",
+      "n_heavy_atoms": 8
+    },
+    {
+      "name": "R116",
+      "species_id": "REF_R116",
+      "CAS": "76-16-4",
+      "formula": "C2F6",
+      "inchi_key": "WMIYKQLTONQJES-UHFFFAOYSA-N",
+      "n_heavy_atoms": 8
+    },
+    {
+      "name": "R1233zd(E)",
+      "species_id": "REF_R1233ZD_E",
+      "CAS": "102687-65-0",
+      "formula": "C3H2ClF3",
+      "inchi_key": "LDTMPQQAWUMPKS-OWOJBTEDSA-N",
+      "n_heavy_atoms": 7
+    },
+    {
+      "name": "R1234yf",
+      "species_id": "REF_R1234YF",
+      "CAS": "754-12-1",
+      "formula": "C3H2F4",
+      "inchi_key": "FXRLMCRCYDHQFW-UHFFFAOYSA-N",
+      "n_heavy_atoms": 7
+    },
+    {
+      "name": "R1234ze(E)",
+      "species_id": "REF_R1234ZE_E",
+      "CAS": "29118-24-9",
+      "formula": "C3H2F4",
+      "inchi_key": "CDOOAUSHHFGWSA-OWOJBTEDSA-N",
+      "n_heavy_atoms": 7
+    },
+    {
+      "name": "R124",
+      "species_id": "REF_R124",
+      "CAS": "2837-89-0",
+      "formula": "C2HClF4",
+      "inchi_key": "BOUGCJDAQLKBQH-UHFFFAOYSA-N",
+      "n_heavy_atoms": 7
+    },
+    {
+      "name": "R124a",
+      "species_id": "REF_R124A",
+      "CAS": "354-25-6",
+      "formula": "C2HClF4",
+      "inchi_key": "JQZFYIGAYWLRCC-UHFFFAOYSA-N",
+      "n_heavy_atoms": 7
+    },
+    {
+      "name": "R125",
+      "species_id": "REF_R125",
+      "CAS": "354-33-6",
+      "formula": "C2HF5",
+      "inchi_key": "GTLACDSXYULKMZ-UHFFFAOYSA-N",
+      "n_heavy_atoms": 7
+    },
+    {
+      "name": "R1336mzz(E)",
+      "species_id": "REF_R1336MZZ_E",
+      "CAS": "51340-47-5",
+      "formula": "C4H2F6",
+      "inchi_key": "NLOLSXYRJFEOTA-OWOJBTEDSA-N",
+      "n_heavy_atoms": 10
+    },
+    {
+      "name": "R1336mzz(Z)",
+      "species_id": "REF_R1336MZZ_Z",
+      "CAS": "692-49-9",
+      "formula": "C4H2F6",
+      "inchi_key": "NLOLSXYRJFEOTA-UPHRSURJSA-N",
+      "n_heavy_atoms": 10
+    },
+    {
+      "name": "R134",
+      "species_id": "REF_R134",
+      "CAS": "359-35-3",
+      "formula": "C2H2F4",
+      "inchi_key": "WXGNWUVNYMJENI-UHFFFAOYSA-N",
+      "n_heavy_atoms": 6
+    },
+    {
+      "name": "R134a",
+      "species_id": "REF_R134A",
+      "CAS": "811-97-2",
+      "formula": "C2H2F4",
+      "inchi_key": "LVGUZGTVOIAKKC-UHFFFAOYSA-N",
+      "n_heavy_atoms": 6
+    },
+    {
+      "name": "R14",
+      "species_id": "REF_R14",
+      "CAS": "75-73-0",
+      "formula": "CF4",
+      "inchi_key": "TXEYQDLBPFQVAA-UHFFFAOYSA-N",
+      "n_heavy_atoms": 5
+    },
+    {
+      "name": "R143a",
+      "species_id": "REF_R143A",
+      "CAS": "420-46-2",
+      "formula": "C2H3F3",
+      "inchi_key": "UJPMYEOUBPIPHQ-UHFFFAOYSA-N",
+      "n_heavy_atoms": 5
+    },
+    {
+      "name": "R152a",
+      "species_id": "REF_R152A",
+      "CAS": "75-37-6",
+      "formula": "C2H4F2",
+      "inchi_key": "NPNPZTNLOVBDOC-UHFFFAOYSA-N",
+      "n_heavy_atoms": 4
+    },
+    {
+      "name": "R161",
+      "species_id": "REF_R161",
+      "CAS": "353-36-6",
+      "formula": "C2H5F",
+      "inchi_key": "UHCBBWUQDAVSMS-UHFFFAOYSA-N",
+      "n_heavy_atoms": 3
+    },
+    {
+      "name": "R218",
+      "species_id": "REF_R218",
+      "CAS": "76-19-7",
+      "formula": "C3F8",
+      "inchi_key": "QYSGYZVSCZSLHT-UHFFFAOYSA-N",
+      "n_heavy_atoms": 11
+    },
+    {
+      "name": "R22",
+      "species_id": "REF_R22",
+      "CAS": "75-45-6",
+      "formula": "CHClF2",
+      "inchi_key": "VOPWNXZWBYDODV-UHFFFAOYSA-N",
+      "n_heavy_atoms": 4
+    },
+    {
+      "name": "R227ea",
+      "species_id": "REF_R227EA",
+      "CAS": "431-89-0",
+      "formula": "C3HF7",
+      "inchi_key": "YFMFNYKEUDLDTL-UHFFFAOYSA-N",
+      "n_heavy_atoms": 10
+    },
+    {
+      "name": "R22B1",
+      "species_id": "REF_R22B1",
+      "CAS": "124-72-1",
+      "formula": "CHBrF2",
+      "inchi_key": "GRCDJFHYVYUNHM-UHFFFAOYSA-N",
+      "n_heavy_atoms": 4
+    },
+    {
+      "name": "R23",
+      "species_id": "REF_R23",
+      "CAS": "75-46-7",
+      "formula": "CHF3",
+      "inchi_key": "XPDWGBQVDMORPB-UHFFFAOYSA-N",
+      "n_heavy_atoms": 4
+    },
+    {
+      "name": "R236fa",
+      "species_id": "REF_R236FA",
+      "CAS": "690-39-1",
+      "formula": "C3H2F6",
+      "inchi_key": "NSGXIBWMJZWTPY-UHFFFAOYSA-N",
+      "n_heavy_atoms": 9
+    },
+    {
+      "name": "R245fa",
+      "species_id": "REF_R245FA",
+      "CAS": "460-73-1",
+      "formula": "C3H3F5",
+      "inchi_key": "MSSNHSVIGIHOJA-UHFFFAOYSA-N",
+      "n_heavy_atoms": 8
+    },
+    {
+      "name": "R32",
+      "species_id": "REF_R32",
+      "CAS": "75-10-5",
+      "formula": "CH2F2",
+      "inchi_key": "RWRIWBAIICGTTQ-UHFFFAOYSA-N",
+      "n_heavy_atoms": 3
+    },
+    {
+      "name": "R41",
+      "species_id": "REF_R41",
+      "CAS": "593-53-3",
+      "formula": "CH3F",
+      "inchi_key": "NBVXSUQYWXRMNV-UHFFFAOYSA-N",
+      "n_heavy_atoms": 2
+    }
+  ],
+  "row_order_inchikey_sha256": "151f8dc18b0426cb3c21fecb1f55b0fbb482cf227a2c0febae7411df93182599",
+  "files": {
+    "data.npy": {
+      "sha256": "0160df95ac55398493930075a46d8d330c3afcc9a16d535dc68ef29663832bc1",
+      "size_bytes": 838527
+    },
+    "label.npy": {
+      "sha256": "992f311e70fc19d4506f091f63a8b93538d637a44f87b80a8cf367a806e55ebe",
+      "size_bytes": 17904
+    },
+    "meta_info.csv": {
+      "sha256": "9ab2c3a15e2b2fe2632404445abf90e9fabc2d832c746a92fd9676192d8e7fd2",
+      "size_bytes": 988106
+    }
+  },
+  "created_at": "2026-09-24T11:20:00",
+  "chemical_registry_version": "v1.0"
+}

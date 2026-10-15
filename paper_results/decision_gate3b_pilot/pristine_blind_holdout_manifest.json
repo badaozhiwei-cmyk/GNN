@@ -1,0 +1,29 @@
+{
+  "name": "Pristine_Blind_Holdout_9_Refrigerants",
+  "total_samples": 599,
+  "refrigerant_species": [
+    "R114",
+    "R114A",
+    "R116",
+    "R124",
+    "R124A",
+    "R14",
+    "R218",
+    "R22",
+    "R22B1"
+  ],
+  "species_breakdown": {
+    "R22": 184,
+    "R22B1": 135,
+    "R14": 89,
+    "R116": 59,
+    "R218": 36,
+    "R124": 26,
+    "R124A": 26,
+    "R114": 22,
+    "R114A": 22
+  },
+  "file_path": "D:\\GNN\\Refrigerant-Solubility-GNN\\paper_results\\decision_gate3b_pilot\\pristine_blind_holdout_599.csv",
+  "sha256": "4285380c695c05f8518c75c3b466f6370834cb278fece9a5c66fc0791f3b9b43",
+  "isolation_status": "Strictly Isolated (绝不参与任何训练、验证、早停或调优)"
+}

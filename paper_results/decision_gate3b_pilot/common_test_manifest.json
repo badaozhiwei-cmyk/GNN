@@ -1,0 +1,16 @@
+{
+  "R32_test": {
+    "n_samples": 287,
+    "file": "D:\\GNN\\Refrigerant-Solubility-GNN\\paper_results\\decision_gate3b_pilot\\common_test_set_R32_287.csv",
+    "sha256": "28c64ec23bc55846ff8eaecf0ad850edb52f8dc0767605beb54018f3e8ec79b4",
+    "true_x1_mean": 0.23134351916376306,
+    "true_x1_std": 0.18421428123898906
+  },
+  "R143a_test": {
+    "n_samples": 83,
+    "file": "D:\\GNN\\Refrigerant-Solubility-GNN\\paper_results\\decision_gate3b_pilot\\common_test_set_R143a_83.csv",
+    "sha256": "2772b4f6db0dfae66228b3d25a2717edf7d6624fa9d38ecbb54fe2063caa5303",
+    "true_x1_mean": 0.1311901204819277,
+    "true_x1_std": 0.10183384680381742
+  }
+}

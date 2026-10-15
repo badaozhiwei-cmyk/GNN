@@ -1,0 +1,5 @@
+External_Source,Reported_Count,Reported_Coverage,Relationship_to_Local_UC_RAIL,Detailed_Deduplication_Analysis
+"Fu et al., 2025 (Sep. Purif. Technol.)",4136,"25 gases, 52 ILs, T: 273.13-413.3 K, P: 0.007-9.582 MPa",直接派生子集 (100% 来源重合),Fu 2025 在引文中明确声明数据全部取自 Cantabria 大学 Urtiaga 团队的 UC-RAIL 数据库。本地 ZLJ_DATA.xlsx 即为 UC-RAIL 官方母表(4444点)。Fu 2025 经过了部分极端温压或缺失值过滤(4136点)，两者底层实验测量值 100% 同源，绝不能当成两份独立数据叠加！
+"Wang et al., 2026 (Green Chem. Eng.)",3853,"2424 HFCs, 1076 HFOs, 353 other systems",同源子集 (98%+ 来源重合),Wang 2026 论文正文明确声明数据主要汇编自既有氟化气体溶解度综述(即 UC-RAIL)。其 HFC(2424)/HFO(1076)/Other(353) 的分类完全镜像了 UC-RAIL 的 S3/S4/S5 分表结构。本地已有的 1-s2.0-S2666952824000554-mmc1.xlsx 即为其补充材料，与 ZLJ_DATA.xlsx 存在极高冗余度。
+"Qin et al., 2025 (Chem. Eng. J.)",4850,"18 refrigerants, 11 cations, 14 anions","主体重叠 + 局部增量 (~85% 重叠, 少量新实验点)","Qin 2025 聚焦于 UNIFAC 相互作用参数重拟合，其基础数据集以 UC-RAIL 核心 HFC 为基石，并补充了少量来自中国期刊及近两年新发表的氟化烷烃-离子液体 VLE 测定数据。若要引入，必须严格基于 (Refrigerant, Cation, Anion, T, P) 进行浮点去重过滤，只保留真正新增的增量实验点。"
+2014 Comprehensive Review (Chem. Rev.),16000,"全气体 (包含 CO2, CH4, H2S, N2, H2O 及微量氟气)",母体总集 (包含大量非氟化气体),2014 年综述是气体-离子液体领域的奠基性数据库，但其中 80% 以上为 CO2、CH4、H2S 等常规气体。其中关于 HFC 的部分已被后续专门针对制冷剂的 UC-RAIL 数据库全面吸收并完成了勘误校对。

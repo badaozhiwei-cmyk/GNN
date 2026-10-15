@@ -1,0 +1,15 @@
+Refrigerant,Category,Evaluation_Status,N_Points,N_IL_Combinations,T_min_K,T_max_K,P_min_MPa,P_max_MPa
+R114,CFC/HCFC/PFC/Halocarbon,Pristine_Blind_Test (绝对纯净未见新冷媒，适合终极外推评估),22,1,283.0,348.1,0.0103,0.1504
+R114A,CFC/HCFC/PFC/Halocarbon,Pristine_Blind_Test (绝对纯净未见新冷媒，适合终极外推评估),22,1,283.1,348.1,0.0102,0.1504
+R116,CFC/HCFC/PFC/Halocarbon,Pristine_Blind_Test (绝对纯净未见新冷媒，适合终极外推评估),59,5,303.15,343.24,0.0628,0.131348
+R1233ZD(E),HFO/HCFO,Development_Diagnostic (已参与先前期开发讨论，非严格盲测),90,3,303.07,343.19,0.007,0.142
+R1234YF,HFO/HCFO,Development_Diagnostic (已参与先前期开发讨论，非严格盲测),685,14,283.15,353.27,0.046,0.9251
+R1234ZE(E),HFO/HCFO,Development_Diagnostic (已参与先前期开发讨论，非严格盲测),308,7,283.15,353.23,0.044,0.6937000000000001
+R124,CFC/HCFC/PFC/Halocarbon,Pristine_Blind_Test (绝对纯净未见新冷媒，适合终极外推评估),26,1,283.0,348.1,0.0101,0.3004
+R124A,CFC/HCFC/PFC/Halocarbon,Pristine_Blind_Test (绝对纯净未见新冷媒，适合终极外推评估),26,1,283.1,348.1,0.0103,0.3001
+R1336MZZ(E),HFO/HCFO,Development_Diagnostic (已参与先前期开发讨论，非严格盲测),11,1,293.1,352.8,0.194,0.8
+R1336MZZ(Z),HFO/HCFO,Development_Diagnostic (已参与先前期开发讨论，非严格盲测),12,1,293.1,352.8,0.05,0.41
+R14,CFC/HCFC/PFC/Halocarbon,Pristine_Blind_Test (绝对纯净未见新冷媒，适合终极外推评估),89,7,293.3,413.3,0.044,9.582
+R218,CFC/HCFC/PFC/Halocarbon,Pristine_Blind_Test (绝对纯净未见新冷媒，适合终极外推评估),36,4,303.16,343.7,0.041199,0.119836
+R22,CFC/HCFC/PFC/Halocarbon,Pristine_Blind_Test (绝对纯净未见新冷媒，适合终极外推评估),184,4,283.1,348.2,0.0498,0.9001
+R22B1,CFC/HCFC/PFC/Halocarbon,Pristine_Blind_Test (绝对纯净未见新冷媒，适合终极外推评估),135,3,283.1,348.2,0.0249,0.4
