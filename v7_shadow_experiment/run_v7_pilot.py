@@ -6,7 +6,7 @@ and V7-B (Interaction graph + Descriptor Modality Dropout p=0.3).
 
 Protocol strictly bound to V6 production standards:
 - Dataset: Saturated HFC Universe (N=2739)
-- Split: splits/HFC_all_split.npz (Train=2465, Val=274, 90%/10%)
+- Split: splits/HFC_grouped_state_split.npz (Train=2464, Val=275, 90%/10% Grouped-L0)
 - Optimizer: Adam(lr=0.001, weight_decay=1e-6)
 - Scheduler: CosineAnnealingLR(eta_min=1e-5)
 - Criterion: HuberLoss(delta=0.05)
@@ -176,11 +176,23 @@ def run_training_seed(seed: int, model_name: str, args):
             m_sha_raw = hashlib.sha256(meta_csv.read_bytes()).hexdigest()
             expected_m_sha = bound_meta["source_dataset"].get("meta_info_sha256")
             if expected_m_sha and expected_m_sha != "N/A":
-                valid = (m_sha_canonical == expected_m_sha) or (m_sha_raw == expected_m_sha) or (expected_m_sha in ("6247d6ae4382a47d60066ef1514bb7ed00f0b9f4bcf6e0a3e873be4b3860911e", "64d0b087a025714c1592bb1c03e82f8640748e1f45e1b1e3ff7ee706e981a8e9"))
-                assert valid, (
+                assert (m_sha_raw == expected_m_sha or m_sha_canonical == expected_m_sha), (
                     f"DATASET HASH MISMATCH: meta_info.csv SHA does not match split contract!\n"
                     f"  Canonical (LF): {m_sha_canonical}\n  Raw bytes:      {m_sha_raw}\n  Expected:       {expected_m_sha}"
                 )
+
+        # 运行时强制校验训练读取的 data.npy 与 label.npy 二进制哈希
+        d_npy = data_root / "data.npy"
+        l_npy = data_root / "label.npy"
+        if d_npy.exists() and bound_meta.get("source_dataset", {}).get("data_npy_sha256"):
+            exp_d_sha = bound_meta["source_dataset"]["data_npy_sha256"]
+            act_d_sha = hashlib.sha256(d_npy.read_bytes()).hexdigest()
+            assert act_d_sha == exp_d_sha, f"TRAIN DATA BREACH: data.npy SHA {act_d_sha} != bound {exp_d_sha}"
+        if l_npy.exists() and bound_meta.get("source_dataset", {}).get("label_npy_sha256"):
+            exp_l_sha = bound_meta["source_dataset"]["label_npy_sha256"]
+            act_l_sha = hashlib.sha256(l_npy.read_bytes()).hexdigest()
+            assert act_l_sha == exp_l_sha, f"TRAIN LABEL BREACH: label.npy SHA {act_l_sha} != bound {exp_l_sha}"
+
         print(f"  [Lineage Gate]: Successfully consumed and verified provenance contract from {bound_json_p.name}")
 
     ds_train = DecoupledTriDataset_v7(str(data_root), valid_indices=train_idx)

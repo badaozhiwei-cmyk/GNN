@@ -26,6 +26,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 import sys
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
 import pathlib as pl
 import hashlib
 import json
@@ -265,6 +269,10 @@ def main():
                         help="MLP Head 使用 LayerNorm 替代 BatchNorm")
     parser.add_argument("--use_rf_blend", action="store_true",
                         help="启用 RF+GNN 验证集自适应动态加权融合 (自动防发散气囊)")
+    parser.add_argument("--use_henry_head", action="store_true",
+                        help="启用极简亨利乘积物理头: y = P_raw * Softplus(s)，严格满足 y(P=0)=0")
+    parser.add_argument("--use_graph_ln", action="store_true",
+                        help="在全局图嵌入进入 MLP 拼接前使用 LayerNorm 归一化")
     # ── 第三招：自适应门控 ──
     parser.add_argument("--use_adaptive_gate", action="store_true",
                         help="启用自适应门控物理描述符注入 (Adaptive Gated Descriptor Injection)")
@@ -364,6 +372,8 @@ def main():
         'use_cond_dropout': args.use_cond_dropout,
         'cond_dropout_p': args.cond_dropout_p,
         'use_layernorm': args.use_layernorm,
+        'use_henry_head': args.use_henry_head,
+        'use_graph_ln': args.use_graph_ln,
         # ── 第三招：自适应门控 ──
         'use_adaptive_gate': args.use_adaptive_gate,
         'base_feature_names': BASE_FEATURES,  # 动态传给 Model，彻底消除魔法常数
@@ -393,6 +403,8 @@ def main():
         "cond_dropout_p": args.cond_dropout_p,
         "use_layernorm": args.use_layernorm,
         "use_rf_blend": args.use_rf_blend,
+        "use_henry_head": args.use_henry_head,
+        "use_graph_ln": args.use_graph_ln,
         "use_adaptive_gate": args.use_adaptive_gate,
         "gate_init_bias": args.gate_init_bias if args.use_adaptive_gate else None,
         "epoch": args.epoch,

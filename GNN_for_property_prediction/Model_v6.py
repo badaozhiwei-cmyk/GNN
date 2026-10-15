@@ -82,6 +82,10 @@ class IL_GAT_v6(torch.nn.Module):
         self.use_cond_dropout = args.get('use_cond_dropout', False)
         self.cond_dropout_p = args.get('cond_dropout_p', 0.3)
         self.use_layernorm = args.get('use_layernorm', False)
+        self.use_henry_head = args.get('use_henry_head', False)
+        self.use_graph_ln = args.get('use_graph_ln', False)
+        if self.use_graph_ln:
+            self.graph_ln = nn.LayerNorm(512)
 
         # ══════════════════════════════════════════════════════
         # 【第三招】自适应门控物理描述符注入
@@ -282,9 +286,20 @@ class IL_GAT_v6(torch.nn.Module):
             ], dim=1)
         else:
             # 祖宗之法原版：直接拼接
+            if self.use_graph_ln:
+                x_g = self.graph_ln(x_g)
             x_concat = torch.cat([x_g, cond], dim=1)
 
         x_out = self.l5(x_concat)
+
+        # ── 物理乘积头：y = P_raw * Softplus(s)，硬边界保证 y(P=0) = 0 ──
+        if self.use_henry_head:
+            slope = torch.nn.functional.softplus(x_out)
+            if hasattr(data_i, 'P_raw') and data_i.P_raw is not None:
+                P_raw = data_i.P_raw.to(x_out.device, dtype=x_out.dtype).view(-1, 1)
+                return P_raw * slope
+            else:
+                return slope
 
         # ── 第二招：Sigmoid 物理约束，输出严格限制在 [0, 1] ──
         if self.use_sigmoid:

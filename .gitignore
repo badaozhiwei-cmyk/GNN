@@ -37,6 +37,8 @@ checkpoints_ablation/
 !Phase4_Scientific_Validation/xTB_Physics_Descriptors.csv
 !ZLJ_DATA.xlsx
 !index_with_anion.csv
+!processed_tri_data_v6/
+!processed_tri_data_v6/**
 !processed_tri_data_hfc2739/*.npy
 !processed_tri_data/*.npy
 !processed_tri_data/*.csv

@@ -220,6 +220,9 @@ class IL_set_v6(torch.utils.data.Dataset):
         if self.args.get('add_global', True):
             Combine_Graph = add_global(Combine_Graph)
 
+        # 挂载未标准化的真实物理压力 (MPa)，用于物理乘积头
+        Combine_Graph.P_raw = torch.tensor(float(data[4]), dtype=torch.float)
+
         # ── 根据 descriptor_mode 提取对应的条件特征 ──
         raw_cond = [data[idx_] for idx_ in self.feature_indices]
 
