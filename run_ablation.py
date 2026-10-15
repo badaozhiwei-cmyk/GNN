@@ -284,6 +284,8 @@ def main():
                         help="是否只使用拥有完整 ΔE 结合能的数据进行训练与测试（确保公平对比基准）")
     parser.add_argument("--keep_checkpoints", action="store_true",
                         help="是否保留每个 seed 的 .pth 权重文件（默认 False，自动删除以节省 Kaggle 磁盘空间）")
+    parser.add_argument("--out_dir", type=str, default=None,
+                        help="自定义输出目录（默认 None，按哈希自动命名）")
 
     args = parser.parse_args()
     if args.feature_clip is not None and args.feature_clip <= 0:
@@ -432,7 +434,10 @@ def main():
     config_str = json.dumps(exp_config, sort_keys=True)
     config_hash = hashlib.md5(config_str.encode()).hexdigest()[:8]
 
-    out_dir = f"results_ablation/{args.family}_{args.mode}_{args.descriptor_mode}_{config_hash}"
+    if args.out_dir is not None:
+        out_dir = args.out_dir
+    else:
+        out_dir = f"results_ablation/{args.family}_{args.mode}_{args.descriptor_mode}_{config_hash}"
     os.makedirs(out_dir, exist_ok=True)
 
     # 保存配置文件（可溯源）
