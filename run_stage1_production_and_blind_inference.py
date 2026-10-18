@@ -76,6 +76,17 @@ class EarlyStopping:
             self.counter = 0
 
 
+def apply_fitted_scaler(dataset, scaler_path: Path):
+    """
+    将训练集严格拟合出的 StandardScaler (canonical_train_scaler.joblib)
+    统一赋值给数据集实例，设置 dataset.scalers, dataset.means, dataset.scales。
+    """
+    scalers = joblib.load(scaler_path)
+    dataset.scalers = scalers
+    dataset.means = np.array([float(s.mean_[0]) for s in scalers], dtype=np.float32)
+    dataset.scales = np.array([max(float(s.scale_[0]), 1e-8) for s in scalers], dtype=np.float32)
+
+
 def train_single_model(model_type: str, seed: int, train_loader, val_loader, 
                        model_args: dict, device: torch.device, out_ckpt_dir: Path):
     set_seed(seed)
@@ -250,8 +261,9 @@ def main():
     scaler_sha = sha256_file(canonical_scaler)
     print(f"  [SAVED] Scaler fitted strictly on train split: {canonical_scaler.name} | SHA-256: {scaler_sha}")
 
-    # 将拟合好的 scaler 赋予 validation 数据集
-    val_dataset.load_scalers(str(canonical_scaler))
+    # 将拟合好的 scaler 赋予 validation 数据集与 train 数据集
+    apply_fitted_scaler(train_dataset, canonical_scaler)
+    apply_fitted_scaler(val_dataset, canonical_scaler)
 
     train_loader = DataLoader(train_dataset, batch_size=model_args['batch_size'], shuffle=True)
     val_loader   = DataLoader(val_dataset,   batch_size=model_args['batch_size'], shuffle=False)
@@ -278,7 +290,7 @@ def main():
 
     indices_599 = list(range(3845, 4444))
     test_dataset = IL_set_v6(path=str(ROOT / 'datasets' / 'full_4444_v7'), args=model_args, valid_indices=indices_599)
-    test_dataset.load_scalers(str(canonical_scaler))
+    apply_fitted_scaler(test_dataset, canonical_scaler)
     assert len(test_dataset) == 599
 
     test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
