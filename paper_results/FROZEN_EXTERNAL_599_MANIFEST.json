@@ -1,0 +1,92 @@
+{
+  "protocol_version": "v1.0_preregistration_frozen",
+  "timestamp_iso": "2026-10-18T10:37:02.396995",
+  "dataset_name": "External_Isolated_Holdout_599",
+  "total_samples": 599,
+  "file_path": "D:\\GNN\\Refrigerant-Solubility-GNN\\paper_results\\decision_gate3b_pilot\\pristine_blind_holdout_599.csv",
+  "sha256": "4285380c695c05f8518c75c3b466f6370834cb278fece9a5c66fc0791f3b9b43",
+  "species_manifest": {
+    "total_gases": 9,
+    "gas_list": [
+      "R114",
+      "R114a",
+      "R116",
+      "R124",
+      "R124a",
+      "R14",
+      "R218",
+      "R22",
+      "R22B1"
+    ],
+    "breakdown": {
+      "R22": 184,
+      "R22B1": 135,
+      "R14": 89,
+      "R116": 59,
+      "R218": 36,
+      "R124": 26,
+      "R124a": 26,
+      "R114": 22,
+      "R114a": 22
+    }
+  },
+  "elemental_exposure_audit": {
+    "training_set_atomic_numbers": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      15,
+      16,
+      17
+    ],
+    "training_set_elements": [
+      "B",
+      "C",
+      "N",
+      "O",
+      "F",
+      "P",
+      "S",
+      "Cl"
+    ],
+    "group_a_main_ood_benchmark": {
+      "description": "PFCs and HCFCs composed strictly of elements with trained atom embeddings (C, H, F, Cl)",
+      "samples": 464,
+      "gases": [
+        "R114",
+        "R114a",
+        "R116",
+        "R124",
+        "R124a",
+        "R14",
+        "R218",
+        "R22"
+      ],
+      "untrained_atom_embeddings": false
+    },
+    "group_b_novel_element_oov_probe": {
+      "description": "R22B1 containing Bromine (Br, Z=35). Evaluated separately as an out-of-vocabulary element probe.",
+      "samples": 135,
+      "gases": [
+        "R22B1"
+      ],
+      "untrained_atom_embeddings": true,
+      "untrained_atomic_numbers": [
+        35
+      ]
+    }
+  },
+  "predefined_evaluation_protocol": {
+    "execution_policy": "Single confirmatory inference run on fully frozen models. No post-hoc re-tuning.",
+    "metrics_to_compute": [
+      "Macro-MAE (raw & [0,1] clipped)",
+      "Micro-MAE (raw & [0,1] clipped)",
+      "RMSE (raw & [0,1] clipped)",
+      "R2 (raw & [0,1] clipped)",
+      "Out-of-bounds count (> 1.0 and < 0.0)"
+    ]
+  },
+  "freeze_commitment": "This manifest is permanently locked BEFORE running any model training or inference."
+}

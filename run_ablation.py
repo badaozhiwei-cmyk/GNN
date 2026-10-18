@@ -138,7 +138,8 @@ class AblationRunner:
 
         for epoch in range(1, self.args['epoch'] + 1):
             self._model.train()
-            train_loss = 0.0
+            train_loss_sum = 0.0
+            train_sample_count = 0
 
             bar = tqdm(total=len(train_loader), dynamic_ncols=True, leave=False,
                        desc=f"Epoch {epoch:>3d}")
@@ -151,26 +152,31 @@ class AblationRunner:
                 loss = self._criterion(y.flatten(), label.flatten())
                 loss.backward()
                 self._optimizer.step()
-                train_loss += loss.item()
+                batch_n = label.numel()
+                train_loss_sum += loss.item() * batch_n
+                train_sample_count += batch_n
                 bar.update()
             bar.close()
 
             self._scheduler.step()
 
             self._model.eval()
-            val_loss = 0.0
+            val_loss_sum = 0.0
+            val_sample_count = 0
             with torch.no_grad():
                 for graph, cond, label in dev_loader:
                     graph = graph.to(self._device)
                     cond = cond.to(self._device)
                     label = label.to(self._device)
                     y = self._model(graph, cond)
-                    val_loss += self._criterion(y.flatten(), label.flatten()).item()
+                    batch_n = label.numel()
+                    val_loss_sum += self._criterion(y.flatten(), label.flatten()).item() * batch_n
+                    val_sample_count += batch_n
 
-            if len(train_loader.dataset) == 0 or len(dev_loader.dataset) == 0:
+            if train_sample_count == 0 or val_sample_count == 0:
                 raise RuntimeError("Empty train/validation loader; cannot train or early-stop safely")
-            avg_train = train_loss / len(train_loader)
-            avg_val   = val_loss / len(dev_loader)
+            avg_train = train_loss_sum / train_sample_count
+            avg_val   = val_loss_sum / val_sample_count
 
             if avg_val < best_v_loss:
                 best_v_loss = avg_val

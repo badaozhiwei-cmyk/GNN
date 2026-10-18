@@ -299,7 +299,10 @@ class IL_GAT_v6(torch.nn.Module):
                 P_raw = data_i.P_raw.to(x_out.device, dtype=x_out.dtype).view(-1, 1)
                 return P_raw * slope
             else:
-                return slope
+                raise RuntimeError(
+                    "Model_v6 configured with use_henry_head=True requires unscaled 'P_raw' on the input batch, "
+                    "but data_i.P_raw was missing or None. Silent fallback is prohibited."
+                )
 
         # ── 第二招：Sigmoid 物理约束，输出严格限制在 [0, 1] ──
         if self.use_sigmoid:
